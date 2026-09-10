@@ -1,18 +1,19 @@
 # Lightweight Python image
 FROM python:3.12-slim
 
-# System deps for lxml + Playwright chromium (if enabled)
+# System deps for lxml + (optional) Playwright chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libxml2-dev libxslt1-dev \
+    curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install Python deps
+# Install Python deps (including yt-dlp)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Optionally install Playwright + chromium
+# Optionally install Playwright + chromium (when ENABLE_PLAYWRIGHT=true)
 ARG ENABLE_PLAYWRIGHT=false
 RUN if [ "$ENABLE_PLAYWRIGHT" = "true" ]; then \
         pip install playwright && \
