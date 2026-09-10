@@ -1,13 +1,8 @@
 name: Build Android APK (TWA)
 
 # ============================================================
-# TikTok Extractor Pro v3.0 — Build APK via Bubblewrap + TWA
-# Triggers:
-#   1. Push of a version tag (v1.0.0, v1.1.0, etc.)
-#   2. Manual dispatch from Actions tab
-# Output:
-#   - tiktok-extractor-pro.apk uploaded to GitHub Releases
-#   - SHA-256 of signing cert printed in summary
+# TikTok Extractor Pro v3.0 — Build APK via Gradle directly
+# Uses the pre-built Android project in /android
 # ============================================================
 
 on:
@@ -37,153 +32,136 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      # ─── 2) JDK 17 (required by Android Gradle Plugin) ─────────────────
+      # ─── 2) JDK 17 ─────────────────────────────────────────────────────
       - name: ☕ Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # ─── 3) Node.js (required by bubblewrap CLI) ───────────────────────
-      - name: 📦 Set up Node.js
-        uses: actions/setup-node@v4
+      # ─── 3) Android SDK ────────────────────────────────────────────────
+      - name: 📱 Set up Android SDK
+        uses: android-actions/setup-android@v3
         with:
-          node-version: '20'
+          packages: |
+            tools
+            platform-tools
+            platforms;android-34
+            build-tools;34.0.0
 
-      # ─── 4) Install bubblewrap ──────────────────────────────────────────
-      - name: 🔧 Install Bubblewrap CLI
-        run: npm install -g @bubblewrap/cli
-
-      # ─── 5) Decode keystore ─────────────────────────────────────────────
+      # ─── 4) Decode keystore ─────────────────────────────────────────────
       - name: 🔑 Decode signing keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
+          mkdir -p $HOME/.android
           if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "⚠️  ANDROID_KEYSTORE_BASE64 not set — generating ephemeral keystore"
             keytool -genkey -v \
-              -keystore ./android.keystore \
+              -keystore $HOME/.android/debug.keystore \
               -alias android \
               -keyalg RSA -keysize 2048 \
               -validity 10000 \
               -storepass android \
               -keypass android \
               -dname "CN=TikTok Extractor Pro, OU=Dev, O=abuhoney, L=Dubai, ST=Dubai, C=AE"
+            echo "KEYSTORE_PATH=$HOME/.android/debug.keystore" >> $GITHUB_ENV
             echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
           else
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > ./android.keystore
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > $HOME/.android/release.keystore
+            echo "KEYSTORE_PATH=$HOME/.android/release.keystore" >> $GITHUB_ENV
             echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD || 'android' }}" >> $GITHUB_ENV
-            echo "✅ Keystore decoded from secret ($(wc -c < ./android.keystore) bytes)"
+            echo "✅ Keystore decoded from secret ($(wc -c < $HOME/.android/release.keystore) bytes)"
           fi
 
-      # ─── 6) Wait for PWA to be reachable ────────────────────────────────
-      - name: 🌐 Wait for PWA reachability
+      # ─── 5) Generate Gradle wrapper (if not already present) ───────────
+      - name: 🔧 Set up Gradle wrapper
+        working-directory: ./android
         run: |
-          echo "Checking $SERVICE_URL..."
-          for i in $(seq 1 30); do
-            if curl -sf --max-time 10 "$SERVICE_URL/api/health" >/dev/null; then
-              echo "✅ PWA is reachable (attempt $i)"
-              exit 0
-            fi
-            echo "  Attempt $i: not reachable, waiting 10s..."
-            sleep 10
-          done
-          echo "⚠️  PWA not reachable after 5 min — using static manifest instead"
-          exit 0  # Don't fail the build; we'll use the local manifest
-
-      # ─── 7) Initialize TWA project ─────────────────────────────────────
-      - name: 📝 Initialize TWA project
-        run: |
-          # Create the TWA project directory
-          mkdir -p ./twa-build
-          cd ./twa-build
-
-          # Copy our pre-built twa-manifest.json into the project
-          cp ../android/twa-manifest.json .
-
-          # Try initializing from the live PWA
-          # Feed "n\n$JAVA_HOME\n" to bubblewrap to answer:
-          #   "Do you want Bubblewrap to install the JDK? (Y/n)" → n
-          #   "Path to your existing JDK 17:" → $JAVA_HOME
-          printf 'n\n%s\n' "$JAVA_HOME" | bubblewrap init \
-            --manifest "$SERVICE_URL/static/manifest.json" \
-            --directory . \
-            --skipAccessibilityAudit 2>&1 || true
-
-          # If init didn't generate the wrapper files, force-update from our manifest
-          if [ ! -d "app" ]; then
-            echo "init did not produce app/ directory — running update"
-            printf 'n\n%s\n' "$JAVA_HOME" | bubblewrap update 2>&1 || true
+          # Install Gradle 8.7
+          if [ ! -f "./gradlew" ]; then
+            echo "gradlew not found — installing gradle 8.7"
+            wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip -O /tmp/gradle.zip
+            unzip -q /tmp/gradle.zip -d /tmp/
+            /tmp/gradle-8.7/bin/gradle wrapper --gradle-version 8.7
           fi
+          chmod +x ./gradlew
+          ./gradlew --version
 
-          echo "--- Files in twa-build/ ---"
-          ls -la
-          echo "--- Files in app/ (if exists) ---"
-          ls -la app/ 2>/dev/null || echo "(app/ dir not found)"
+      # ─── 6) Configure signing config in build.gradle ───────────────────
+      - name: 🔐 Configure signing
+        working-directory: ./android
+        run: |
+          # Inject signing config into app/build.gradle
+          python3 - <<'EOF'
+          import re
+          with open('app/build.gradle', 'r') as f:
+              content = f.read()
+          # Add signing config inside android { ... }
+          signing_config = '''
+          signingConfigs {
+              release {
+                  storeFile file(System.env.KEYSTORE_PATH)
+                  storePassword System.env.KEYSTORE_PASSWORD
+                  keyAlias 'android'
+                  keyPassword System.env.KEYSTORE_PASSWORD
+              }
+          }
+          '''
+          # Insert after the android { line
+          content = re.sub(r'(android\s*\{)', r'\1\n' + signing_config, content, count=1)
+          # Add signingConfig to release buildType
+          content = re.sub(
+              r'(buildTypes\s*\{\s*release\s*\{)',
+              r'\1\n            signingConfig signingConfigs.release',
+              content
+          )
+          with open('app/build.gradle', 'w') as f:
+              f.write(content)
+          print("✅ Signing config injected into app/build.gradle")
+          EOF
+          echo
+          echo "--- app/build.gradle (preview) ---"
+          head -50 app/build.gradle
 
-      # ─── 8) Build APK ───────────────────────────────────────────────────
-      - name: 🔨 Build APK via bubblewrap
-        working-directory: ./twa-build
+      # ─── 7) Build APK ──────────────────────────────────────────────────
+      - name: 🔨 Build APK
+        working-directory: ./android
         env:
+          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
           KEYSTORE_PASSWORD: ${{ env.KEYSTORE_PASSWORD }}
         run: |
           mkdir -p ../output
-
-          # Feed the JDK answers via stdin, then keystore password
-          set +e
-          printf 'n\n%s\n' "$JAVA_HOME" | bubblewrap build \
-            --keystorePath ../android.keystore \
-            --keystorePassword "$KEYSTORE_PASSWORD" \
-            --keyAlias android \
-            --keyPassword "$KEYSTORE_PASSWORD" 2>&1
-          BW_EXIT=$?
-          set -e
-
-          if [ $BW_EXIT -eq 0 ]; then
-            echo "✅ bubblewrap build succeeded"
-            find . -name "*.apk" -exec cp {} ../output/tiktok-extractor-pro.apk \;
+          # Build the release APK
+          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tail -80
+          # Locate APK
+          APK_PATH=$(find . -name "*.apk" -path "*/release/*" | head -1)
+          if [ -z "$APK_PATH" ]; then
+            APK_PATH=$(find . -name "*.apk" | head -1)
+          fi
+          if [ -n "$APK_PATH" ]; then
+            echo "✅ APK built: $APK_PATH"
+            cp "$APK_PATH" ../output/tiktok-extractor-pro.apk
+            ls -la ../output/
           else
-            echo "⚠️  bubblewrap build failed ($BW_EXIT) — trying gradle directly"
-            if [ -d "app" ]; then
-              cd app
-              chmod +x ./gradlew 2>/dev/null
-              if [ -f "./gradlew" ]; then
-                ./gradlew assembleRelease --no-daemon 2>&1 | tail -50
-              else
-                gradle assembleRelease --no-daemon 2>&1 | tail -50
-              fi
-              APK_PATH=$(find . -name "*.apk" -path "*/release/*" | head -1)
-              if [ -z "$APK_PATH" ]; then
-                APK_PATH=$(find . -name "*.apk" | head -1)
-              fi
-              if [ -n "$APK_PATH" ]; then
-                echo "✅ gradle build succeeded: $APK_PATH"
-                cp "$APK_PATH" ../../output/tiktok-extractor-pro.apk
-              else
-                echo "❌ No APK found in build output"
-                exit 1
-              fi
-            else
-              echo "❌ app/ directory does not exist — bubblewrap init must have failed entirely"
-              exit 1
-            fi
+            echo "❌ No APK found in build output"
+            find . -name "*.apk"
+            exit 1
           fi
 
-          ls -la ../output/
-
-      # ─── 9) Get signing cert SHA-256 ───────────────────────────────────
+      # ─── 8) Get signing cert SHA-256 ───────────────────────────────────
       - name: 🔍 Get signing cert SHA-256
         env:
           KEYSTORE_PASSWORD: ${{ env.KEYSTORE_PASSWORD }}
+          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
         run: |
-          SHA=$(keytool -list -v -keystore ./android.keystore \
+          SHA=$(keytool -list -v -keystore "$KEYSTORE_PATH" \
                   -alias android -storepass "$KEYSTORE_PASSWORD" 2>/dev/null \
                   | grep -i "SHA256:" | head -1 | awk -F: '{print $2}' | tr -d ' ')
           echo "APK_SIGNING_SHA256=$SHA" >> $GITHUB_ENV
           echo "::notice::SHA-256 of APK signing cert: $SHA"
-          echo "Add this as Render env var APK_SIGNING_SHA256 to enable deep links"
 
-      # ─── 10) Determine version ─────────────────────────────────────────
+      # ─── 9) Determine version ───────────────────────────────────────────
       - name: 📋 Determine version
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
@@ -194,7 +172,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "Building version: $VERSION"
 
-      # ─── 11) Upload APK ────────────────────────────────────────────────
+      # ─── 10) Upload APK ─────────────────────────────────────────────────
       - name: 📦 Upload APK to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
@@ -226,11 +204,10 @@ jobs:
 
           files: |
             output/tiktok-extractor-pro.apk
-            android.keystore
           draft: false
           prerelease: false
 
-      # ─── 12) Summary ────────────────────────────────────────────────────
+      # ─── 11) Summary ───────────────────────────────────────────────────
       - name: ✅ Summary
         run: |
           echo "=============================================="
