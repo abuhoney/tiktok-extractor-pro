@@ -94,31 +94,31 @@ jobs:
       # ─── 7) Initialize TWA project ─────────────────────────────────────
       - name: 📝 Initialize TWA project
         run: |
-          # Try to initialize from the live PWA; if that fails, use the static manifest
+          # Create the TWA project directory
           mkdir -p ./twa-build
           cd ./twa-build
 
           # Copy our pre-built twa-manifest.json into the project
           cp ../android/twa-manifest.json .
 
-          # Try initializing from the live PWA (non-interactive)
-          # --jdkPath avoids the interactive "install JDK?" prompt
-          bubblewrap init \
+          # Try initializing from the live PWA
+          # Feed "n\n$JAVA_HOME\n" to bubblewrap to answer:
+          #   "Do you want Bubblewrap to install the JDK? (Y/n)" → n
+          #   "Path to your existing JDK 17:" → $JAVA_HOME
+          printf 'n\n%s\n' "$JAVA_HOME" | bubblewrap init \
             --manifest "$SERVICE_URL/static/manifest.json" \
             --directory . \
-            --jdkPath "$JAVA_HOME" \
             --skipAccessibilityAudit 2>&1 || true
 
           # If init didn't generate the wrapper files, force-update from our manifest
           if [ ! -d "app" ]; then
             echo "init did not produce app/ directory — running update"
-            bubblewrap update \
-              --jdkPath "$JAVA_HOME" \
-              --no-interactive 2>&1 || true
+            printf 'n\n%s\n' "$JAVA_HOME" | bubblewrap update 2>&1 || true
           fi
 
+          echo "--- Files in twa-build/ ---"
           ls -la
-          echo "---"
+          echo "--- Files in app/ (if exists) ---"
           ls -la app/ 2>/dev/null || echo "(app/ dir not found)"
 
       # ─── 8) Build APK ───────────────────────────────────────────────────
@@ -129,10 +129,9 @@ jobs:
         run: |
           mkdir -p ../output
 
-          # Try bubblewrap build (non-interactive) with --jdkPath to skip the JDK prompt
+          # Feed the JDK answers via stdin, then keystore password
           set +e
-          bubblewrap build \
-            --jdkPath "$JAVA_HOME" \
+          printf 'n\n%s\n' "$JAVA_HOME" | bubblewrap build \
             --keystorePath ../android.keystore \
             --keystorePassword "$KEYSTORE_PASSWORD" \
             --keyAlias android \
@@ -151,7 +150,6 @@ jobs:
               if [ -f "./gradlew" ]; then
                 ./gradlew assembleRelease --no-daemon 2>&1 | tail -50
               else
-                # No gradlew — use system gradle
                 gradle assembleRelease --no-daemon 2>&1 | tail -50
               fi
               APK_PATH=$(find . -name "*.apk" -path "*/release/*" | head -1)
