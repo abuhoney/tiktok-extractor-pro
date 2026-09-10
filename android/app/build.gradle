@@ -28,6 +28,8 @@ android {
 }
 
 dependencies {
-    // Trusted Web Activity — wraps the PWA into a native APK
+    // AppCompat for the LauncherActivity
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    // Chrome Custom Tabs — wraps the PWA into a native window
     implementation 'androidx.browser:browser:1.8.0'
 }
