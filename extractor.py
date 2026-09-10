@@ -35,16 +35,18 @@ import os
 import sys
 import json
 import re
+import time
 import logging
 import socket
 import hashlib
 import subprocess
 import shutil
 import tempfile
+import base64
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse, parse_qs, urlunparse, quote, urlencode
+from urllib.parse import urlparse, parse_qs, urlunparse, quote, urlencode, unquote
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -2034,8 +2036,8 @@ def _decode_sensitive_tokens(result: ExtractionResult, url: str) -> None:
     - x-expires (from avatar): epoch → datetime
     - x-signature (from avatar): signature token
     """
-    import base64 as b64mod
-    from datetime import datetime as dt
+    import base64 as b64mod  # noqa: F811
+    from datetime import datetime as dt  # noqa: F811
 
     decoded = {}
     security = {}
@@ -2049,7 +2051,7 @@ def _decode_sensitive_tokens(result: ExtractionResult, url: str) -> None:
         }
         # Try base64 decode (URL-decode first)
         try:
-            from urllib.parse import unquote
+            from urllib.parse import unquote  # noqa: F811
             url_decoded = unquote(d_token)
             b64_decoded = b64mod.b64decode(url_decoded)
             decoded["_d"]["base64_decoded_hex"] = b64_decoded.hex()[:100] + "..."
@@ -2352,7 +2354,7 @@ def _extract_avatar_metadata(result: ExtractionResult) -> None:
     # Decode x-expires (epoch → datetime)
     if avatar_meta.get("x-expires"):
         try:
-            from datetime import datetime as dt
+            from datetime import datetime as dt  # noqa: F811
             exp_epoch = int(avatar_meta["x-expires"])
             avatar_meta["x-expires_datetime"] = dt.utcfromtimestamp(exp_epoch).isoformat() + "Z"
             avatar_meta["x-expires_remaining"] = f"{(exp_epoch - int(time.time())) // 86400}d"
@@ -2396,7 +2398,7 @@ def _build_stream_access_analysis(result: ExtractionResult) -> None:
     if not result.live or not result.live.get("stream_urls"):
         return
 
-    from datetime import datetime as dt
+    from datetime import datetime as dt  # noqa: F811
     access = {
         "total_streams": len(result.live["stream_urls"]),
         "streams": [],
