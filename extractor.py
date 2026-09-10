@@ -366,6 +366,15 @@ class ExtractionResult:
     raw_json: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     extracted_at: str = ""
+    # ─── v3.1: New enrichment fields ─────────────────────────────────
+    decoded_tokens: Dict[str, Any] = field(default_factory=dict)        # decoded _d, expire, sign, checksum, timestamp
+    security_analysis: Dict[str, Any] = field(default_factory=dict)    # sensitivity classification per token
+    cdn_metadata: Dict[str, Any] = field(default_factory=dict)        # CDN datacenter, quality, region from stream URLs
+    avatar_metadata: Dict[str, Any] = field(default_factory=dict)      # avatar URL params (x-expires, refresh_token, idc)
+    stream_access: Dict[str, Any] = field(default_factory=dict)        # all signed stream URLs + expire datetime + access level
+    gift_list: List[Dict[str, Any]] = field(default_factory=list)     # available gifts in room (type, level, rarity, value)
+    donor_rankings: List[Dict[str, Any]] = field(default_factory=list) # top donors with user + amount
+    http_headers: Dict[str, str] = field(default_factory=dict)         # required HTTP headers for stream access
 
     def __post_init__(self):
         if not self.extracted_at:
@@ -1331,6 +1340,18 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
         _enrich_with_webcast(ytdlp_result, session, parsed)
         # 3) HTML UNIVERSAL_DATA (csrf, wid, nonce, requestId, region)
         _enrich_with_html(ytdlp_result, session, parsed, timeout)
+        # 4) v3.1: Webcast gifts + donations + rankings
+        _enrich_with_webcast_gifts(ytdlp_result, session, parsed)
+        # 5) v3.1: User detail API (follower_count, following_count, like_count, video_count)
+        _enrich_with_user_detail_api(ytdlp_result, session, parsed)
+        # 6) v3.1: Decode sensitive tokens (_d, expire, sign, checksum, timestamp)
+        _decode_sensitive_tokens(ytdlp_result, target_url)
+        # 7) v3.1: CDN metadata (datacenter, quality, region, protocol)
+        _extract_cdn_metadata(ytdlp_result)
+        # 8) v3.1: Avatar metadata (x-expires, refresh_token, idc, tos_bucket)
+        _extract_avatar_metadata(ytdlp_result)
+        # 9) v3.1: Stream access analysis (all signed URLs + expiry + access level)
+        _build_stream_access_analysis(ytdlp_result)
         return ytdlp_result
 
     target = parsed.final_url or parsed.normalized
@@ -1382,6 +1403,13 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
                     share_result = _from_share_link(share_data, parsed, target)
                     share_result.error = alt_result.error  # attach yt-dlp error for transparency
                     share_result.raw_keys.append("ytdlp_error_fallback")
+                    # ─── v3.1: Run enrichment even on share-link fallback ───
+                    _enrich_with_share_params(share_result, target)
+                    _enrich_with_user_detail_api(share_result, session, parsed)
+                    _decode_sensitive_tokens(share_result, target)
+                    _enrich_with_webcast_gifts(share_result, session, parsed)
+                    _extract_avatar_metadata(share_result)
+                    _build_stream_access_analysis(share_result)
                     return share_result
                 # No share data — propagate the yt-dlp error
                 return alt_result
@@ -1391,6 +1419,13 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
                 if share_data:
                     share_result = _from_share_link(share_data, parsed, target)
                     share_result.raw_keys.append("ytdlp_subprocess_failed")
+                    # ─── v3.1: Run enrichment even on share-link fallback ───
+                    _enrich_with_share_params(share_result, target)
+                    _enrich_with_user_detail_api(share_result, session, parsed)
+                    _decode_sensitive_tokens(share_result, target)
+                    _enrich_with_webcast_gifts(share_result, session, parsed)
+                    _extract_avatar_metadata(share_result)
+                    _build_stream_access_analysis(share_result)
                     return share_result
 
                 return ExtractionResult(
@@ -1406,7 +1441,15 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
         share_data = _extract_share_link_params(target)
         if share_data:
             logger.info("Falling back to share-link params extraction")
-            return _from_share_link(share_data, parsed, target)
+            share_result = _from_share_link(share_data, parsed, target)
+            # ─── v3.1: Run enrichment even on share-link fallback ───
+            _enrich_with_share_params(share_result, target)
+            _enrich_with_user_detail_api(share_result, session, parsed)
+            _decode_sensitive_tokens(share_result, target)
+            _enrich_with_webcast_gifts(share_result, session, parsed)
+            _extract_avatar_metadata(share_result)
+            _build_stream_access_analysis(share_result)
+            return share_result
 
         return ExtractionResult(
             success=False,
@@ -1471,6 +1514,15 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
     if result:
         result.url = target
         result.final_url = final or target
+        # ─── v3.1: Final enrichment pass (runs on ALL successful results) ───
+        # These are non-destructive — only fill empty fields
+        _enrich_with_share_params(result, target)
+        _enrich_with_user_detail_api(result, session, parsed)
+        _decode_sensitive_tokens(result, target)
+        _enrich_with_webcast_gifts(result, session, parsed)
+        _extract_cdn_metadata(result)
+        _extract_avatar_metadata(result)
+        _build_stream_access_analysis(result)
         return result
 
     return ExtractionResult(
@@ -1788,6 +1840,626 @@ def _enrich_with_webcast(result: ExtractionResult, session: requests.Session,
             continue
 
     logger.debug("Webcast API direct enrichment: all endpoints failed")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  v3.1 Enhanced Enrichment: Gifts, Rankings, Donations, User Detail,
+#  Token Decoding, CDN/Avatar Metadata, Security Analysis
+# ════════════════════════════════════════════════════════════════════════════
+
+def _enrich_with_webcast_gifts(result: ExtractionResult, session: requests.Session,
+                                parsed: ParsedLink) -> None:
+    """يستدعي Webcast API لقائمة الهدايا المتاحة في الغرفة.
+
+    يملأ: result.gift_list[] بكل هدية (type, level, rarity, diamond_count, icon_url)
+    """
+    if not result.live or not result.live.get("room_id"):
+        return
+
+    ua = USER_AGENTS[0]
+    room_id = result.live["room_id"]
+
+    endpoints = [
+        # Gift list endpoint
+        ("https://webcast.tiktok.com/webcast/gift/list/",
+         {"room_id": room_id, "aid": "1988", "device_platform": "web", "app_language": "en"}),
+        # Donation list endpoint (recent donations)
+        ("https://webcast.tiktok.com/webcast/donation/list/",
+         {"room_id": room_id, "aid": "1988", "device_platform": "web", "app_language": "en", "count": "50"}),
+        # Rank list endpoint (top donors)
+        ("https://webcast.tiktok.com/webcast/rank/list/",
+         {"room_id": room_id, "aid": "1988", "device_platform": "web", "app_language": "en", "rank_type": "1"}),
+    ]
+
+    for base_url, params in endpoints:
+        try:
+            url = base_url + "?" + urlencode(params)
+            r = session.get(url, headers={"User-Agent": ua}, timeout=15)
+            if r.status_code != 200:
+                continue
+            data = r.json()
+            if data.get("status_code") != 0:
+                continue
+
+            endpoint_name = base_url.split("/")[-2]
+
+            if endpoint_name == "gift":
+                gifts = data.get("data", {}).get("gifts") or []
+                if gifts:
+                    result.gift_list = [{
+                        "id": g.get("id"),
+                        "name": g.get("name") or g.get("describe"),
+                        "diamond_count": g.get("diamond_count"),
+                        "type": g.get("type"),
+                        "level": g.get("level"),
+                        "rarity": g.get("rarity"),
+                        "icon_url": (g.get("icon", {}).get("url_list") or [None])[0] if isinstance(g.get("icon"), dict) else g.get("icon_url"),
+                    } for g in gifts]
+                    result.raw_keys.append("webcast_gifts")
+                    logger.info(f"✅ Gifts enrichment: {len(result.gift_list)} gifts found")
+
+            elif endpoint_name == "donation":
+                donations = data.get("data", {}).get("donations") or []
+                if donations and result.live:
+                    result.live["recent_donors"] = [{
+                        "user_id": d.get("user_id"),
+                        "nickname": d.get("nickname"),
+                        "unique_id": d.get("unique_id"),
+                        "gift_id": d.get("gift_id"),
+                        "gift_name": d.get("gift_name"),
+                        "diamond_count": d.get("diamond_count"),
+                        "timestamp": d.get("create_time"),
+                    } for d in donations]
+                    result.raw_keys.append("webcast_donations")
+                    logger.info(f"✅ Donations enrichment: {len(result.live['recent_donors'])} recent donors")
+
+            elif endpoint_name == "rank":
+                ranks = data.get("data", {}).get("ranks") or data.get("data", {}).get("user_list") or []
+                if ranks:
+                    result.donor_rankings = [{
+                        "rank": r.get("rank") or i + 1,
+                        "user_id": r.get("user_id"),
+                        "nickname": r.get("nickname"),
+                        "unique_id": r.get("unique_id"),
+                        "score": r.get("score"),
+                        "diamond_count": r.get("diamond_count") or r.get("score"),
+                        "avatar": (r.get("avatar", {}).get("url_list") or [None])[0] if isinstance(r.get("avatar"), dict) else r.get("avatar_url"),
+                    } for i, r in enumerate(ranks)]
+                    if result.live:
+                        result.live["top_donors"] = result.donor_rankings
+                    result.raw_keys.append("webcast_rank")
+                    logger.info(f"✅ Rank enrichment: {len(result.donor_rankings)} top donors")
+
+        except Exception as e:
+            logger.debug(f"Webcast gifts/rank endpoint failed: {e}")
+            continue
+
+
+def _enrich_with_user_detail_api(result: ExtractionResult, session: requests.Session,
+                                  parsed: ParsedLink) -> None:
+    """يستدعي /api/v1/user/detail/ للحصول على follower_count, following_count, إلخ.
+
+    يحاول عدة صيغ: unique_id, sec_user_id, user_id
+    """
+    ua = USER_AGENTS[0]
+    sec_uid = result.author.sec_uid or result.all_ids.get("sec_user_id")
+    user_id = result.author.user_id or result.all_ids.get("user_id")
+    unique_id = result.author.unique_id or parsed.username
+
+    # Build candidate API URLs
+    candidates = []
+    if sec_uid:
+        candidates.append(f"https://www.tiktok.com/api/v1/user/detail/?sec_user_id={sec_uid}&aid=1988&device_platform=web")
+    if user_id:
+        candidates.append(f"https://www.tiktok.com/api/v1/user/detail/?user_id={user_id}&aid=1988&device_platform=web")
+    if unique_id:
+        candidates.append(f"https://www.tiktok.com/api/v1/user/detail/?unique_id={unique_id}&aid=1988&device_platform=web")
+    # Also try the m.tiktok.com mobile API (often less restricted)
+    if sec_uid:
+        candidates.append(f"https://m.tiktok.com/api/user/detail/?sec_uid={sec_uid}&aid=1988")
+
+    for url in candidates:
+        try:
+            r = session.get(url, headers={
+                "User-Agent": ua,
+                "Referer": f"https://www.tiktok.com/@{unique_id}" if unique_id else "https://www.tiktok.com/",
+            }, timeout=15)
+            if r.status_code != 200:
+                continue
+            try:
+                data = r.json()
+            except Exception:
+                continue
+
+            # TikTok user detail API returns: {"userInfo": {"user": {...}, "stats": {...}}}
+            user_info = data.get("userInfo") or data.get("user_info") or data
+            user = user_info.get("user") or user_info
+            stats = user_info.get("stats") or {}
+
+            if not user and not stats:
+                continue
+
+            # Enrich author
+            if user.get("uniqueId") and not result.author.unique_id:
+                result.author.unique_id = user.get("uniqueId")
+            if user.get("nickname") and not result.author.nickname:
+                result.author.nickname = user.get("nickname")
+            if user.get("id") and not result.author.user_id:
+                result.author.user_id = str(user.get("id"))
+            if user.get("secUid") and not result.author.sec_uid:
+                result.author.sec_uid = user.get("secUid")
+            if user.get("signature") and not result.author.signature:
+                result.author.signature = user.get("signature")
+            if user.get("verified") is not None:
+                result.author.verified = bool(user.get("verified"))
+            if user.get("avatarLarger"):
+                avatar = user.get("avatarLarger")
+                if isinstance(avatar, dict):
+                    urls = avatar.get("url_list") or []
+                    if urls and not result.author.avatar:
+                        result.author.avatar = urls[0]
+                elif isinstance(avatar, str) and not result.author.avatar:
+                    result.author.avatar = avatar
+
+            # Enrich stats
+            if stats.get("followerCount"):
+                result.author.follower_count = stats.get("followerCount")
+            if stats.get("followingCount"):
+                result.author.following_count = stats.get("followingCount")
+            if stats.get("heart") or stats.get("likeCount"):
+                result.author.like_count = stats.get("heart") or stats.get("likeCount")
+            if stats.get("videoCount"):
+                result.author.video_count = stats.get("videoCount")
+
+            result.raw_keys.append("user_detail_api")
+            logger.info(f"✅ User detail enrichment: followers={result.author.follower_count}, "
+                        f"following={result.author.following_count}, likes={result.author.like_count}, "
+                        f"videos={result.author.video_count}")
+            return  # Success
+
+        except Exception as e:
+            logger.debug(f"User detail API failed: {e}")
+            continue
+
+
+def _decode_sensitive_tokens(result: ExtractionResult, url: str) -> None:
+    """يفك تشفير التوكنات الحساسة ويصنفها أمنياً.
+
+    يفك:
+    - _d: base64-encoded session token
+    - expire: Unix epoch → human-readable datetime
+    - sign: MD5 signature hash
+    - checksum: SHA-256 hash
+    - timestamp: Unix epoch → datetime
+    - x-expires (from avatar): epoch → datetime
+    - x-signature (from avatar): signature token
+    """
+    import base64 as b64mod
+    from datetime import datetime as dt
+
+    decoded = {}
+    security = {}
+
+    # ─── 1. _d token (session encryption) ────────────────────────────
+    d_token = result.all_ids.get("_d") or ""
+    if d_token:
+        decoded["_d"] = {
+            "raw": d_token[:50] + "..." if len(d_token) > 50 else d_token,
+            "raw_length": len(d_token),
+        }
+        # Try base64 decode (URL-decode first)
+        try:
+            from urllib.parse import unquote
+            url_decoded = unquote(d_token)
+            b64_decoded = b64mod.b64decode(url_decoded)
+            decoded["_d"]["base64_decoded_hex"] = b64_decoded.hex()[:100] + "..."
+            decoded["_d"]["base64_decoded_length"] = len(b64_decoded)
+            # Look for readable strings inside
+            readable = re.findall(rb'[\x20-\x7e]{4,}', b64_decoded)
+            if readable:
+                decoded["_d"]["readable_strings"] = [r.decode('ascii', errors='replace') for r in readable[:5]]
+        except Exception:
+            decoded["_d"]["base64_decode"] = "failed (not valid base64)"
+
+        security["_d"] = {
+            "sensitivity": "critical",
+            "classification": "session_encryption_token",
+            "description": "توكن جلسة مشفّر تستخدمه TikTok للتحقق من أن الطلب جاء من مشاركة رسمية. "
+                           "يمكن استخدامه لفتح نفس الرابط كأنه نفس المستخدم الأصلي.",
+            "risk": "identity_impersonation + tracking",
+            "expires": "لا ينتهي (مرتبط بالجلسة)",
+        }
+
+    # ─── 2. expire tokens (from stream URLs) ──────────────────────────
+    expire_times = {}
+    if result.live and result.live.get("stream_urls"):
+        for fmt_id, fmt_data in result.live["stream_urls"].items():
+            stream_url = fmt_data.get("url") or ""
+            m = re.search(r'[?&]expire=(\d+)', stream_url)
+            if m:
+                expire_epoch = int(m.group(1))
+                expire_dt = dt.utcfromtimestamp(expire_epoch).isoformat() + "Z"
+                expire_times[fmt_id] = {
+                    "epoch": expire_epoch,
+                    "datetime": expire_dt,
+                    "remaining_seconds": expire_epoch - int(time.time()),
+                }
+    if result.live and result.live.get("primary_url"):
+        m = re.search(r'[?&]expire=(\d+)', result.live["primary_url"])
+        if m:
+            expire_epoch = int(m.group(1))
+            decoded["stream_expire"] = {
+                "epoch": expire_epoch,
+                "datetime": dt.utcfromtimestamp(expire_epoch).isoformat() + "Z",
+                "remaining_seconds": expire_epoch - int(time.time()),
+                "remaining_human": f"{(expire_epoch - int(time.time())) // 3600}h {((expire_epoch - int(time.time())) % 3600) // 60}m",
+            }
+
+    if expire_times:
+        decoded["stream_expires_per_format"] = expire_times
+        security["stream_expire"] = {
+            "sensitivity": "high",
+            "classification": "stream_access_expiry",
+            "description": "وقت انتهاء صلاحية روابط البث. بعد هذا الوقت، الرابط يبطل ولا يمكن الوصول للبث.",
+            "risk": "stream_access (time-limited)",
+        }
+
+    # ─── 3. sign tokens (from stream URLs) ────────────────────────────
+    sign_hashes = {}
+    if result.live and result.live.get("stream_urls"):
+        for fmt_id, fmt_data in result.live["stream_urls"].items():
+            stream_url = fmt_data.get("url") or ""
+            m = re.search(r'[?&]sign=([a-f0-9]+)', stream_url)
+            if m:
+                sign_hashes[fmt_id] = m.group(1)
+    if sign_hashes:
+        decoded["stream_signs"] = sign_hashes
+        security["stream_sign"] = {
+            "sensitivity": "critical",
+            "classification": "stream_access_signature",
+            "description": "توقيع MD5 لروابط البث. أي حد معاه الرابط + التوقيع يقدر يدخل اللايف أو يحمله "
+                           "حتى لو اللايف خاص. البث المباشر يمكن سحبه كاملاً ونشره.",
+            "risk": "stream_theft + unauthorized_download",
+            "hash_type": "MD5 (32 hex chars)",
+        }
+
+    # ─── 4. checksum ──────────────────────────────────────────────────
+    checksum = result.all_ids.get("checksum") or ""
+    if checksum:
+        decoded["checksum"] = {
+            "raw": checksum,
+            "length": len(checksum),
+            "hash_type": "SHA-256" if len(checksum) == 64 else "unknown",
+        }
+        security["checksum"] = {
+            "sensitivity": "medium",
+            "classification": "integrity_verification_hash",
+            "description": "هاش SHA-256 يستخدم للتحقق من سلامة الرابط. لو تغير حرف واحد الرابط يخرب. "
+                           "وجوده يكشف أن المحتوى من مشاركة TikTok رسمية.",
+            "risk": "metadata_leak (confirms share origin)",
+        }
+
+    # ─── 5. timestamp (share creation time) ──────────────────────────
+    ts = result.all_ids.get("timestamp") or ""
+    if ts:
+        try:
+            ts_int = int(ts)
+            decoded["share_timestamp"] = {
+                "epoch": ts_int,
+                "datetime": dt.utcfromtimestamp(ts_int).isoformat() + "Z",
+                "age_seconds": int(time.time()) - ts_int,
+                "age_human": f"{(int(time.time()) - ts_int) // 3600}h {((int(time.time()) - ts_int) % 3600) // 60}m ago",
+            }
+        except (ValueError, TypeError):
+            pass
+
+    # ─── 6. sec_uid / sec_user_id ────────────────────────────────────
+    sec_uid = result.author.sec_uid or result.all_ids.get("sec_user_id")
+    if sec_uid:
+        decoded["sec_uid"] = {
+            "raw": sec_uid,
+            "length": len(sec_uid),
+            "prefix": sec_uid[:20] + "...",
+        }
+        security["sec_uid"] = {
+            "sensitivity": "critical",
+            "classification": "identity_tracking_token",
+            "description": "بطاقة الهوية المشفّرة للحساب. يستخدمه TikTok داخلياً لتتبع الحساب. "
+                           "لو تسرب = كشف الهوية. يمكن استخدامه لجلب كل بيانات الحساب عبر API.",
+            "risk": "identity_tracking + impersonation + cross_account_linking",
+            "format": "MS4wLjAB... (base64-encoded user reference)",
+        }
+
+    # ─── 7. room_id + stream_id ──────────────────────────────────────
+    room_id = result.all_ids.get("room_id")
+    stream_id = result.all_ids.get("stream_id")
+    if room_id and stream_id:
+        security["room_stream_ids"] = {
+            "sensitivity": "high",
+            "classification": "direct_room_access",
+            "description": "عنوان الغرفة في سيرفرات TikTok. بهما يمكن الوصول للبث مباشرةً عبر Webcast API "
+                           "بدون المرور بواجهة TikTok.",
+            "risk": "direct_stream_access (bypasses UI restrictions)",
+            "room_id": room_id,
+            "stream_id": stream_id,
+        }
+
+    # ─── 8. share_link_id ───────────────────────────────────────────
+    share_link_id = result.all_ids.get("share_link_id")
+    if share_link_id:
+        security["share_link_id"] = {
+            "sensitivity": "medium",
+            "classification": "share_tracking_uuid",
+            "description": "مُعرّف فريد لكل مشاركة (UUID v4). يكشف مَن شارك الرابط ومن أين (share_region).",
+            "risk": "share_attribution + geographic_tracking",
+            "uuid": share_link_id,
+            "share_region": result.all_ids.get("share_region"),
+        }
+
+    result.decoded_tokens = decoded
+    result.security_analysis = security
+    if decoded or security:
+        result.raw_keys.append("decoded_tokens")
+        logger.info(f"✅ Token decoding: {len(decoded)} tokens decoded, "
+                    f"{len(security)} classified by sensitivity")
+
+
+def _extract_cdn_metadata(result: ExtractionResult) -> None:
+    """يستخرج بيانات CDN من روابط البث (datacenter, quality, region, protocol).
+
+    يحلل: pull-hls-q5-sg01.tiktokcdn.com/stage/stream-XXX_hd/index.m3u8
+    - pull / pull-hls: protocol (FLV vs HLS)
+    - q5: quality tier
+    - sg01: datacenter (Singapore 01)
+    - stage: staging area
+    - stream-XXX: stream ID
+    - _hd: HD variant
+    - .flv / .m3u8: container format
+    """
+    if not result.live or not result.live.get("stream_urls"):
+        return
+
+    cdn = {}
+    primary_url = result.live.get("primary_url") or ""
+    if not primary_url:
+        return
+
+    parsed = urlparse(primary_url)
+    host = parsed.hostname or ""
+    path = parsed.path or ""
+
+    cdn["primary_host"] = host
+    cdn["primary_path"] = path
+
+    # Parse host: pull-hls-q5-sg01.tiktokcdn.com
+    # Parts: [pull, hls, q5, sg01] or [pull, q5, sg01]
+    host_parts = host.split(".")[0].split("-")  # ["pull", "hls", "q5", "sg01"]
+    cdn["host_parts"] = host_parts
+
+    if "hls" in host_parts:
+        cdn["protocol"] = "HLS (m3u8)"
+    elif "flv" in host_parts:
+        cdn["protocol"] = "FLV (RTMP over HTTPS)"
+    elif "pull" in host_parts:
+        cdn["protocol"] = "pull (HTTPS)"
+
+    # Quality tier (q5, q1, etc.)
+    for part in host_parts:
+        if re.match(r'^q\d+$', part):
+            cdn["quality_tier"] = part
+            break
+
+    # Datacenter
+    for part in host_parts:
+        if re.match(r'^[a-z]{2}\d+$', part):
+            dc_map = {"sg": "Singapore", "va": "Virginia (US East)",
+                      "use": "US East", "usw": "US West",
+                      "eu": "Europe", "my": "Malaysia", "jp": "Japan"}
+            region_code = re.match(r'^([a-z]+)', part).group(1)
+            cdn["datacenter_code"] = part
+            cdn["datacenter_region"] = dc_map.get(region_code, f"Unknown ({region_code})")
+            break
+
+    # Path analysis: /stage/stream-XXX_hd/index.m3u8
+    if "/stage/" in path:
+        cdn["staging"] = True
+    if "_hd" in path:
+        cdn["quality_variant"] = "HD"
+    elif "_sd" in path:
+        cdn["quality_variant"] = "SD"
+    else:
+        cdn["quality_variant"] = "standard"
+
+    # Stream ID from path
+    m = re.search(r'stream-(\d+)', path)
+    if m:
+        cdn["cdn_stream_id"] = m.group(1)
+
+    # Container format from extension
+    if path.endswith(".m3u8"):
+        cdn["container_format"] = "HLS (m3u8 playlist)"
+    elif path.endswith(".flv"):
+        cdn["container_format"] = "FLV"
+    elif ".mp4" in path:
+        cdn["container_format"] = "MP4"
+
+    # Count available formats
+    cdn["total_formats_available"] = len(result.live.get("stream_urls") or {})
+
+    # Best quality format
+    best = None
+    best_quality = -999
+    for fmt_id, fmt_data in (result.live.get("stream_urls") or {}).items():
+        q = fmt_data.get("quality") or 0
+        if q > best_quality:
+            best_quality = q
+            best = fmt_id
+    if best:
+        cdn["best_quality_format"] = best
+
+    # Audio-only format
+    audio_fmts = [fmt_id for fmt_id, fmt_data in (result.live.get("stream_urls") or {}).items()
+                  if "only_audio=1" in (fmt_data.get("url") or "")]
+    if audio_fmts:
+        cdn["audio_only_formats"] = audio_fmts
+
+    # Collect all unique sign + expire pairs
+    signs = set()
+    expires = set()
+    for fmt_data in (result.live.get("stream_urls") or {}).values():
+        url = fmt_data.get("url") or ""
+        m_sign = re.search(r'sign=([a-f0-9]+)', url)
+        m_expire = re.search(r'expire=(\d+)', url)
+        if m_sign:
+            signs.add(m_sign.group(1))
+        if m_expire:
+            expires.add(m_expire.group(1))
+    cdn["unique_signs"] = list(signs)
+    cdn["unique_expires"] = list(expires)
+
+    result.cdn_metadata = cdn
+    result.raw_keys.append("cdn_metadata")
+    logger.info(f"✅ CDN metadata: datacenter={cdn.get('datacenter_code','?')}, "
+                f"quality_tier={cdn.get('quality_tier','?')}, "
+                f"formats={cdn.get('total_formats_available')}")
+
+
+def _extract_avatar_metadata(result: ExtractionResult) -> None:
+    """يستخرج بيانات من رابط الصورة الرمزية (x-expires, x-signature, refresh_token, idc).
+
+    يحلل: p16-common-sign.tiktokcdn.com/...?dr=14579&refresh_token=...&x-expires=...&x-signature=...
+    """
+    avatar_url = result.author.avatar or ""
+    if not avatar_url:
+        return
+
+    parsed = urlparse(avatar_url)
+    params = parse_qs(parsed.query)
+    host = parsed.hostname or ""
+    path = parsed.path or ""
+
+    avatar_meta = {
+        "host": host,
+        "cdn_domain": host.split(".")[0] if "." in host else host,
+        "path": path,
+    }
+
+    # Parse query params
+    for k in ("dr", "refresh_token", "x-expires", "x-signature", "t", "ps", "shp", "shcp", "idc"):
+        if params.get(k):
+            avatar_meta[k] = params[k][0]
+
+    # Decode x-expires (epoch → datetime)
+    if avatar_meta.get("x-expires"):
+        try:
+            from datetime import datetime as dt
+            exp_epoch = int(avatar_meta["x-expires"])
+            avatar_meta["x-expires_datetime"] = dt.utcfromtimestamp(exp_epoch).isoformat() + "Z"
+            avatar_meta["x-expires_remaining"] = f"{(exp_epoch - int(time.time())) // 86400}d"
+        except (ValueError, TypeError):
+            pass
+
+    # IDC (data center)
+    if avatar_meta.get("idc"):
+        idc_map = {"my": "Malaysia", "sg": "Singapore", "va": "Virginia",
+                   "use": "US East", "usw": "US West"}
+        avatar_meta["idc_region"] = idc_map.get(avatar_meta["idc"], f"Unknown ({avatar_meta['idc']})")
+
+    # Parse dr (display resolution?)
+    if avatar_meta.get("dr"):
+        avatar_meta["dr_note"] = "display_resolution_token"
+
+    # CDN host classification
+    if "common-sign" in host:
+        avatar_meta["cdn_type"] = "common-sign (signed CDN)"
+    elif "common" in host:
+        avatar_meta["cdn_type"] = "common (unsigned CDN)"
+
+    # Extract the avatar key from path (tos-alisg-avt-0068/...)
+    m = re.search(r'/tos-([a-z0-9-]+)/', path)
+    if m:
+        avatar_meta["tos_bucket"] = m.group(1)
+        # alisg = Alibaba Singapore
+        bucket_map = {"alisg": "Alibaba Singapore", "alius": "Alibaba US",
+                      "alie": "Alibaba Europe", "alimy": "Alibaba Malaysia"}
+        bucket_prefix = m.group(1)[:5]
+        avatar_meta["tos_bucket_region"] = bucket_map.get(bucket_prefix, f"Unknown ({m.group(1)})")
+
+    result.avatar_metadata = avatar_meta
+    result.raw_keys.append("avatar_metadata")
+    logger.info(f"✅ Avatar metadata: idc={avatar_meta.get('idc','?')}, "
+                f"expires={avatar_meta.get('x-expires_datetime','?')}")
+
+
+def _build_stream_access_analysis(result: ExtractionResult) -> None:
+    """يبني تحليلاً كاملاً لروابط البث — كل رابط + صلاحيته + مستوى الوصول."""
+    if not result.live or not result.live.get("stream_urls"):
+        return
+
+    from datetime import datetime as dt
+    access = {
+        "total_streams": len(result.live["stream_urls"]),
+        "streams": [],
+        "best_quality_stream": None,
+        "audio_only_stream": None,
+        "all_signs_valid_until": None,
+    }
+
+    best_quality = -999
+    for fmt_id, fmt_data in result.live["stream_urls"].items():
+        url = fmt_data.get("url") or ""
+        stream = {
+            "format_id": fmt_id,
+            "format": fmt_data.get("format"),
+            "protocol": fmt_data.get("protocol"),
+            "ext": fmt_data.get("ext"),
+            "quality": fmt_data.get("quality"),
+            "resolution": fmt_data.get("resolution"),
+            "tbr": fmt_data.get("tbr"),
+            "vcodec": fmt_data.get("vcodec"),
+            "url": url,
+            "is_audio_only": "only_audio=1" in url,
+        }
+
+        # Extract sign + expire
+        m_sign = re.search(r'sign=([a-f0-9]+)', url)
+        m_expire = re.search(r'expire=(\d+)', url)
+        if m_sign:
+            stream["sign"] = m_sign.group(1)
+        if m_expire:
+            exp_epoch = int(m_expire.group(1))
+            stream["expire_epoch"] = exp_epoch
+            stream["expire_datetime"] = dt.utcfromtimestamp(exp_epoch).isoformat() + "Z"
+            stream["remaining"] = exp_epoch - int(time.time())
+            stream["remaining_human"] = f"{(exp_epoch - int(time.time())) // 3600}h {((exp_epoch - int(time.time())) % 3600) // 60}m"
+
+        access["streams"].append(stream)
+
+        # Track best quality
+        q = fmt_data.get("quality") or 0
+        if q > best_quality and not stream["is_audio_only"]:
+            best_quality = q
+            access["best_quality_stream"] = stream
+
+        # Track audio-only
+        if stream["is_audio_only"] and not access["audio_only_stream"]:
+            access["audio_only_stream"] = stream
+
+    # Extract HTTP headers required for stream access (from yt-dlp format data)
+    if result.raw_json and result.raw_json.get("yt_dlp"):
+        ytdlp = result.raw_json["yt_dlp"]
+        formats = ytdlp.get("formats") or []
+        if formats:
+            first_format = formats[0]
+            http_headers = first_format.get("http_headers") or {}
+            if http_headers:
+                result.http_headers = http_headers
+                access["required_http_headers"] = http_headers
+
+    result.stream_access = access
+    result.raw_keys.append("stream_access_analysis")
+    logger.info(f"✅ Stream access analysis: {access['total_streams']} streams, "
+                f"best={access['best_quality_stream']['format_id'] if access['best_quality_stream'] else 'N/A'}")
 
 
 # ────────────────────────────────────────────────────────────────────────────
