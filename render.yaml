@@ -1,0 +1,50 @@
+# ============================================================
+# TikTok Extractor Pro — Render deployment config
+# ============================================================
+# Docs: https://render.com/docs/blueprint-spec
+# ============================================================
+
+services:
+  - type: web
+    name: tiktok-extractor-pro
+    runtime: python
+    plan: free
+    branch: main
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.14
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: BACKEND_SECRET
+        sync: false
+      - key: TIKTOK_PROXY
+        sync: false
+      - key: ENABLE_PLAYWRIGHT
+        value: "false"
+      # Telegram bot (optional — for Telegram-integration mode)
+      - key: API_ID
+        sync: false
+      - key: API_HASH
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_ADMIN_CHAT_ID
+        sync: false
+      # Firebase (optional — for stats storage)
+      - key: FIREBASE_API_KEY
+        sync: false
+      - key: FIREBASE_APP_ID
+        sync: false
+      - key: FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: FIREBASE_DATABASE_URL
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
