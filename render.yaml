@@ -1,7 +1,6 @@
 # ============================================================
-# TikTok Extractor Pro — Render deployment config
-# ============================================================
-# Docs: https://render.com/docs/blueprint-spec
+# TikTok Extractor Pro v3.0 — Render deployment config
+# Demo mode disabled — real extraction only (yt-dlp + Playwright)
 # ============================================================
 
 services:
@@ -28,6 +27,8 @@ services:
         sync: false
       - key: ENABLE_PLAYWRIGHT
         value: "false"
+      - key: APK_SIGNING_SHA256
+        sync: false
       # Telegram bot (optional — for Telegram-integration mode)
       - key: API_ID
         sync: false
