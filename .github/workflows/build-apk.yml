@@ -102,20 +102,24 @@ jobs:
           cp ../android/twa-manifest.json .
 
           # Try initializing from the live PWA (non-interactive)
+          # --jdkPath avoids the interactive "install JDK?" prompt
           bubblewrap init \
             --manifest "$SERVICE_URL/static/manifest.json" \
             --directory . \
+            --jdkPath "$JAVA_HOME" \
             --skipAccessibilityAudit 2>&1 || true
 
           # If init didn't generate the wrapper files, force-update from our manifest
-          if [ ! -f "twa-manifest.json" ] || [ ! -d "app" ]; then
-            echo "init did not produce project files — using local twa-manifest.json"
-            cp ../android/twa-manifest.json .
-            # Create the gradle wrapper project structure manually
-            bubblewrap update --no-interactive 2>&1 || true
+          if [ ! -d "app" ]; then
+            echo "init did not produce app/ directory — running update"
+            bubblewrap update \
+              --jdkPath "$JAVA_HOME" \
+              --no-interactive 2>&1 || true
           fi
 
           ls -la
+          echo "---"
+          ls -la app/ 2>/dev/null || echo "(app/ dir not found)"
 
       # ─── 8) Build APK ───────────────────────────────────────────────────
       - name: 🔨 Build APK via bubblewrap
@@ -125,10 +129,10 @@ jobs:
         run: |
           mkdir -p ../output
 
-          # Try bubblewrap build (non-interactive)
+          # Try bubblewrap build (non-interactive) with --jdkPath to skip the JDK prompt
           set +e
           bubblewrap build \
-            --no-interactive \
+            --jdkPath "$JAVA_HOME" \
             --keystorePath ../android.keystore \
             --keystorePassword "$KEYSTORE_PASSWORD" \
             --keyAlias android \
@@ -138,23 +142,31 @@ jobs:
 
           if [ $BW_EXIT -eq 0 ]; then
             echo "✅ bubblewrap build succeeded"
-            # Find the APK
             find . -name "*.apk" -exec cp {} ../output/tiktok-extractor-pro.apk \;
           else
             echo "⚠️  bubblewrap build failed ($BW_EXIT) — trying gradle directly"
-            cd app
-            chmod +x ./gradlew
-            ./gradlew assembleRelease --no-daemon 2>&1 | tail -50
-            # Locate and copy APK
-            APK_PATH=$(find . -name "*.apk" -path "*/release/*" | head -1)
-            if [ -z "$APK_PATH" ]; then
-              APK_PATH=$(find . -name "*.apk" | head -1)
-            fi
-            if [ -n "$APK_PATH" ]; then
-              echo "✅ gradle build succeeded: $APK_PATH"
-              cp "$APK_PATH" ../../output/tiktok-extractor-pro.apk
+            if [ -d "app" ]; then
+              cd app
+              chmod +x ./gradlew 2>/dev/null
+              if [ -f "./gradlew" ]; then
+                ./gradlew assembleRelease --no-daemon 2>&1 | tail -50
+              else
+                # No gradlew — use system gradle
+                gradle assembleRelease --no-daemon 2>&1 | tail -50
+              fi
+              APK_PATH=$(find . -name "*.apk" -path "*/release/*" | head -1)
+              if [ -z "$APK_PATH" ]; then
+                APK_PATH=$(find . -name "*.apk" | head -1)
+              fi
+              if [ -n "$APK_PATH" ]; then
+                echo "✅ gradle build succeeded: $APK_PATH"
+                cp "$APK_PATH" ../../output/tiktok-extractor-pro.apk
+              else
+                echo "❌ No APK found in build output"
+                exit 1
+              fi
             else
-              echo "❌ No APK found in build output"
+              echo "❌ app/ directory does not exist — bubblewrap init must have failed entirely"
               exit 1
             fi
           fi
