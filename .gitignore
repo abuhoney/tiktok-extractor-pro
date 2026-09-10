@@ -1,0 +1,33 @@
+# Secrets — never commit
+.env
+.env.local
+.env.production
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+
+# Playwright
+node_modules/
+playwright-report/
+
+# Build artifacts
+dist/
+build/
+*.apk
+*.keystore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+tiktok_live_ultimate.log
+server.log
