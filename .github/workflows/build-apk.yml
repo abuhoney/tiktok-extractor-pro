@@ -128,8 +128,8 @@ jobs:
           KEYSTORE_PASSWORD: ${{ env.KEYSTORE_PASSWORD }}
         run: |
           mkdir -p ../output
-          # Build the release APK
-          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tail -80
+          # Build the release APK — show full output (no tail -80)
+          ./gradlew assembleRelease --no-daemon --stacktrace
           # Locate APK
           APK_PATH=$(find . -name "*.apk" -path "*/release/*" | head -1)
           if [ -z "$APK_PATH" ]; then
