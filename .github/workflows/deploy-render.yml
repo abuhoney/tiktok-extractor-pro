@@ -1,0 +1,88 @@
+name: Deploy to Render
+
+# ============================================================
+# Trigger a fresh deploy on Render whenever code is pushed to main.
+# Uses the Render API to create a new deploy on the existing service.
+# ============================================================
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trigger-render-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚀 Trigger Render deploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_ID: srv-dagv8g942hec73e374pg
+        run: |
+          if [ -z "$RENDER_API_KEY" ]; then
+            echo "⚠️  RENDER_API_KEY secret not set — skipping deploy"
+            exit 0
+          fi
+
+          echo "Triggering deploy on Render service: $SERVICE_ID"
+          RESPONSE=$(curl -sS -X POST \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            "https://api.render.com/v1/services/$SERVICE_ID/deploys")
+
+          echo "Response: $RESPONSE"
+
+          DEPLOY_ID=$(echo "$RESPONSE" | jq -r '.id // empty')
+          if [ -n "$DEPLOY_ID" ]; then
+            echo "✅ Deploy triggered: $DEPLOY_ID"
+            echo "Track at: https://dashboard.render.com/web/$SERVICE_ID/deploys/$DEPLOY_ID"
+          else
+            echo "⚠️  Deploy trigger response had no id — service may already be deploying"
+          fi
+
+      - name: 📊 Wait for deploy to complete (up to 8 min)
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_ID: srv-dagv8g942hec73e374pg
+        run: |
+          if [ -z "$RENDER_API_KEY" ]; then
+            exit 0
+          fi
+          echo "Waiting for deploy to complete..."
+          for i in $(seq 1 32); do  # 32 attempts × 15s = 8 min max
+            sleep 15
+            STATUS=$(curl -sS \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Accept: application/json" \
+              "https://api.render.com/v1/services/$SERVICE_ID/deploys?limit=1" \
+              | jq -r '.[0].deploy.status // empty')
+            echo "  Attempt $i: deploy status = $STATUS"
+            if [ "$STATUS" = "live" ]; then
+              echo "✅ Deploy is live!"
+              exit 0
+            fi
+            if [ "$STATUS" = "failed" ] || [ "$STATUS" = "canceled" ]; then
+              echo "❌ Deploy $STATUS"
+              exit 1
+            fi
+          done
+          echo "⏰ Timeout reached (8 min) — check Render dashboard"
+
+      - name: 🏥 Health check
+        run: |
+          for i in $(seq 1 10); do
+            sleep 10
+            RESP=$(curl -sS --max-time 15 "https://tiktok-extractor-pro.onrender.com/api/health" || echo "failed")
+            echo "  Attempt $i: $RESP"
+            if echo "$RESP" | grep -q '"ok":true'; then
+              echo "✅ Service is healthy"
+              exit 0
+            fi
+          done
+          echo "❌ Service did not become healthy"
+          exit 1
