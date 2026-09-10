@@ -340,21 +340,8 @@
   const renderResult = (data) => {
     lastResult = data;
     els.resultKind.textContent = KIND_LABELS[data.kind] || data.kind;
-    // إظهار/إخفاء لافتة الوضع التجريبي
-    const isDemo = (data.raw_keys || []).includes('demo_mode') ||
-                   (data.meta_tags || {})._demo_mode === 'true';
-    if (isDemo) {
-      els.demoBanner.hidden = false;
-      const meta = data.meta_tags || {};
-      let reason = 'الخادم محجوب جغرافياً من TikTok — البيانات أدناه تجريبية لأغراض العرض. ';
-      reason += 'الكود يدعم الرابط بشكل صحيح، وعند النشر على خادم في منطقة مدعومة سيتم استخراج بيانات حقيقية تلقائياً.';
-      if (meta._real_error) {
-        reason += ' (سبب التراجع: ' + meta._real_error + ')';
-      }
-      els.demoReason.textContent = reason;
-    } else {
-      els.demoBanner.hidden = true;
-    }
+    // v3.0: الوضع التجريبي معطّل — إخفاء اللافتة دائماً
+    if (els.demoBanner) els.demoBanner.hidden = true;
     renderPreview(data);
     renderDownloads(data);
     renderAuthor(data);
@@ -396,14 +383,9 @@
         return;
       }
       renderResult(data);
-      // رسالة مناسبة حسب الوضع
-      const isDemo = (data.raw_keys || []).includes('demo_mode') ||
-                     (data.meta_tags || {})._demo_mode === 'true';
-      if (isDemo) {
-        toast('وضع العرض التجريبي - البيانات لأغراض العرض', 'success');
-      } else {
-        toast('تم الاستخراج بنجاح', 'success');
-      }
+      // v3.0: استخراج حقيقي فقط
+      const strategy = (data.raw_keys || []).join(', ') || 'بدون استراتيجية';
+      toast(`✅ تم الاستخراج بنجاح — ${strategy}`, 'success');
     } catch (e) {
       if (stepTimer) clearInterval(stepTimer);
       els.loading.hidden = true;
