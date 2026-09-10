@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:label="TT Extractor"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@style/Theme.App"
+        android:allowBackup="true">
+
+        <!-- TWA Launcher Activity — opens the PWA in Chrome Custom Tab -->
+        <activity
+            android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+            android:exported="true">
+
+            <!-- Deep-link filter for the app's domain -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="tiktok-extractor-pro.onrender.com" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.support.custom.tabs.trusted.DEFAULT_URL"
+                android:value="https://tiktok-extractor-pro.onrender.com/" />
+
+            <meta-data
+                android:name="android.support.custom.tabs.trusted.INTENT"
+                android:value="@string/launcherIntent" />
+
+            <meta-data
+                android:name="android.support.custom.tabs.trusted.SPLASH_SCREEN_DRAWABLE"
+                android:resource="@drawable/splash" />
+
+            <meta-data
+                android:name="android.support.custom.tabs.trusted.SPLASH_SCREEN_FADE_OUT_DURATION"
+                android:value="300" />
+
+            <meta-data
+                android:name="android.support.custom.tabs.trusted.FILE_PROVIDER_AUTHORITY"
+                android:value="@string/fileProviderAuthority" />
+
+            <meta-data
+                android:name="android.support.custom.tabs.trusted.STATUS_BAR_COLOR"
+                android:resource="@color/colorPrimary" />
+
+            <meta-data
+                android:name="android.support.custom.tabs.trusted.NAVIGATION_BAR_COLOR"
+                android:resource="@color/colorPrimary" />
+        </activity>
+
+        <!-- File provider for sharing APK / downloaded files -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="@string/fileProviderAuthority"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+</manifest>
