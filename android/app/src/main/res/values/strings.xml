@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TT Extractor</string>
+    <string name="launcherIntent">android.intent.action.MAIN</string>
+    <string name="fileProviderAuthority">com.tiktok.extractor.fileprovider</string>
+    <string name="assetStatement">
+        [{
+          \"relation\": [\"delegate_permission/common.handle_all_urls\"],
+          \"target\": {
+            \"namespace\": \"android_app\",
+            \"package_name\": \"com.tiktok.extractor\",
+            \"sha256_cert_fingerprints\": [\"PASTE_YOUR_SIGNING_CERT_SHA256_HERE\"]
+          }
+        }]
+    </string>
+</resources>
