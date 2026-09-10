@@ -1,17 +1,13 @@
 name: Build Android APK (TWA)
 
 # ============================================================
-# TikTok Extractor Pro — GitHub Action that builds the Android
-# APK and publishes it as a GitHub Release.
-#
+# TikTok Extractor Pro v3.0 — Build APK via Bubblewrap + TWA
 # Triggers:
 #   1. Push of a version tag (v1.0.0, v1.1.0, etc.)
 #   2. Manual dispatch from Actions tab
-#
 # Output:
-#   - tiktok-extractor-pro-v1.0.0.apk uploaded to GitHub Releases
-#   - SHA-256 of signing cert printed (paste into Render env var
-#     APK_SIGNING_SHA256 to enable deep linking)
+#   - tiktok-extractor-pro.apk uploaded to GitHub Releases
+#   - SHA-256 of signing cert printed in summary
 # ============================================================
 
 on:
@@ -26,7 +22,7 @@ on:
         default: '1.0.0'
 
 permissions:
-  contents: write  # needed to create releases and upload assets
+  contents: write
 
 env:
   SERVICE_URL: https://tiktok-extractor-pro.onrender.com
@@ -37,39 +33,34 @@ jobs:
   build-apk:
     runs-on: ubuntu-latest
     steps:
-      # ─── 1) Checkout repo ───────────────────────────────────────────
+      # ─── 1) Checkout ────────────────────────────────────────────────────
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      # ─── 2) Set up JDK 17 (required by bubblewrap) ──────────────────
+      # ─── 2) JDK 17 (required by Android Gradle Plugin) ─────────────────
       - name: ☕ Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # ─── 3) Set up Node.js (required by bubblewrap CLI) ─────────────
+      # ─── 3) Node.js (required by bubblewrap CLI) ───────────────────────
       - name: 📦 Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # ─── 4) Install bubblewrap CLI ─────────────────────────────────
+      # ─── 4) Install bubblewrap ──────────────────────────────────────────
       - name: 🔧 Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      # ─── 5) Decode signing keystore from secrets ────────────────────
-      # The keystore was base64-encoded and stored as a repository secret
-      # named ANDROID_KEYSTORE_BASE64.
-      # To generate: base64 -i android.keystore | tr -d '\n'
-      # Then in repo Settings → Secrets and variables → Actions → New secret
+      # ─── 5) Decode keystore ─────────────────────────────────────────────
       - name: 🔑 Decode signing keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "⚠️  ANDROID_KEYSTORE_BASE64 secret not set — generating a new keystore"
+            echo "⚠️  ANDROID_KEYSTORE_BASE64 not set — generating ephemeral keystore"
             keytool -genkey -v \
               -keystore ./android.keystore \
               -alias android \
@@ -78,82 +69,111 @@ jobs:
               -storepass android \
               -keypass android \
               -dname "CN=TikTok Extractor Pro, OU=Dev, O=abuhoney, L=Dubai, ST=Dubai, C=AE"
-            echo "Keystore password: android"
-            echo "⚠️  Note: APKs built with a generated keystore will NOT be update-compatible."
-            echo "    For production use, set the ANDROID_KEYSTORE_BASE64 secret."
+            echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
           else
             echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > ./android.keystore
-            echo "✅ Keystore decoded from secret"
+            echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD || 'android' }}" >> $GITHUB_ENV
+            echo "✅ Keystore decoded from secret ($(wc -c < ./android.keystore) bytes)"
           fi
 
-      # ─── 6) Generate the TWA manifest from our PWA ─────────────────
-      - name: 📝 Generate TWA manifest
+      # ─── 6) Wait for PWA to be reachable ────────────────────────────────
+      - name: 🌐 Wait for PWA reachability
         run: |
-          # Wait for the PWA to be reachable (it may be cold-starting)
-          echo "Waiting for PWA at $SERVICE_URL to be reachable..."
+          echo "Checking $SERVICE_URL..."
           for i in $(seq 1 30); do
             if curl -sf --max-time 10 "$SERVICE_URL/api/health" >/dev/null; then
-              echo "  ✅ PWA is reachable"
-              break
+              echo "✅ PWA is reachable (attempt $i)"
+              exit 0
             fi
-            echo "  Attempt $i: not yet reachable, waiting 10s..."
+            echo "  Attempt $i: not reachable, waiting 10s..."
             sleep 10
           done
+          echo "⚠️  PWA not reachable after 5 min — using static manifest instead"
+          exit 0  # Don't fail the build; we'll use the local manifest
 
-          # Initialize a TWA project from the deployed PWA manifest
-          # --manual to skip interactive prompts (we provide answers in twa-manifest.json)
+      # ─── 7) Initialize TWA project ─────────────────────────────────────
+      - name: 📝 Initialize TWA project
+        run: |
+          # Try to initialize from the live PWA; if that fails, use the static manifest
+          mkdir -p ./twa-build
+          cd ./twa-build
+
+          # Copy our pre-built twa-manifest.json into the project
+          cp ../android/twa-manifest.json .
+
+          # Try initializing from the live PWA (non-interactive)
           bubblewrap init \
             --manifest "$SERVICE_URL/static/manifest.json" \
-            --directory ./twa-build \
-            --skipAccessibilityAudit \
-            || echo "init may have failed, will try to use existing config"
+            --directory . \
+            --skipAccessibilityAudit 2>&1 || true
 
-          # If init succeeded, overwrite the twa-manifest.json with our known-good one
-          cp ./android/twa-manifest.json ./twa-build/twa-manifest.json 2>/dev/null || true
+          # If init didn't generate the wrapper files, force-update from our manifest
+          if [ ! -f "twa-manifest.json" ] || [ ! -d "app" ]; then
+            echo "init did not produce project files — using local twa-manifest.json"
+            cp ../android/twa-manifest.json .
+            # Create the gradle wrapper project structure manually
+            bubblewrap update --no-interactive 2>&1 || true
+          fi
 
-      # ─── 7) Build the APK ───────────────────────────────────────────
-      - name: 🔨 Build APK
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'android' }}
+          ls -la
+
+      # ─── 8) Build APK ───────────────────────────────────────────────────
+      - name: 🔨 Build APK via bubblewrap
         working-directory: ./twa-build
+        env:
+          KEYSTORE_PASSWORD: ${{ env.KEYSTORE_PASSWORD }}
         run: |
-          # Update gradle wrapper to AGP 8.2 (compatible with JDK 17)
-          bubblewrap update --no-interactive || true
+          mkdir -p ../output
 
-          # Build the release APK
-          bubblewrap build --no-interactive \
+          # Try bubblewrap build (non-interactive)
+          set +e
+          bubblewrap build \
+            --no-interactive \
             --keystorePath ../android.keystore \
             --keystorePassword "$KEYSTORE_PASSWORD" \
             --keyAlias android \
-            --keyPassword "$KEYSTORE_PASSWORD" 2>&1 || \
-          # Fallback: use gradle directly
-          (
-            echo "Bubblewrap build failed — trying gradle directly"
+            --keyPassword "$KEYSTORE_PASSWORD" 2>&1
+          BW_EXIT=$?
+          set -e
+
+          if [ $BW_EXIT -eq 0 ]; then
+            echo "✅ bubblewrap build succeeded"
+            # Find the APK
+            find . -name "*.apk" -exec cp {} ../output/tiktok-extractor-pro.apk \;
+          else
+            echo "⚠️  bubblewrap build failed ($BW_EXIT) — trying gradle directly"
             cd app
             chmod +x ./gradlew
-            ./gradlew assembleRelease --no-daemon
-            cp app/build/outputs/apk/release/app-release.apk ../../tiktok-extractor-pro.apk
-          )
+            ./gradlew assembleRelease --no-daemon 2>&1 | tail -50
+            # Locate and copy APK
+            APK_PATH=$(find . -name "*.apk" -path "*/release/*" | head -1)
+            if [ -z "$APK_PATH" ]; then
+              APK_PATH=$(find . -name "*.apk" | head -1)
+            fi
+            if [ -n "$APK_PATH" ]; then
+              echo "✅ gradle build succeeded: $APK_PATH"
+              cp "$APK_PATH" ../../output/tiktok-extractor-pro.apk
+            else
+              echo "❌ No APK found in build output"
+              exit 1
+            fi
+          fi
 
-          # Move APK to a known location
-          mkdir -p ../output
-          cp ./app/build/outputs/apk/release/app-release.apk ../output/tiktok-extractor-pro.apk 2>/dev/null || \
-          cp ./app-release-signed.apk ../output/tiktok-extractor-pro.apk 2>/dev/null || \
-          find . -name "*.apk" -exec cp {} ../output/tiktok-extractor-pro.apk \;
+          ls -la ../output/
 
-      # ─── 8) Compute SHA-256 of signing cert (for assetlinks.json) ──
+      # ─── 9) Get signing cert SHA-256 ───────────────────────────────────
       - name: 🔍 Get signing cert SHA-256
         env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'android' }}
+          KEYSTORE_PASSWORD: ${{ env.KEYSTORE_PASSWORD }}
         run: |
           SHA=$(keytool -list -v -keystore ./android.keystore \
                   -alias android -storepass "$KEYSTORE_PASSWORD" 2>/dev/null \
                   | grep -i "SHA256:" | head -1 | awk -F: '{print $2}' | tr -d ' ')
           echo "APK_SIGNING_SHA256=$SHA" >> $GITHUB_ENV
-          echo "SHA-256 of signing certificate: $SHA"
-          echo "Add this to Render as env var APK_SIGNING_SHA256 to enable deep links"
+          echo "::notice::SHA-256 of APK signing cert: $SHA"
+          echo "Add this as Render env var APK_SIGNING_SHA256 to enable deep links"
 
-      # ─── 9) Determine version ───────────────────────────────────────
+      # ─── 10) Determine version ─────────────────────────────────────────
       - name: 📋 Determine version
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
@@ -164,7 +184,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "Building version: $VERSION"
 
-      # ─── 10) Upload APK as GitHub Release asset ─────────────────────
+      # ─── 11) Upload APK ────────────────────────────────────────────────
       - name: 📦 Upload APK to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
@@ -173,25 +193,19 @@ jobs:
           body: |
             # TikTok Extractor Pro v${{ env.VERSION }}
 
-            ## 📲 APK Installation
+            ## 📲 Installation
 
             1. Download `tiktok-extractor-pro.apk` below
             2. Enable "Install unknown apps" in Android settings
             3. Tap the APK to install
-            4. Open the app — it will load the deployed PWA at:
-               ${{ env.SERVICE_URL }}
+            4. Open the app — loads the PWA at ${{ env.SERVICE_URL }}
 
             ## 🔗 Deep-link Setup (optional)
 
-            To enable deep links (opening `https://tiktok-extractor-pro.onrender.com/...`
-            links directly in the APK instead of Chrome), set this env var on Render:
-
+            To enable deep links, set on Render:
             ```
             APK_SIGNING_SHA256=${{ env.APK_SIGNING_SHA256 }}
             ```
-
-            Then the `/.well-known/assetlinks.json` endpoint will return the proper
-            Digital Asset Links statement.
 
             ## 🔐 Signing Info
 
@@ -200,28 +214,22 @@ jobs:
             - Built from commit: ${{ github.sha }}
             - Built on: ${{ github.run_id }}
 
-            ## 📦 Build Artifacts
-
-            - Full APK build log: GitHub Actions run #${{ github.run_number }}
           files: |
             output/tiktok-extractor-pro.apk
             android.keystore
           draft: false
           prerelease: false
 
-      # ─── 11) Print summary ──────────────────────────────────────────
+      # ─── 12) Summary ────────────────────────────────────────────────────
       - name: ✅ Summary
         run: |
           echo "=============================================="
           echo "  APK build complete!"
           echo "=============================================="
+          echo "Service URL:    $SERVICE_URL"
+          echo "APK file:       output/tiktok-extractor-pro.apk"
+          echo "SHA-256:        $APK_SIGNING_SHA256"
+          echo "Version:        $VERSION"
           echo ""
-          echo "Service URL:  $SERVICE_URL"
-          echo "APK file:     output/tiktok-extractor-pro.apk"
-          echo "SHA-256:      $APK_SIGNING_SHA256"
-          echo ""
-          echo "Download the APK from:"
-          echo "  https://github.com/${{ github.repository }}/releases/tag/v${{ env.VERSION }}"
-          echo ""
-          echo "To enable deep links, set on Render:"
-          echo "  APK_SIGNING_SHA256=$APK_SIGNING_SHA256"
+          echo "Download at:"
+          echo "  https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
