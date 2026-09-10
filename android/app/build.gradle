@@ -10,8 +10,8 @@ android {
         applicationId "com.tiktok.extractor"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        versionCode 2
+        versionName "1.0.8"
     }
 
     buildTypes {
@@ -28,8 +28,7 @@ android {
 }
 
 dependencies {
-    // AppCompat for the LauncherActivity
+    // AppCompat — required for AppCompatActivity
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    // Chrome Custom Tabs — wraps the PWA into a native window
-    implementation 'androidx.browser:browser:1.8.0'
+    // WebView is part of the Android SDK — no extra dependency needed
 }
