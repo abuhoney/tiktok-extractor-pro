@@ -502,12 +502,12 @@ def _extract_with_ytdlp_module(url: str, parsed: ParsedLink,
 
 def _from_ytdlp(info: dict, parsed: ParsedLink,
                 extra_images: List[str] = None) -> ExtractionResult:
-    """يحوّل استجابة yt-dlp إلى ExtractionResult."""
+    """يحوّل استجابة yt-dlp إلى ExtractionResult — يجمع كل الحقول المتاحة."""
     extra_images = extra_images or []
 
     # Determine the kind based on yt-dlp's extractor + URL
     kind = parsed.kind or "video"
-    if info.get("is_live"):
+    if info.get("is_live") or info.get("live_status") == "is_live":
         kind = "live"
     elif info.get("_type") == "image" or extra_images:
         kind = "photo"
@@ -517,45 +517,72 @@ def _from_ytdlp(info: dict, parsed: ParsedLink,
         url=parsed.final_url or parsed.normalized,
         final_url=parsed.final_url or info.get("webpage_url") or parsed.normalized,
         kind=kind,
-        title=info.get("title") or "",
+        title=info.get("title") or info.get("fulltitle") or "",
         description=info.get("description") or info.get("title") or "",
         content_id=str(info.get("id") or parsed.content_id or ""),
-        create_time=int(info.get("timestamp") or info.get("upload_date") or 0) if info.get("timestamp") or info.get("upload_date") else None,
+        create_time=int(info.get("timestamp") or 0) if info.get("timestamp") else None,
     )
 
-    # Author
+    # ─── Author (enhanced) ────────────────────────────────────────────
+    # yt-dlp uses "creator" for the display name and "uploader" for the @handle
     uploader = info.get("uploader") or info.get("channel") or parsed.username
+    creator = info.get("creator") or (info.get("creators") or [None])[0]
     res.author.unique_id = uploader
-    res.author.nickname = info.get("uploader") or info.get("channel") or uploader
+    res.author.nickname = creator or info.get("uploader") or info.get("channel") or uploader
     res.author.user_id = str(info.get("uploader_id") or info.get("channel_id") or "")
-    res.author.avatar = info.get("uploader_avatar") or info.get("channel_avatar")
-    res.author.follower_count = info.get("uploader_follower_count") or info.get("channel_follower_count")
-    res.author.following_count = info.get("uploader_following_count")
-    res.author.like_count = info.get("uploader_like_count") or info.get("channel_like_count")
+    res.author.avatar = info.get("uploader_avatar") or info.get("channel_avatar") or info.get("thumbnails", [{}])[0].get("url") if info.get("thumbnails") else None
+    res.author.signature = info.get("uploader_description") or info.get("channel_description")
+    res.author.follower_count = info.get("uploader_follower_count") or info.get("channel_follower_count") or info.get("channel_follower_count")
+    res.author.following_count = info.get("uploader_following_count") or info.get("channel_following_count")
+    res.author.like_count = info.get("uploader_like_count") or info.get("channel_like_count") or info.get("uploader_heart_count")
     res.author.video_count = info.get("uploader_video_count") or info.get("channel_video_count")
     res.author.verified = bool(info.get("uploader_verified") or info.get("channel_verified"))
 
-    # Stats
-    res.stats.play_count = info.get("view_count") or info.get("play_count")
+    # ─── Stats (enhanced) ────────────────────────────────────────────
+    # For live: concurrent_view_count is the live viewer count
+    if kind == "live":
+        res.stats.play_count = info.get("concurrent_view_count") or info.get("view_count") or 0
+    else:
+        res.stats.play_count = info.get("view_count") or info.get("play_count")
     res.stats.digg_count = info.get("like_count")
     res.stats.comment_count = info.get("comment_count")
     res.stats.share_count = info.get("repost_count") or info.get("share_count")
     res.stats.collect_count = info.get("collect_count") or info.get("favorite_count")
 
-    # Video
+    # ─── Video (enhanced) ────────────────────────────────────────────
     if info.get("url"):
         res.video.play_url = info["url"]
         res.video.download_url = info["url"]
-    res.video.cover = info.get("thumbnail") or info.get("thumbnails", [{}])[0].get("url") if info.get("thumbnails") else info.get("thumbnail")
-    res.video.dynamic_cover = info.get("dynamic_cover") or info.get("preview_url")
-    res.video.origin_cover = info.get("thumbnail")
-    res.video.duration = int(info.get("duration") or 0) or None
-    res.video.width = info.get("width")
-    res.video.height = info.get("height")
-    res.video.ratio = info.get("aspect_ratio")
-    res.video.format = info.get("ext") or "mp4"
 
-    # Music
+    # Cover: try multiple sources
+    thumb = info.get("thumbnail")
+    thumbs_list = info.get("thumbnails") or []
+    if not thumb and thumbs_list:
+        thumb = thumbs_list[-1].get("url") if isinstance(thumbs_list[-1], dict) else None
+    res.video.cover = thumb
+    res.video.dynamic_cover = info.get("dynamic_cover") or info.get("preview_url")
+    res.video.origin_cover = thumb
+    res.video.duration = int(info.get("duration") or 0) or None
+    res.video.format = info.get("ext") or "mp4"
+    res.video.ratio = info.get("aspect_ratio")
+
+    # Parse resolution string like "480x864" → width/height
+    resolution = info.get("resolution") or ""
+    if resolution and "x" in resolution:
+        parts = resolution.lower().split("x")
+        if len(parts) == 2:
+            try:
+                res.video.width = int(parts[0])
+                res.video.height = int(parts[1])
+            except (ValueError, TypeError):
+                pass
+    # Fallback to direct width/height fields
+    if not res.video.width:
+        res.video.width = info.get("width")
+    if not res.video.height:
+        res.video.height = info.get("height")
+
+    # ─── Music ────────────────────────────────────────────────────────
     if info.get("track") or info.get("artist"):
         res.music.title = info.get("track")
         res.music.author = info.get("artist")
@@ -569,36 +596,92 @@ def _from_ytdlp(info: dict, parsed: ParsedLink,
         res.music.cover = track_info.get("coverThumb") or track_info.get("cover_large", {}).get("url_list", [None])[0] if isinstance(track_info.get("cover_large"), dict) else None
         res.music.duration = track_info.get("duration") or res.music.duration
 
-    # Images (for photo carousels)
+    # ─── Images (for photo carousels) ─────────────────────────────────
     if extra_images:
         res.images = extra_images
     elif info.get("_type") == "image" and info.get("url"):
         res.images = [info["url"]]
 
-    # Hashtags & mentions
+    # ─── Hashtags & mentions ──────────────────────────────────────────
     res.hashtags = [t.lstrip("#") for t in (info.get("tags") or []) if t]
     res.mentions = re.findall(r"@([A-Za-z0-9_.]+)",
                               info.get("description") or info.get("title") or "")
 
-    # Live-specific fields
+    # ─── Live-specific fields (enhanced) ──────────────────────────────
     if kind == "live":
+        # Collect all stream URLs from formats array
+        stream_urls = {}
+        formats = info.get("formats") or []
+        for fmt in formats:
+            fmt_id = fmt.get("format_id") or fmt.get("format") or "unknown"
+            stream_urls[fmt_id] = {
+                "url": fmt.get("url"),
+                "protocol": fmt.get("protocol"),
+                "ext": fmt.get("ext"),
+                "vcodec": fmt.get("vcodec"),
+                "resolution": fmt.get("resolution"),
+                "tbr": fmt.get("tbr"),
+                "quality": fmt.get("quality"),
+                "format": fmt.get("format"),
+            }
+
         res.live = {
             "is_live": True,
+            "live_status": info.get("live_status") or "is_live",
+            "was_live": info.get("was_live", False),
             "room_id": str(info.get("id") or ""),
             "stream_id": str(info.get("stream_id") or ""),
-            "viewer_count": info.get("concurrent_viewers") or info.get("view_count") or 0,
-            "title": info.get("title") or "",
-            "cover": info.get("thumbnail") or "",
+            "viewer_count": info.get("concurrent_view_count") or info.get("view_count") or 0,
+            "title": info.get("title") or info.get("fulltitle") or "",
+            "cover": thumb or "",
+            "duration": "",
+            "stream_urls": stream_urls,
+            "primary_url": info.get("url"),
+            "release_year": info.get("release_year"),
+            "protocol": info.get("protocol"),
+            "vcodec": info.get("vcodec"),
+            "tbr": info.get("tbr"),
+            "dynamic_range": info.get("dynamic_range"),
+            "resolution": info.get("resolution"),
+            "format": info.get("format"),
+            "format_id": info.get("format_id"),
+            "creators": info.get("creators") or [],
+            "extracted_at_epoch": info.get("epoch"),
+            # Placeholders for Webcast API enrichment (filled later)
+            "like_count": 0,
+            "diamond_count": 0,
+            "start_time": 0,
+            "rank_text": "",
+            "enter_count": None,
+            "unique_viewers": None,
+            "follow_status": None,
+            "gift_boxes": [],
+            "top_donors": [],
+            "recent_donors": [],
         }
+
+        # Also populate stats for live
+        if not res.stats.play_count:
+            res.stats.play_count = res.live["viewer_count"]
 
     res.raw_keys.append("yt_dlp")
     res.raw_json = {"yt_dlp": info}
 
-    # Extract sec_uid from uploader_url if present
+    # ─── Extract sec_uid from uploader_url if present ────────────────
     uploader_url = info.get("uploader_url") or ""
     m_sec = re.search(r"sec_uid=([A-Za-z0-9_-]+)", uploader_url)
     if m_sec:
         res.author.sec_uid = m_sec.group(1)
+
+    # ─── All IDs from yt-dlp ──────────────────────────────────────────
+    res.all_ids = {
+        "user_id": res.author.user_id,
+        "video_id": res.content_id,
+        "uploader_id": info.get("uploader_id"),
+        "channel_id": info.get("channel_id"),
+        "music_id": res.music.id if res.music.id else None,
+        "room_id": res.live.get("room_id") if res.live else None,
+    }
 
     return res
 
@@ -1238,7 +1321,15 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
     ytdlp_result = _extract_with_ytdlp(target_url, parsed, session, timeout=timeout)
     if ytdlp_result and ytdlp_result.success:
         logger.info(f"✅ yt-dlp succeeded: kind={ytdlp_result.kind} "
-                    f"author=@{ytdlp_result.author.unique_id}")
+                    f"author=@{ytdlp_result.author.unique_id} "
+                    f"viewer_count={ytdlp_result.live.get('viewer_count') if ytdlp_result.live else 'N/A'}")
+
+        # ─── Enrichment: collect ALL remaining data ──────────────────
+        # 1) Share-link params (sec_uid, checksum, share_link_id, etc.)
+        _enrich_with_share_params(ytdlp_result, target_url)
+        # 2) Webcast API direct (no X-Bogus needed for some rooms)
+        _enrich_with_webcast(ytdlp_result, session, parsed)
+        # 3) HTML UNIVERSAL_DATA (csrf, wid, nonce, requestId, region)
         _enrich_with_html(ytdlp_result, session, parsed, timeout)
         return ytdlp_result
 
@@ -1527,6 +1618,176 @@ def _enrich_with_html(result: ExtractionResult, session: requests.Session,
             result.raw_keys.append("enriched_from_html")
     except Exception as e:
         logger.debug(f"enrich_with_html failed (non-fatal): {e}")
+
+
+# ────────────────────────────────────────────────────────────────────────────
+#  دالة الإثراء 1: استخراج معطيات رابط المشاركة (تعمل دائماً)
+# ────────────────────────────────────────────────────────────────────────────
+def _enrich_with_share_params(result: ExtractionResult, url: str) -> None:
+    """يضيف مُعرّفات رابط المشاركة إلى result.all_ids حتى لو نجح yt-dlp.
+
+    يستخرج: sec_user_id, user_id, share_from_user_id, share_region,
+    share_app_id, share_link_id, share_enter_from, social_share_type,
+    source, timestamp, ugbiz_name, utm_*, checksum.
+    """
+    try:
+        share_data = _extract_share_link_params(url)
+        if not share_data:
+            return
+
+        # sec_uid from URL params (often the most critical ID)
+        if share_data.get("sec_user_id") and not result.author.sec_uid:
+            result.author.sec_uid = share_data["sec_user_id"]
+
+        # Merge all share params into all_ids
+        for k, v in share_data.items():
+            if v and not result.all_ids.get(k):
+                result.all_ids[k] = v
+
+        # Also add sec_uid explicitly
+        if share_data.get("sec_user_id"):
+            result.all_ids["sec_uid"] = share_data["sec_user_id"]
+
+        result.raw_keys.append("share_link_params")
+        logger.info(f"share-link enrichment: +{len(share_data)} params "
+                    f"(sec_uid={'✓' if share_data.get('sec_user_id') else '✗'}, "
+                    f"region={share_data.get('share_region', '?')})")
+    except Exception as e:
+        logger.debug(f"_enrich_with_share_params failed (non-fatal): {e}")
+
+
+# ────────────────────────────────────────────────────────────────────────────
+#  دالة الإثراء 2: Webcast API مباشرة (بدون X-Bogus)
+# ────────────────────────────────────────────────────────────────────────────
+def _enrich_with_webcast(result: ExtractionResult, session: requests.Session,
+                         parsed: ParsedLink) -> None:
+    """يحاول استدعاء Webcast API مباشرةً (بدون X-Bogus) لإثراء بيانات البث.
+
+    يملأ: stream_id, viewer_count (real-time), like_count, diamond_count,
+    owner.follower_count, owner.following_count, top_donors, gift_boxes.
+    """
+    if not parsed.username:
+        return
+
+    ua = USER_AGENTS[0]
+
+    # Try multiple Webcast API endpoints
+    endpoints = [
+        # Endpoint 1: room/page/info by username
+        ("https://webcast.tiktok.com/webcast/room/page/info/",
+         {"unique_id": parsed.username, "device_platform": "web",
+          "aid": "1988", "channel": "channel_unknown",
+          "app_language": "en", "web_rhd": "1"}),
+    ]
+
+    # If we have a room_id from yt-dlp, also try the room_id endpoint
+    if result.live and result.live.get("room_id"):
+        endpoints.append((
+            "https://webcast.tiktok.com/webcast/room/info/",
+            {"room_id": result.live["room_id"], "device_platform": "web",
+             "aid": "1988", "app_language": "en"}
+        ))
+
+    for base_url, params in endpoints:
+        try:
+            url = base_url + "?" + urlencode(params)
+            r = session.get(url, headers={"User-Agent": ua}, timeout=15)
+            if r.status_code != 200:
+                continue
+            data = r.json()
+            if data.get("status_code") != 0:
+                logger.debug(f"Webcast direct {base_url.split('/')[-2]}: "
+                             f"status_code={data.get('status_code')}")
+                continue
+
+            # Success! Enrich the result
+            room_data = data.get("data") or {}
+            owner = room_data.get("owner") or {}
+            stats = room_data.get("stats") or {}
+            live_room = room_data.get("live_room") or room_data
+
+            # Author enrichment
+            if owner.get("unique_id") and not result.author.unique_id:
+                result.author.unique_id = owner.get("unique_id")
+            if owner.get("nickname") and not result.author.nickname:
+                result.author.nickname = owner.get("nickname")
+            if owner.get("id") and not result.author.user_id:
+                result.author.user_id = str(owner.get("id"))
+            if owner.get("sec_uid") and not result.author.sec_uid:
+                result.author.sec_uid = owner.get("sec_uid")
+            if owner.get("signature") and not result.author.signature:
+                result.author.signature = owner.get("signature")
+            if owner.get("follower_count"):
+                result.author.follower_count = owner.get("follower_count")
+            if owner.get("following_count"):
+                result.author.following_count = owner.get("following_count")
+            if owner.get("verified"):
+                result.author.verified = bool(owner.get("verified"))
+
+            # Avatar
+            avatar = owner.get("avatar_thumb") or owner.get("avatar_medium") or owner.get("avatar_large")
+            if avatar and isinstance(avatar, dict):
+                urls = avatar.get("url_list") or []
+                if urls and not result.author.avatar:
+                    result.author.avatar = urls[0]
+
+            # Live enrichment
+            if result.live:
+                if live_room.get("stream_id"):
+                    result.live["stream_id"] = str(live_room.get("stream_id"))
+                if stats.get("total_user"):
+                    result.live["viewer_count"] = stats.get("total_user")
+                if stats.get("like_count"):
+                    result.live["like_count"] = stats.get("like_count")
+                if stats.get("diamond_count"):
+                    result.live["diamond_count"] = stats.get("diamond_count")
+                if live_room.get("create_time"):
+                    result.live["start_time"] = live_room.get("create_time")
+                if live_room.get("title"):
+                    result.live["title"] = live_room.get("title")
+                if live_room.get("cover_url"):
+                    result.live["cover"] = live_room.get("cover_url")
+                if stats.get("like_count"):
+                    result.live["like_count"] = stats.get("like_count")
+                if live_room.get("rank"):
+                    result.live["rank_text"] = str(live_room.get("rank"))
+                if room_data.get("enter_count"):
+                    result.live["enter_count"] = room_data.get("enter_count")
+                if stats.get("total_user_desp"):
+                    result.live["unique_viewers"] = stats.get("total_user_desp")
+                if room_data.get("follow_status"):
+                    result.live["follow_status"] = room_data.get("follow_status")
+                if room_data.get("gift_boxes"):
+                    result.live["gift_boxes"] = room_data.get("gift_boxes")
+                if room_data.get("top_donors"):
+                    result.live["top_donors"] = room_data.get("top_donors")
+                if room_data.get("recent_donors"):
+                    result.live["recent_donors"] = room_data.get("recent_donors")
+
+                # Update stats too
+                result.stats.play_count = result.live.get("viewer_count") or result.stats.play_count
+                if stats.get("like_count"):
+                    result.stats.digg_count = stats.get("like_count")
+                if stats.get("comment_count"):
+                    result.stats.comment_count = stats.get("comment_count")
+                if stats.get("share_count"):
+                    result.stats.share_count = stats.get("share_count")
+
+            result.raw_keys.append("webcast_api_direct")
+            result.all_ids["room_id"] = result.all_ids.get("room_id") or str(live_room.get("room_id") or "")
+            result.all_ids["stream_id"] = str(live_room.get("stream_id") or "")
+
+            logger.info(f"✅ Webcast API enrichment succeeded: "
+                        f"viewer_count={result.live.get('viewer_count') if result.live else 'N/A'}, "
+                        f"like_count={result.live.get('like_count') if result.live else 'N/A'}, "
+                        f"diamond_count={result.live.get('diamond_count') if result.live else 'N/A'}")
+            return  # Success, don't try the next endpoint
+
+        except Exception as e:
+            logger.debug(f"Webcast direct endpoint failed: {e}")
+            continue
+
+    logger.debug("Webcast API direct enrichment: all endpoints failed")
 
 
 # ────────────────────────────────────────────────────────────────────────────
