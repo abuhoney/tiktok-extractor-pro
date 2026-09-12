@@ -82,8 +82,8 @@ jobs:
         id: version
         working-directory: android
         run: |
-          VERSION=$(grep -E '^    versionName ' app/build.gradle | head -1 | awk -F'"' '{print $2}')
-          CODE=$(grep -E '^        versionCode ' app/build.gradle | head -1 | sed 's/[^0-9]//g')
+          VERSION=$(grep 'versionName' app/build.gradle | head -1 | sed -E 's/.*versionName\s+"([^"]+)".*/\1/')
+          CODE=$(grep 'versionCode' app/build.gradle | head -1 | sed -E 's/.*versionCode\s+([0-9]+).*/\1/')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "code=$CODE" >> $GITHUB_OUTPUT
           echo "APK version: $VERSION (code: $CODE)"
