@@ -1,0 +1,120 @@
+{
+  "unique_id": "live_fest2026",
+  "nickname": "@Dr.TiKToK",
+  "user_id": "7123696644457743366",
+  "sec_uid": "MS4wLjABAAAArwnWOJMKRjJ0LdfJTV4iaG8D45YJaja624wz9v_8t25W0M7EbYKXx1Tz_MYPJfPT",
+  "follower_count": 476,
+  "following_count": 868,
+  "signature": "الهدف 10k متابع 🫣 تابعني ربي يحقق لك كل احلامك ويجعل كل أيامك سعادة وهناء 🤲💓.",
+  "avatar": "https://p16-common-sign.tiktokcdn.com/tos-alisg-avt-0068/4f6202c591fd445d3bec510310fcb479~tplv-tiktokx-cropcenter:100:100.webp?dr=14579&refresh_token=9962265b&x-expires=1789236000&x-signature=cuk0pOGu5dVf18%2FxBJzLNcrMMGI%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=fdd36af4&idc=my",
+  "verified": false,
+  "room_id": "7683963746938555152",
+  "stream_id": "1849444191476121704",
+  "video_id": "7683963746938555152",
+  "share_url": "https://m.tiktok.com/share/live/7683963746938555152/?language=en",
+  "owner_room_ids": [
+    "7683963746938555152"
+  ],
+  "credentials": {
+    "csrf_token": "uQUYBmKB-84NfiEAC1JSNQg3hAsfbjS3Xrpk",
+    "wid": "7658084697712657940",
+    "nonce": "6vaarBpVsrfBDm_nl5DbJ",
+    "source": "preloaded_account (fw__qg)"
+  },
+  "interaction_ready": true,
+  "ready_payloads": {
+    "enter_live_room": {
+      "url": "https://webcast.tiktok.com/webcast/room/enter/",
+      "method": "GET",
+      "ready": true,
+      "headers": {},
+      "payload": {
+        "aid": "1988",
+        "device_platform": "web",
+        "room_id": "7683963746938555152",
+        "sec_uid": "MS4wLjABAAAArwnWOJMKRjJ0LdfJTV4iaG8D45YJaja624wz9v_8t25W0M7EbYKXx1Tz_MYPJfPT",
+        "user_id": "7123696644457743366"
+      }
+    },
+    "follow_user": {
+      "url": "https://www.tiktok.com/api/relation/follow/",
+      "method": "POST",
+      "ready": true,
+      "headers": {
+        "Content-Type": "application/json",
+        "Origin": "https://www.tiktok.com",
+        "Referer": "https://www.tiktok.com/",
+        "X-CSRF-Token": "uQUYBmKB-84NfiEAC1JSNQg3hAsfbjS3Xrpk",
+        "X-Nonce": "6vaarBpVsrfBDm_nl5DbJ",
+        "X-Wid": "7658084697712657940"
+      },
+      "payload": {
+        "channel_id": 6,
+        "enter_method": "share",
+        "sec_uid": "MS4wLjABAAAArwnWOJMKRjJ0LdfJTV4iaG8D45YJaja624wz9v_8t25W0M7EbYKXx1Tz_MYPJfPT",
+        "type": 1,
+        "user_id": "7123696644457743366"
+      }
+    },
+    "like_video": {
+      "url": "https://www.tiktok.com/api/commit/item/digg/",
+      "method": "POST",
+      "ready": true,
+      "headers": {
+        "Content-Type": "application/json",
+        "Origin": "https://www.tiktok.com",
+        "Referer": "https://www.tiktok.com/",
+        "X-CSRF-Token": "uQUYBmKB-84NfiEAC1JSNQg3hAsfbjS3Xrpk",
+        "X-Nonce": "6vaarBpVsrfBDm_nl5DbJ",
+        "X-Wid": "7658084697712657940"
+      },
+      "payload": {
+        "aweme_id": "7683963746938555152",
+        "channel_id": 6,
+        "item_type": 0,
+        "type": 1
+      }
+    },
+    "send_comment": {
+      "url": "https://www.tiktok.com/api/comment/publish/",
+      "method": "POST",
+      "ready": true,
+      "headers": {
+        "Content-Type": "application/json",
+        "Origin": "https://www.tiktok.com",
+        "Referer": "https://www.tiktok.com/",
+        "X-CSRF-Token": "uQUYBmKB-84NfiEAC1JSNQg3hAsfbjS3Xrpk",
+        "X-Nonce": "6vaarBpVsrfBDm_nl5DbJ",
+        "X-Wid": "7658084697712657940"
+      },
+      "payload": {
+        "aweme_id": "7683963746938555152",
+        "channel_id": 6,
+        "text": " PLACEHOLDER_COMMENT_TEXT ",
+        "type": 1
+      }
+    },
+    "send_like": {
+      "url": "https://www.tiktok.com/api/live/digg/",
+      "method": "POST",
+      "ready": true,
+      "headers": {
+        "Content-Type": "application/json",
+        "Origin": "https://www.tiktok.com",
+        "Referer": "https://www.tiktok.com/@live_fest2026/live",
+        "X-CSRF-Token": "uQUYBmKB-84NfiEAC1JSNQg3hAsfbjS3Xrpk",
+        "X-Nonce": "6vaarBpVsrfBDm_nl5DbJ",
+        "X-Wid": "7658084697712657940"
+      },
+      "payload": {
+        "channel_id": 6,
+        "count": 1,
+        "enter_method": "share",
+        "room_id": "7683963746938555152",
+        "type": 1,
+        "user_id": "7123696644457743366"
+      }
+    }
+  },
+  "extracted_at": "2026-09-10T17:59:59.746071Z"
+}

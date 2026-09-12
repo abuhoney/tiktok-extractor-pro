@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TT Extractor</string>
+    <string name="launcherIntent">android.intent.action.MAIN</string>
+    <string name="fileProviderAuthority">com.tiktok.extractor.fileprovider</string>
+</resources>

@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>محرك استخراج بيانات TikTok | يدعم كل الروابط</title>
+  <meta name="description" content="أداة احترافية لاستخراج بيانات أي رابط TikTok — فيديو، صور، بث مباشر، ملفات صوتية، إحصائيات، وتحميل مباشر بدون علامة مائية.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <!-- خلفية متحركة -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+  <div class="bg-grid"></div>
+
+  <div class="app">
+    <!-- الترويسة -->
+    <header class="hero">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M33 6c1.5 4 4.5 7 9 8v6c-3 0-6-.9-9-2.7v12.7c0 7.6-5.4 13-13 13S7 37.6 7 30s5.4-13 13-13c1 0 2 .1 3 .4v6.6c-1-.3-2-.5-3-.5-3.6 0-6.5 2.9-6.5 6.5S16.4 36 20 36s6.5-2.9 6.5-6.5V6h6.5z" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>TikTok Extractor Pro</h1>
+          <p>محرك استخراج البيانات الاحترافي</p>
+        </div>
+      </div>
+      <div class="hero-badges">
+        <span class="badge"><span class="dot"></span> يدعم كل الروابط</span>
+        <span class="badge ghost">vm.tiktok.com</span>
+        <span class="badge ghost">vt.tiktok.com</span>
+        <span class="badge ghost">m.tiktok.com</span>
+        <span class="badge ghost">/@user/video</span>
+        <span class="badge ghost">/@user/live</span>
+      </div>
+    </header>
+
+    <!-- بطاقة الإدخال -->
+    <section class="input-card">
+      <form id="extractForm" autocomplete="off">
+        <div class="input-row">
+          <div class="input-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M3.6 9h16.8c.3 0 .6.3.6.6v8.8c0 .9-.7 1.6-1.6 1.6H4.6c-.9 0-1.6-.7-1.6-1.6V9.6c0-.3.3-.6.6-.6zM10 4h4l1 2h2c.6 0 1 .4 1 1v1H6V7c0-.6.4-1 1-1h2l1-2z"/>
+            </svg>
+          </div>
+          <input
+            type="text"
+            id="urlInput"
+            placeholder="الصق رابط TikTok بأي صيغة... (مثال: https://vm.tiktok.com/...)"
+            spellcheck="false"
+            aria-label="رابط TikTok"
+          >
+          <button type="submit" id="extractBtn" class="btn-primary">
+            <span class="btn-text">استخراج</span>
+            <span class="btn-loader" hidden></span>
+          </button>
+        </div>
+        <div class="input-hints">
+          <button type="button" class="hint-chip" data-url="https://www.tiktok.com/@tiktok/video/7106594312292453675">مثال: فيديو</button>
+          <button type="button" class="hint-chip" data-url="https://vm.tiktok.com/ZMNxJhY2q/">مثال: رابط مختصر</button>
+          <button type="button" class="hint-chip" data-url="https://www.tiktok.com/@khaby.lame">مثال: بروفايل</button>
+          <button type="button" class="hint-chip" data-url="https://www.tiktok.com/@tiktok/photo/7123456789012345678">مثال: صور</button>
+          <button type="button" id="demoBtn" class="hint-chip demo-chip">عرض تجريبي فوري</button>
+          <span class="hint-note">يتم استخراج البيانات محلياً عبر خادم Python — لا يتم تخزين أي شيء.</span>
+        </div>
+        <div id="errorMsg" class="error-msg" hidden></div>
+      </form>
+    </section>
+
+    <!-- حالة التحميل -->
+    <section id="loadingSection" class="loading-section" hidden>
+      <div class="loader-orbit">
+        <div class="orbit-ring r1"></div>
+        <div class="orbit-ring r2"></div>
+        <div class="orbit-ring r3"></div>
+        <div class="orbit-core"></div>
+      </div>
+      <div class="loading-text">
+        <div id="loadingStage">جاري الاتصال بخوادم TikTok...</div>
+        <div class="loading-steps" id="loadingSteps">
+          <span class="step" data-step="0">تحليل الرابط</span>
+          <span class="step" data-step="1">حلّ المختصر</span>
+          <span class="step" data-step="2">جلب الصفحة</span>
+          <span class="step" data-step="3">استخراج JSON</span>
+          <span class="step" data-step="4">تحويل البيانات</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- النتائج -->
+    <section id="resultSection" class="result-section" hidden>
+      <!-- لافتة الوضع التجريبي -->
+      <div id="demoBanner" class="demo-banner" hidden>
+        <div class="demo-banner-icon">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        </div>
+        <div class="demo-banner-text">
+          <strong>وضع العرض التجريبي مُفعَّل</strong>
+          <span id="demoReason">الخادم محجوب جغرافياً من TikTok — البيانات أدناه تجريبية لأغراض العرض. الكود يدعم الرابط بشكل صحيح.</span>
+        </div>
+      </div>
+
+      <!-- رأس النتيجة -->
+      <div class="result-header">
+        <div class="result-kind" id="resultKind">فيديو</div>
+        <div class="result-actions">
+          <button class="btn-ghost" id="copyJsonBtn">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>
+            نسخ JSON
+          </button>
+          <button class="btn-ghost" id="downloadJsonBtn">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M5 20h14v-2H5v2zM12 2L7 9h3v6h4V9h3l-5-7z"/></svg>
+            تحميل JSON
+          </button>
+          <button class="btn-ghost" id="resetBtn">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 6V3L8 7l4 4V8c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H4c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z"/></svg>
+            رابط جديد
+          </button>
+        </div>
+      </div>
+
+      <!-- شبكة النتائج -->
+      <div class="result-grid">
+        <!-- العمود الأيمن: المعاينة -->
+        <div class="col-preview">
+          <div class="card preview-card">
+            <div class="preview-wrap" id="previewWrap">
+              <!-- سيملأ بالصورة/الفيديو -->
+            </div>
+            <div class="preview-overlay">
+              <div class="preview-stats" id="previewStats"></div>
+            </div>
+          </div>
+
+          <!-- أزرار التحميل -->
+          <div class="card download-card" id="downloadCard">
+            <h3>روابط التحميل</h3>
+            <div class="download-grid" id="downloadGrid"></div>
+          </div>
+        </div>
+
+        <!-- العمود الأيسر: التفاصيل -->
+        <div class="col-details">
+          <!-- المؤلف -->
+          <div class="card author-card" id="authorCard">
+            <div class="author-avatar">
+              <img id="authorAvatar" alt="" loading="lazy">
+            </div>
+            <div class="author-info">
+              <div class="author-name">
+                <span id="authorNickname">—</span>
+                <span class="verified-badge" id="verifiedBadge" hidden>✓</span>
+              </div>
+              <a class="author-username" id="authorUsername" target="_blank" rel="noopener"></a>
+              <div class="author-stats" id="authorStats"></div>
+            </div>
+          </div>
+
+          <!-- الوصف -->
+          <div class="card desc-card" id="descCard">
+            <h3>الوصف</h3>
+            <div class="desc-text" id="descText"></div>
+            <div class="hashtags" id="hashtagsList"></div>
+          </div>
+
+          <!-- الموسيقى -->
+          <div class="card music-card" id="musicCard" hidden>
+            <h3>الموسيقى</h3>
+            <div class="music-info">
+              <img id="musicCover" alt="">
+              <div class="music-meta">
+                <div class="music-title" id="musicTitle"></div>
+                <div class="music-author" id="musicAuthor"></div>
+              </div>
+              <button class="btn-play" id="musicPlayBtn" title="تشغيل">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7L8 5z"/></svg>
+              </button>
+              <audio id="musicAudio" preload="none"></audio>
+            </div>
+          </div>
+
+          <!-- الإحصائيات التفصيلية -->
+          <div class="card stats-card" id="statsCard">
+            <h3>الإحصائيات</h3>
+            <div class="stats-grid" id="statsGrid"></div>
+          </div>
+
+          <!-- بيانات إضافية -->
+          <div class="card meta-card" id="metaCard">
+            <h3>بيانات تقنية</h3>
+            <div class="meta-list" id="metaList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- عارض JSON الخام -->
+      <details class="card json-viewer-card">
+        <summary>عرض البيانات الخام (JSON)</summary>
+        <pre id="rawJson"></pre>
+      </details>
+    </section>
+
+    <!-- قسم الميزات (يظهر في البداية فقط) -->
+    <section id="featuresSection" class="features-section">
+      <div class="feature">
+        <div class="feature-icon">🔗</div>
+        <h4>كل صيغ الروابط</h4>
+        <p>vm / vt / m.tiktok / www.tiktok / @username — كلها مدعومة</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⚡</div>
+        <h4>5 استراتيجيات</h4>
+        <p>UNIVERSAL_DATA + SIGI + oEmbed + Meta + DOM</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🎬</div>
+        <h4>تحميل مباشر</h4>
+        <p>فيديو + صوت + صور غلاف عبر وكيل محلي</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <h4>خصوصية كاملة</h4>
+        <p>كل المعالجة محلية — لا تخزين، لا تتبّع</p>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <p>محرك استخراج TikTok — Flask + Python 3.12 — كل المعالجة تتم على خادمك المحلي</p>
+    </footer>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
