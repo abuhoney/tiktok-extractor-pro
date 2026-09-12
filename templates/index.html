@@ -299,84 +299,66 @@
       </div>
     </section>
 
-    <!-- ════════ تبويب تسجيل الدخول v4.5 ════════ -->
+    <!-- ════════ تبويب الجلسة v4.7 — عرض حالة فقط (التسجيل عبر APK) ════════ -->
     <section id="sessionSection" class="session-section" hidden>
       <div class="card session-card">
-        <h2>🔐 إدارة جلسة TikTok (sessionid)</h2>
+        <h2>🔐 حالة جلسة TikTok</h2>
         <p class="session-intro">
-          لتفعيل التفاعلات المتقدمة (التعليق، الرسائل)، تحتاج إلى توفير <code>sessionid</code> من متصفحك بعد تسجيل الدخول إلى TikTok.
-          يتم حفظه بشكل دائم في GitHub (في <code>data/sessions/</code>)، ويُستخدم فقط عند الطلب.
+          يتم تسجيل الدخول تلقائياً من خلال تطبيق الـ APK — اضغط زر <strong>تسجيل الدخول</strong> (البرتقالي) في التطبيق
+          وسجّل دخولك إلى TikTok بنفسك. سيُلتقط <code>sessionid</code> وجميع الكوكيز تلقائياً وتُحفظ في GitHub.
+          <br><br>
+          <strong>لا حاجة لإدخال أي بيانات يدوياً هنا</strong> — هذه الصفحة فقط لعرض حالة الجلسة الحالية.
         </p>
 
-        <div id="sessionStatus" class="session-status"></div>
+        <div id="sessionStatus" class="session-status">
+          <div class="session-status-loading">⏳ جاري فحص الجلسة المحفوظة...</div>
+        </div>
 
-        <form id="sessionForm" autocomplete="off">
-          <div class="form-group">
-            <label for="sessionUniqueId">اسم المستخدم (unique_id)</label>
-            <input type="text" id="sessionUniqueId" placeholder="abuhoney77" required>
-            <small>اسم المستخدم الخاص بك على TikTok (بدون @)</small>
-          </div>
-
-          <div class="form-group">
-            <label for="sessionIdInput">sessionid</label>
-            <textarea id="sessionIdInput" rows="3" placeholder="الصق قيمة sessionid من Cookies" required></textarea>
-            <small>افتح tiktok.com في المتصفح → F12 → Application → Cookies → انسخ قيمة <code>sessionid</code></small>
-          </div>
-
-          <details class="advanced-cookies">
-            <summary>كوكيز إضافية (اختياري لكن مُوصى به)</summary>
-            <div class="form-group">
-              <label for="ttwidInput">ttwid</label>
-              <input type="text" id="ttwidInput" placeholder="الصق ttwid">
-            </div>
-            <div class="form-group">
-              <label for="msTokenInput">msToken</label>
-              <input type="text" id="msTokenInput" placeholder="الصق msToken">
-            </div>
-            <div class="form-group">
-              <label for="sidTtInput">sid_tt</label>
-              <input type="text" id="sidTtInput" placeholder="الصق sid_tt">
-            </div>
-            <div class="form-group">
-              <label for="passportCsrfInput">passport_csrf_token</label>
-              <input type="text" id="passportCsrfInput" placeholder="الصق passport_csrf_token">
-            </div>
-          </details>
-
-          <button type="submit" class="btn-primary" id="sessionSubmitBtn">
-            💾 حفظ الجلسة في GitHub
+        <div class="session-actions-row">
+          <button type="button" class="btn-primary" id="sessionRefreshBtn">
+            🔄 تحديث حالة الجلسة
           </button>
-          <button type="button" class="btn-ghost" id="sessionCheckBtn">
-            🔍 فحص الجلسة المحفوظة
+          <button type="button" class="btn-ghost" id="sessionListBtn">
+            📋 عرض الجلسات المحفوظة
           </button>
-          <button type="button" class="btn-ghost danger" id="sessionDeleteBtn">
-            🗑️ حذف الجلسة
+          <button type="button" class="btn-ghost danger" id="sessionDeleteBtn" hidden>
+            🗑️ حذف الجلسة الحالية
           </button>
-        </form>
+        </div>
 
         <div id="sessionResult" class="session-result" hidden></div>
 
         <details class="card help-card">
-          <summary>📚 كيف أحصل على sessionid؟ (خطوات مفصّلة)</summary>
+          <summary>📚 كيف يعمل تسجيل الدخول التلقائي؟</summary>
           <ol class="help-steps">
-            <li>افتح متصفح Chrome أو Firefox على الكمبيوتر</li>
-            <li>اذهب إلى <a href="https://www.tiktok.com" target="_blank">tiktok.com</a> وسجّل دخولك بحسابك</li>
-            <li>اضغط F12 لفتح DevTools</li>
-            <li>اذهب إلى تبويب <strong>Application</strong> (أو Storage في Firefox)</li>
-            <li>من القائمة الجانبية: <strong>Cookies</strong> → <strong>https://www.tiktok.com</strong></li>
-            <li>ابحث في عمود <strong>Name</strong> عن:
-              <ul>
-                <li><code>sessionid</code> — انسخ القيمة من عمود Value</li>
-                <li><code>ttwid</code> — انسخه أيضاً (اختياري لكن مُوصى به)</li>
-                <li><code>msToken</code> — يُحدّث باستمرار، انسخ أحدث قيمة</li>
-                <li><code>sid_tt</code> — اختياري</li>
-              </ul>
-            </li>
-            <li>الصق القيم في الحقول أعلاه واضغط "حفظ الجلسة"</li>
+            <li>افتح تطبيق TikTok Extractor Pro على هاتفك</li>
+            <li>اضغط زر <strong>تسجيل الدخول</strong> (الزر البرتقالي العائم)</li>
+            <li>ستفتح صفحة تسجيل دخول TikTok داخل التطبيق</li>
+            <li>سجّل دخولك ببريدك وكلمة مرورك بنفسك (لا أتمتة)</li>
+            <li>بعد نجاح تسجيل الدخول، سيُلتقط <code>sessionid</code> تلقائياً</li>
+            <li>سيُحدّد النظام اسم المستخدم الخاص بك تلقائياً (بدون إدخال يدوي)</li>
             <li>ستُحفظ الجلسة في GitHub في <code>data/sessions/&lt;username&gt;.json</code></li>
+            <li>ستظهر حالة الجلسة هنا (في هذه الصفحة) بعد الحفظ</li>
           </ol>
           <div class="warning">
-            ⚠️ <strong>تنبيه أمني:</strong> sessionid يمنح وصولاً كاملاً لحسابك. لا تشاركه مع أحد. سيُحفظ في GitHub repo الخاص بك (تأكد أنه خاص) أو في Render كمتغير بيئة.
+            ⚠️ <strong>تنبيه:</strong> لا تشارك ملف الجلسة مع أحد — يمنح وصولاً كاملاً لحسابك.
+          </div>
+        </details>
+
+        <details class="card help-card">
+          <summary>🔧 استكشاف الأخطاء</summary>
+          <div class="help-steps">
+            <p><strong>المشكلة:</strong> الجلسة لا تُحفظ في GitHub</p>
+            <p><strong>السبب:</strong> GH_TOKEN غير مضبوط على Render</p>
+            <p><strong>الحل:</strong></p>
+            <ol>
+              <li>اذهب إلى <a href="https://dashboard.render.com" target="_blank">Render Dashboard</a></li>
+              <li>اختر <code>tiktok-extractor-pro</code> service</li>
+              <li>تبويب <strong>Environment</strong> → <strong>Add Environment Variable</strong></li>
+              <li>Key: <code>GH_TOKEN</code> | Value: (توكن GitHub)</li>
+              <li>Save — سيُعاد النشر تلقائياً</li>
+            </ol>
+            <p>حتى دون GH_TOKEN، تُحفظ الجلسة محلياً مع رابط تنزيل مباشر.</p>
           </div>
         </details>
       </div>

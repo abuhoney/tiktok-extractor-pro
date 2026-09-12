@@ -866,7 +866,8 @@
 
 
 /* ============================================================
-   v4.5 — Session Manager Logic (sessionid storage)
+   v4.7 — Session Status Viewer (no manual input)
+   التسجيل يتم عبر APK فقط — هذه الصفحة لعرض الحالة فقط
    ============================================================ */
 (() => {
   'use strict';
@@ -874,162 +875,202 @@
   const API_BASE = window.location.origin;
   const $$ = (s, root=document) => Array.from(root.querySelectorAll(s));
 
-  // ───── إضافة تبويب session للنظام ─────
+  // ───── التبويب ─────
   const sessionTab = document.querySelector('.nav-tab[data-tab="session"]');
   const sessionSection = document.getElementById('sessionSection');
 
   if (sessionTab) {
-    const originalTabs = document.querySelectorAll('.nav-tab');
     sessionTab.addEventListener('click', () => {
-      originalTabs.forEach(t => t.classList.toggle('active', t === sessionTab));
-      // إخفاء كل أقسام الاستخراج و dbSection
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t === sessionTab));
       document.querySelectorAll('.input-card, #loadingSection, #resultSection, #featuresSection, #databaseSection').forEach(s => s.hidden = true);
       if (sessionSection) sessionSection.hidden = false;
-      checkSessionStatus();
+      loadAllSessions();
     });
   }
 
-  // ───── عناصر DOM لتبويب الجلسة ─────
+  // ───── عناصر DOM ─────
   const sEls = {
-    form: document.getElementById('sessionForm'),
-    uidInput: document.getElementById('sessionUniqueId'),
-    sidInput: document.getElementById('sessionIdInput'),
-    ttwidInput: document.getElementById('ttwidInput'),
-    msTokenInput: document.getElementById('msTokenInput'),
-    sidTtInput: document.getElementById('sidTtInput'),
-    passportCsrfInput: document.getElementById('passportCsrfInput'),
-    submitBtn: document.getElementById('sessionSubmitBtn'),
-    checkBtn: document.getElementById('sessionCheckBtn'),
-    deleteBtn: document.getElementById('sessionDeleteBtn'),
     status: document.getElementById('sessionStatus'),
     result: document.getElementById('sessionResult'),
+    refreshBtn: document.getElementById('sessionRefreshBtn'),
+    listBtn: document.getElementById('sessionListBtn'),
+    deleteBtn: document.getElementById('sessionDeleteBtn'),
   };
 
-  // ───── حفظ الجلسة ─────
-  async function saveSession(e) {
-    if (e) e.preventDefault();
-    const uniqueId = sEls.uidInput.value.trim();
-    const sessionid = sEls.sidInput.value.trim();
-    if (!uniqueId || !sessionid) {
-      showSessionResult('error', '❌ يرجى إدخال اسم المستخدم و sessionid');
-      return;
-    }
-
-    const extraCookies = {};
-    if (sEls.ttwidInput.value.trim()) extraCookies.ttwid = sEls.ttwidInput.value.trim();
-    if (sEls.msTokenInput.value.trim()) extraCookies.msToken = sEls.msTokenInput.value.trim();
-    if (sEls.sidTtInput.value.trim()) extraCookies.sid_tt = sEls.sidTtInput.value.trim();
-    if (sEls.passportCsrfInput.value.trim()) extraCookies.passport_csrf_token = sEls.passportCsrfInput.value.trim();
-
-    sEls.submitBtn.disabled = true;
-    sEls.submitBtn.textContent = '⏳ جاري الحفظ...';
-    sEls.result.hidden = false;
-    sEls.result.className = 'session-result';
-    sEls.result.textContent = '⏳ جاري رفع الجلسة إلى GitHub...';
+  // ───── تحميل جميع الجلسات المحفوظة ─────
+  async function loadAllSessions() {
+    if (!sEls.status) return;
+    sEls.status.innerHTML = '<div class="session-status-loading">⏳ جاري فحص الجلسات المحفوظة...</div>';
+    if (sEls.deleteBtn) sEls.deleteBtn.hidden = true;
 
     try {
-      const resp = await fetch(`${API_BASE}/api/session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          unique_id: uniqueId,
-          sessionid: sessionid,
-          extra_cookies: extraCookies,
-        }),
+      // 1) الجلسات المحفوظة في GitHub (تتطلب GH_TOKEN)
+      const ghResp = await fetch(`${API_BASE}/api/github/users`);
+      const ghData = await ghResp.json();
+
+      // 2) الجلسات المحفوظة محلياً (عند غياب GH_TOKEN)
+      const localResp = await fetch(`${API_BASE}/api/session/local`);
+      const localData = await localResp.json();
+
+      // 3) اقرأ كل جلسة محلية لعرض unique_id الحقيقي
+      const localSessions = localData.sessions || [];
+      const localDetails = [];
+      for (const s of localSessions) {
+        try {
+          const r = await fetch(`${API_BASE}/api/session/${encodeURIComponent(s.unique_id || 'me')}/status`);
+          const d = await r.json();
+          if (d.has_session) {
+            localDetails.push({...s, saved_at: d.saved_at, sessionid_preview: d.sessionid_preview});
+          }
+        } catch (e) {}
+      }
+
+      renderSessionsStatus({
+        github: ghData,
+        local: localData,
+        local_details: localDetails,
       });
-      const data = await resp.json();
-
-      if (data.success) {
-        sEls.result.className = 'session-result success';
-        sEls.result.innerHTML = `
-          ✅ <strong>تم حفظ الجلسة بنجاح!</strong><br>
-          📁 المسار: <code>${data.file_path}</code><br>
-          🔗 <a href="${data.commit_url || '#'}" target="_blank" style="color:var(--accent-2);">عرض الـ commit على GitHub</a><br>
-          📅 وقت الحفظ: ${data.saved_at}
-        `;
-        // امسح حقل sessionid للأمان (لا تبقه في المتصفح)
-        sEls.sidInput.value = '';
-      } else {
-        sEls.result.className = 'session-result error';
-        sEls.result.innerHTML = `❌ <strong>فشل الحفظ:</strong> ${escapeHtml(data.error || 'unknown error')}<br>${data.hint ? `ℹ️ ${escapeHtml(data.hint)}` : ''}`;
-      }
-    } catch (e) {
-      sEls.result.className = 'session-result error';
-      sEls.result.innerHTML = `❌ خطأ شبكي: ${escapeHtml(e.message)}`;
-    } finally {
-      sEls.submitBtn.disabled = false;
-      sEls.submitBtn.textContent = '💾 حفظ الجلسة في GitHub';
-    }
-  }
-
-  // ───── فحص الجلسة المحفوظة ─────
-  async function checkSessionStatus() {
-    const uniqueId = sEls.uidInput.value.trim();
-    if (!uniqueId) {
-      if (sEls.status) {
-        sEls.status.innerHTML = '<div class="session-status-empty">أدخل اسم المستخدم للتحقق من الجلسة المحفوظة</div>';
-      }
-      return;
-    }
-    if (sEls.status) sEls.status.innerHTML = '<div class="session-status-loading">⏳ جاري الفحص...</div>';
-
-    try {
-      const resp = await fetch(`${API_BASE}/api/session/${encodeURIComponent(uniqueId)}/status`);
-      const data = await resp.json();
-      if (data.has_session) {
-        sEls.status.innerHTML = `
-          <div class="session-status-active">
-            ✅ <strong>جلسة محفوظة!</strong><br>
-            📅 حفظ بتاريخ: ${data.saved_at}<br>
-            🔑 المعاينة: <code>${escapeHtml(data.sessionid_preview || '')}</code>
-          </div>
-        `;
-      } else {
-        sEls.status.innerHTML = '<div class="session-status-none">ℹ️ لا توجد جلسة محفوظة لهذا المستخدم</div>';
-      }
     } catch (e) {
       sEls.status.innerHTML = `<div class="session-status-error">❌ خطأ: ${escapeHtml(e.message)}</div>`;
     }
   }
 
-  // ───── حذف الجلسة ─────
-  async function deleteSession() {
-    const uniqueId = sEls.uidInput.value.trim();
-    if (!uniqueId) {
-      showSessionResult('error', '❌ أدخل اسم المستخدم أولاً');
+  function renderSessionsStatus({github, local, local_details}) {
+    const ghUsers = (github && github.users) ? github.users : [];
+    const localSessions = local_details || [];
+    const total = (github?.total_users || 0) + localSessions.length;
+
+    if (total === 0) {
+      sEls.status.innerHTML = `
+        <div class="session-status-none">
+          <h3>ℹ️ لا توجد جلسة محفوظة بعد</h3>
+          <p>لتسجيل الدخول وحفظ الجلسة:</p>
+          <ol style="text-align: right; padding-right: 20px; margin-top: 12px;">
+            <li>افتح تطبيق <strong>TikTok Extractor Pro</strong> على هاتفك</li>
+            <li>اضغط زر <strong>🔐 تسجيل الدخول</strong> (البرتقالي)</li>
+            <li>سجّل دخولك إلى TikTok بنفسك</li>
+            <li>ستُلتقط الجلسة تلقائياً وتُحفظ</li>
+            <li>ارجع لهذه الصفحة واضغط <strong>🔄 تحديث حالة الجلسة</strong></li>
+          </ol>
+        </div>
+      `;
       return;
     }
-    if (!confirm(`هل أنت متأكد من حذف جلسة المستخدم "${uniqueId}"؟`)) return;
 
-    sEls.deleteBtn.disabled = true;
-    sEls.deleteBtn.textContent = '⏳ جاري الحذف...';
+    let html = '<div class="session-sessions-list">';
+    if (localSessions.length > 0) {
+      html += '<h3>💾 الجلسات المحفوظة محلياً</h3>';
+      for (const s of localSessions) {
+        html += `
+          <div class="session-card-item local">
+            <div class="session-card-header">
+              <span class="session-card-icon">👤</span>
+              <span class="session-card-uid">@${escapeHtml(s.unique_id || 'me')}</span>
+              <span class="session-card-badge local">محلي</span>
+            </div>
+            <div class="session-card-meta">
+              <div>📅 حفظ: ${escapeHtml(s.saved_at || 'غير معروف')}</div>
+              <div>🔑 معاينة: <code>${escapeHtml((s.sessionid_preview || '').substring(0, 40))}...</code></div>
+            </div>
+            <div class="session-card-actions">
+              <a href="${API_BASE}/api/session/local/${encodeURIComponent(s.unique_id || 'me')}/download"
+                 target="_blank" class="btn-ghost" style="font-size:12px;padding:6px 12px;">
+                📥 تنزيل الجلسة (JSON)
+              </a>
+            </div>
+          </div>
+        `;
+      }
+    }
+    if (ghUsers.length > 0) {
+      html += '<h3>☁️ الجلسات المحفوظة في GitHub</h3>';
+      for (const u of ghUsers) {
+        html += `
+          <div class="session-card-item github">
+            <div class="session-card-header">
+              <span class="session-card-icon">☁️</span>
+              <span class="session-card-uid">@${escapeHtml(u.unique_id || 'unknown')}</span>
+              <span class="session-card-badge github">GitHub</span>
+            </div>
+            <div class="session-card-meta">
+              <div>📁 الحجم: ${u.size_bytes || 0} bytes</div>
+              <a href="${u.html_url || '#'}" target="_blank" style="color:var(--accent-2);">
+                🔗 عرض الملف على GitHub
+              </a>
+            </div>
+          </div>
+        `;
+      }
+    }
+    html += '</div>';
+
+    sEls.status.innerHTML = html;
+    if (sEls.deleteBtn && localSessions.length > 0) sEls.deleteBtn.hidden = false;
+  }
+
+  // ───── قائمة الجلسات المحفوظة محلياً ─────
+  async function listSessions() {
+    if (!sEls.result) return;
+    sEls.result.hidden = false;
+    sEls.result.className = 'session-result';
+    sEls.result.innerHTML = '⏳ جاري جلب القائمة...';
 
     try {
-      const resp = await fetch(`${API_BASE}/api/session/${encodeURIComponent(uniqueId)}`, {
-        method: 'DELETE',
-      });
+      const resp = await fetch(`${API_BASE}/api/session/local`);
       const data = await resp.json();
       if (data.success) {
-        showSessionResult('success', `✅ تم حذف الجلسة للمستخدم "${uniqueId}"`);
-        checkSessionStatus();
+        sEls.result.className = 'session-result success';
+        sEls.result.innerHTML = `
+          <strong>📋 الجلسات المحفوظة محلياً (${data.total})</strong><br>
+          ${data.sessions && data.sessions.length > 0
+            ? data.sessions.map(s => `
+              <div style="margin-top:8px;padding:8px;background:var(--bg-2);border-radius:6px;">
+                <strong>@${escapeHtml(s.unique_id || 'me')}</strong><br>
+                <small>📅 ${escapeHtml(s.saved_at || 'غير معروف')}</small><br>
+                <small>📊 ${s.size_bytes || 0} bytes</small><br>
+                <a href="${API_BASE}/api/session/local/${encodeURIComponent(s.unique_id || 'me')}/download"
+                   target="_blank" style="color:var(--accent-2);font-size:11px;">
+                  📥 تنزيل
+                </a>
+              </div>
+            `).join('')
+            : '<em>لا توجد جلسات محفوظة محلياً</em>'
+          }
+        `;
       } else {
-        showSessionResult('error', `❌ فشل الحذف: ${data.error || 'unknown'}`);
+        sEls.result.className = 'session-result error';
+        sEls.result.textContent = `❌ ${data.error || 'فشل'}`;
       }
     } catch (e) {
-      showSessionResult('error', `❌ خطأ: ${e.message}`);
-    } finally {
-      sEls.deleteBtn.disabled = false;
-      sEls.deleteBtn.textContent = '🗑️ حذف الجلسة';
+      sEls.result.className = 'session-result error';
+      sEls.result.textContent = `❌ ${e.message}`;
     }
   }
 
-  function showSessionResult(type, message) {
-    if (!sEls.result) return;
-    sEls.result.hidden = false;
-    sEls.result.className = `session-result ${type}`;
-    sEls.result.textContent = message;
+  // ───── حذف الجلسة المحلية ─────
+  async function deleteLocalSession() {
+    if (!confirm('سيتم حذف الجلسات المحفوظة محلياً. متابعة؟')) return;
+    if (sEls.deleteBtn) {
+      sEls.deleteBtn.disabled = true;
+      sEls.deleteBtn.textContent = '⏳ جاري الحذف...';
+    }
+
+    try {
+      // نحتاج unique_id للحذف — نعرض رسالة إرشادية
+      if (sEls.result) {
+        sEls.result.hidden = false;
+        sEls.result.className = 'session-result';
+        sEls.result.innerHTML = 'ℹ️ لحذف جلسة محددة، استخدم <code>DELETE /api/session/&lt;unique_id&gt;</code> عبر curl أو أي عميل HTTP.';
+      }
+    } finally {
+      if (sEls.deleteBtn) {
+        sEls.deleteBtn.disabled = false;
+        sEls.deleteBtn.textContent = '🗑️ حذف الجلسة الحالية';
+      }
+    }
   }
 
+  // ───── أدوات ─────
   function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/[&<>"']/g, c => ({
@@ -1038,12 +1079,10 @@
   }
 
   // ───── ربط الأحداث ─────
-  if (sEls.form) sEls.form.addEventListener('submit', saveSession);
-  if (sEls.checkBtn) sEls.checkBtn.addEventListener('click', checkSessionStatus);
-  if (sEls.deleteBtn) sEls.deleteBtn.addEventListener('click', deleteSession);
-  if (sEls.uidInput) {
-    sEls.uidInput.addEventListener('blur', checkSessionStatus);
-  }
+  if (sEls.refreshBtn) sEls.refreshBtn.addEventListener('click', loadAllSessions);
+  if (sEls.listBtn) sEls.listBtn.addEventListener('click', listSessions);
+  if (sEls.deleteBtn) sEls.deleteBtn.addEventListener('click', deleteLocalSession);
 
-  console.log('%c[v4.5] Session Manager initialized', 'color:#25f4ee');
+  console.log('%c[v4.7] Session Status Viewer initialized (no manual input)', 'color:#25f4ee');
 })();
+
