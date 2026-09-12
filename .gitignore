@@ -1,0 +1,40 @@
+# ملفات السجلات
+*.log
+server.log
+tiktok_bot.log
+tiktok_live_ultimate.log
+
+# ملفات Python المؤقتة
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+
+# بيئات افتراضية
+venv/
+env/
+ENV/
+.venv/
+
+# أدوات التطوير
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ملفات النظام
+.DS_Store
+Thumbs.db
+
+# ملفات البيانات المؤقتة (الجلسات المحفوظة محلياً عند غياب GH_TOKEN)
+/tmp/tiktok_sessions_local/
+/tmp/tiktok_users_db/
+/tmp/tiktok_snapshots/
+
+# لكن احتفظ بملفات data/ المرفوعة يدوياً
+!data/users/
+!data/sessions/
+!data/targets/
