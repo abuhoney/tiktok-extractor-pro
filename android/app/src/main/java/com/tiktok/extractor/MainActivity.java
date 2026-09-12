@@ -3,6 +3,7 @@ package com.tiktok.extractor;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
@@ -281,6 +282,52 @@ public class MainActivity extends AppCompatActivity {
         closeParams.topMargin = 40;
         closeParams.rightMargin = 20;
         ((android.view.ViewGroup) webView.getParent()).addView(closeBtn, closeParams);
+
+        // زر "افتح في Chrome" — بديل يعمل عندما يحظر TikTok الـ WebView
+        TextView openChromeBtn = new TextView(this);
+        openChromeBtn.setText("🌐 افتح في Chrome");
+        openChromeBtn.setBackgroundColor(0xCC1A73E8);
+        openChromeBtn.setTextColor(0xFFFFFFFF);
+        openChromeBtn.setPadding(24, 12, 24, 12);
+        openChromeBtn.setTextSize(14);
+        openChromeBtn.setOnClickListener(v -> {
+            // افتح tiktok.com في متصفح Chrome الحقيقي
+            try {
+                Intent chromeIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(TIKTOK_LOGIN_URL));
+                chromeIntent.setPackage("com.android.chrome");
+                chromeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(chromeIntent);
+                toast("🌐 فتح في Chrome — سجّل دخولك هناك ثم ارجع للتطبيق");
+            } catch (Exception e) {
+                // إذا لم يكن Chrome مثبتاً، استخدم أي متصفح
+                try {
+                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(TIKTOK_LOGIN_URL));
+                    browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(browserIntent);
+                    toast("🌐 فتح في المتصفح — سجّل دخولك ثم ارجع للتطبيق");
+                } catch (Exception ex) {
+                    toast("❌ لا يوجد متصفح مثبت");
+                }
+            }
+        });
+        android.widget.FrameLayout.LayoutParams chromeParams = new android.widget.FrameLayout.LayoutParams(
+            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+        );
+        chromeParams.gravity = android.view.Gravity.TOP | android.view.Gravity.LEFT;
+        chromeParams.topMargin = 40;
+        chromeParams.leftMargin = 20;
+        ((android.view.ViewGroup) webView.getParent()).addView(openChromeBtn, chromeParams);
+
+        // timeout: بعد 30 ثانية من spinner TikTok، أظهر رسالة تحذير
+        final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+        final Runnable timeoutRunnable = () -> {
+            // تحقق إن كان لا يزال الـ WebView مفتوحاً
+            if (loginWebView != null) {
+                toast("⚠️ TikTok يحظر تسجيل الدخول من WebView — استخدم زر 'افتح في Chrome'");
+            }
+        };
+        handler.postDelayed(timeoutRunnable, 30000); // 30 ثانية
 
         // تعليمات للمستخدم
         TextView hint = new TextView(this);

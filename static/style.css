@@ -1572,3 +1572,42 @@ img { -webkit-user-drag: none; user-select: none; }
   display: flex;
   gap: 8px;
 }
+
+/* v4.7.2 — Manual session form */
+.manual-session-form {
+  background: var(--bg-2);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xs);
+  padding: 20px;
+  margin-top: 20px;
+}
+.manual-session-form input,
+.manual-session-form textarea {
+  width: 100%;
+  padding: 12px;
+  background: var(--bg-0);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xs);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  margin-top: 4px;
+}
+.manual-session-form input:focus,
+.manual-session-form textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.manual-session-form label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-top: 12px;
+}
+.manual-session-form small {
+  display: block;
+  font-size: 11px;
+  color: var(--text-mute);
+  margin-top: 4px;
+}

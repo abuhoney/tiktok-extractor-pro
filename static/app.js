@@ -1081,7 +1081,60 @@
   // ───── ربط الأحداث ─────
   if (sEls.refreshBtn) sEls.refreshBtn.addEventListener('click', loadAllSessions);
   if (sEls.listBtn) sEls.listBtn.addEventListener('click', listSessions);
-  if (sEls.deleteBtn) sEls.deleteBtn.addEventListener('click', deleteLocalSession);
+
+  // ───── النموذج اليدوي (بديل موثوق) ─────
+  const manualBtn = document.getElementById('sessionManualBtn');
+  const manualForm = document.getElementById('manualSessionForm');
+  if (manualBtn && manualForm) {
+    manualBtn.addEventListener('click', () => {
+      manualForm.hidden = !manualForm.hidden;
+      if (!manualForm.hidden) {
+        manualForm.scrollIntoView({behavior: 'smooth'});
+      }
+    });
+  }
+  if (manualForm) {
+    manualForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const sessionid = document.getElementById('manualSessionId').value.trim();
+      const ttwid = document.getElementById('manualTtwid').value.trim();
+      const msToken = document.getElementById('manualMsToken').value.trim();
+      if (!sessionid) {
+        showManualResult('error', '❌ يرجى إدخال sessionid');
+        return;
+      }
+      const extraCookies = {};
+      if (ttwid) extraCookies.ttwid = ttwid;
+      if (msToken) extraCookies.msToken = msToken;
+
+      showManualResult('loading', '⏳ جاري الحفظ...');
+      try {
+        const resp = await fetch(`${API_BASE}/api/session/capture`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({sessionid, extra_cookies: extraCookies}),
+        });
+        const data = await resp.json();
+        if (data.success) {
+          showManualResult('success', `✅ تم حفظ الجلسة بنجاح!\n👤 المستخدم: @${data.unique_id}\n💾 الحفظ: ${data.saved_to === 'github' ? 'GitHub' : 'محلي'}`);
+          manualForm.reset();
+          manualForm.hidden = true;
+          loadAllSessions();
+        } else {
+          showManualResult('error', `❌ ${data.error || 'فشل الحفظ'}`);
+        }
+      } catch (err) {
+        showManualResult('error', `❌ خطأ: ${err.message}`);
+      }
+    });
+  }
+  function showManualResult(type, msg) {
+    const result = sEls.result;
+    if (!result) return;
+    result.hidden = false;
+    result.className = `session-result ${type === 'loading' ? '' : type}`;
+    result.textContent = msg;
+  }
 
   console.log('%c[v4.7] Session Status Viewer initialized (no manual input)', 'color:#25f4ee');
 })();

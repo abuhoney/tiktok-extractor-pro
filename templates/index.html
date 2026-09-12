@@ -321,10 +321,32 @@
           <button type="button" class="btn-ghost" id="sessionListBtn">
             📋 عرض الجلسات المحفوظة
           </button>
-          <button type="button" class="btn-ghost danger" id="sessionDeleteBtn" hidden>
-            🗑️ حذف الجلسة الحالية
+          <button type="button" class="btn-ghost" id="sessionManualBtn">
+            ✏️ إدخال يدوي
           </button>
         </div>
+
+        <!-- نموذج الإدخال اليدوي (بديل موثوق) -->
+        <form id="manualSessionForm" class="manual-session-form" hidden>
+          <h3 style="color: var(--accent-2); margin-bottom: 8px;">✏️ إدخال sessionid يدوياً</h3>
+          <p style="color: var(--warning); font-size: 12px; margin-bottom: 12px;">
+            ⚠️ استخدم هذا الخيار إذا فشل تسجيل الدخول عبر الـ APK (spinner لا ينتهي — TikTok يحظر WebViews).
+          </p>
+          <div class="form-group">
+            <label for="manualSessionId">sessionid</label>
+            <textarea id="manualSessionId" rows="3" placeholder="الصق قيمة sessionid هنا" required></textarea>
+            <small>افتح tiktok.com في Chrome → سجّل دخولك → F12 → Application → Cookies → انسخ قيمة <code>sessionid</code></small>
+          </div>
+          <div class="form-group">
+            <label for="manualTtwid">ttwid (اختياري لكن مُوصى به)</label>
+            <input type="text" id="manualTtwid" placeholder="الصق ttwid">
+          </div>
+          <div class="form-group">
+            <label for="manualMsToken">msToken (اختياري)</label>
+            <input type="text" id="manualMsToken" placeholder="الصق msToken">
+          </div>
+          <button type="submit" class="btn-primary">💾 حفظ الجلسة</button>
+        </form>
 
         <div id="sessionResult" class="session-result" hidden></div>
 
