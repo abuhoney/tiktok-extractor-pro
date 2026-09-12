@@ -1647,6 +1647,11 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
         _assess_account_risk(result)
         _extract_commerce_data(result)
         _aggregate_deep_analytics(result)
+        # ─── v4.4: Persist user data to JSON DB ───
+        try:
+            _persist_user_data(result)
+        except Exception as e:
+            logger.warning(f"persist_user_data failed (non-fatal): {e}")
         return result
 
     return ExtractionResult(
@@ -6068,6 +6073,471 @@ def _build_summary_text(headline: Dict[str, Any], insights: List[str]) -> str:
     if insights:
         summary += f"\n→ {insights[0]}"
     return summary
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  v4.4: User Database — حفظ بيانات كل مستخدم في ملف JSON منفصل
+# ════════════════════════════════════════════════════════════════════════════
+#  يحفظ هذا المعالج بيانات كل مستخدم (صاحب البث + الداعمين) في ملف JSON
+#  منفصل على شكل:
+#    /data/users/<unique_id>.json
+#
+#  يحتوي الملف على:
+#    - بيانات المستخدم الأساسية (unique_id, sec_uid, nickname, avatar, followers)
+#    - سجل البثوث (stream_history): متى بدأ، كم استمر، عدد المشاهدين
+#    - سجل التغييرات (snapshots): لقطات زمنية للمتابعين والإحصائيات
+#    - الداعمون (top_fans) الذين ظهروا في بثوثه
+#    - آخر مرة شُوهد فيها (last_seen)
+#    - عدد مرات الظهور (appearance_count)
+#
+#  يمكن لاحقاً مزامنة هذه الملفات مع GitHub عبر sync_users_to_github()
+# ════════════════════════════════════════════════════════════════════════════
+
+# المسار الأساسي لحفظ بيانات المستخدمين
+USERS_DB_DIR = os.environ.get("USERS_DB_DIR", "/tmp/tiktok_users_db")
+GITHUB_SYNC_ENABLED = bool(os.environ.get("GITHUB_SYNC_ENABLED", "true").lower() == "true")
+
+
+def _get_user_file_path(unique_id: str) -> str:
+    """يُرجع مسار ملف JSON لمستخدم محدد."""
+    safe_uid = re.sub(r'[^a-zA-Z0-9_\.\-]', '_', str(unique_id or "unknown"))
+    os.makedirs(USERS_DB_DIR, exist_ok=True)
+    return os.path.join(USERS_DB_DIR, f"{safe_uid}.json")
+
+
+def _load_user_record(unique_id: str) -> Optional[Dict[str, Any]]:
+    """يحمّل سجل مستخدم من ملف JSON (أو None إذا لم يوجد)."""
+    path = _get_user_file_path(unique_id)
+    if not os.path.exists(path):
+        return None  # ← المستخدم غير موجود
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return None
+        # تأكد من وجود المفاتيح الأساسية
+        data.setdefault("stream_history", [])
+        data.setdefault("snapshots", [])
+        data.setdefault("top_fans_seen", [])
+        data.setdefault("stats_history", [])
+        return data
+    except Exception as e:
+        logger.warning(f"Failed to load user record for {unique_id}: {e}")
+        return None
+
+
+def _new_user_record(unique_id: str) -> Dict[str, Any]:
+    """ينشئ سجل مستخدم فارغ جديد."""
+    return {
+        "unique_id": unique_id,
+        "first_seen": datetime.utcnow().isoformat() + "Z",
+        "last_seen": None,
+        "appearance_count": 0,
+        "profile": {},
+        "stream_history": [],
+        "snapshots": [],
+        "top_fans_seen": [],
+        "stats_history": [],
+    }
+
+
+def _save_user_record(unique_id: str, record: Dict[str, Any]) -> bool:
+    """يحفظ سجل مستخدم في ملف JSON."""
+    if not unique_id:
+        return False
+    try:
+        path = _get_user_file_path(unique_id)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(record, f, ensure_ascii=False, indent=2, default=str)
+        return True
+    except Exception as e:
+        logger.warning(f"Failed to save user record for {unique_id}: {e}")
+        return False
+
+
+def _persist_user_data(result: ExtractionResult) -> None:
+    """يحفظ بيانات المستخدم المستخرَجة في ملف JSON منفصل.
+
+    يُحفظ:
+      1. بيانات صاحب البث/الفيديو (result.author)
+      2. بيانات الداعمين (result.donor_rankings) — كل داعم يُحفظ في ملفه
+      3. سجل البث المباشر (stream_history) إن كان البث مباشراً
+      4. لقطة زمنية للمتابعين والإحصائيات
+    """
+    saved_users = []
+
+    # ── 1) حفظ بيانات صاحب البث ───────────────────────────────────────────────
+    owner = result.author
+    if owner.unique_id or owner.user_id:
+        unique_id = owner.unique_id or f"uid_{owner.user_id}"
+        record = _load_user_record(unique_id)
+        if record is None:
+            record = _new_user_record(unique_id)
+
+        # تحديث آخر ظهور
+        now_iso = datetime.utcnow().isoformat() + "Z"
+        record["last_seen"] = now_iso
+        record["appearance_count"] = _safe_int(record.get("appearance_count")) + 1
+
+        # تحديث البيانات الشخصية (آخر نسخة)
+        record["profile"] = {
+            "unique_id": owner.unique_id,
+            "nickname": owner.nickname,
+            "user_id": owner.user_id,
+            "sec_uid": owner.sec_uid,
+            "avatar": owner.avatar,
+            "signature": owner.signature,
+            "verified": bool(owner.verified),
+            "follower_count": _safe_int(owner.follower_count),
+            "following_count": _safe_int(owner.following_count),
+            "likes_count": _safe_int(getattr(owner, "likes_count", 0)),
+            "updated_at": now_iso,
+        }
+
+        # إضافة لقطة إحصائية
+        snapshot = {
+            "timestamp": now_iso,
+            "epoch": int(time.time()),
+            "source_url": result.url,
+            "kind": result.kind,
+            "follower_count": _safe_int(owner.follower_count),
+            "view_count": _safe_int(result.stats.play_count),
+            "like_count": _safe_int(getattr(result.stats, "digg_count", 0) or result.stats.play_count),
+            "comment_count": _safe_int(result.stats.comment_count),
+            "share_count": _safe_int(result.stats.share_count),
+            "is_live": bool((result.live or {}).get("is_live")),
+            "viewer_count": _safe_int((result.live or {}).get("viewer_count")),
+            "influence_score": (result.influence_score or {}).get("total_score"),
+            "engagement_grade": (result.engagement_quality or {}).get("quality_grade"),
+            "trust_score": (result.account_risk or {}).get("trust_score"),
+        }
+        record["snapshots"].append(snapshot)
+        # احتفظ بآخر 500 لقطة فقط
+        if len(record["snapshots"]) > 500:
+            record["snapshots"] = record["snapshots"][-500:]
+
+        # إضافة سجل بث إن كان البث مباشراً
+        live = result.live or {}
+        if live.get("is_live") or live.get("start_time"):
+            stream_entry = {
+                "started_at": live.get("start_time"),
+                "started_at_iso": (
+                    datetime.utcfromtimestamp(int(live["start_time"])).isoformat() + "Z"
+                    if live.get("start_time") else None
+                ),
+                "detected_at": now_iso,
+                "room_id": result.all_ids.get("room_id"),
+                "stream_id": result.all_ids.get("stream_id"),
+                "peak_viewer_count": _safe_int(live.get("viewer_count")),
+                "enter_count": _safe_int(live.get("enter_count")),
+                "replay_viewers": _safe_int(live.get("replay_viewers")),
+                "live_likes": _safe_int(live.get("like_count") or live.get("total_like")),
+                "live_comments": _safe_int(live.get("comment_count")),
+                "live_shares": _safe_int(live.get("share_count")),
+                "source_url": result.url,
+            }
+            # تحقق من عدم تكرار نفس البث (نفس room_id خلال آخر ساعة)
+            room_id = stream_entry.get("room_id")
+            is_duplicate = False
+            if room_id and record["stream_history"]:
+                last_stream = record["stream_history"][-1]
+                if last_stream.get("room_id") == room_id:
+                    last_epoch = _safe_int(last_stream.get("detected_at_epoch", 0))
+                    if not last_epoch:
+                        # حاول تحويل ISO إلى epoch
+                        try:
+                            from datetime import datetime as _dt
+                            last_epoch = int(_dt.fromisoformat(
+                                last_stream.get("detected_at", "").replace("Z", "")
+                            ).timestamp())
+                        except Exception:
+                            last_epoch = 0
+                    if int(time.time()) - last_epoch < 3600:  # أقل من ساعة
+                        is_duplicate = True
+                        # حدّث peak_viewer_count إذا كان أعلى
+                        if stream_entry["peak_viewer_count"] > _safe_int(last_stream.get("peak_viewer_count")):
+                            last_stream["peak_viewer_count"] = stream_entry["peak_viewer_count"]
+                            last_stream["last_seen_at"] = now_iso
+                            last_stream["last_seen_epoch"] = int(time.time())
+
+            if not is_duplicate:
+                stream_entry["detected_at_epoch"] = int(time.time())
+                stream_entry["last_seen_at"] = now_iso
+                stream_entry["last_seen_epoch"] = int(time.time())
+                record["stream_history"].append(stream_entry)
+                # احتفظ بآخر 100 بث فقط
+                if len(record["stream_history"]) > 100:
+                    record["stream_history"] = record["stream_history"][-100:]
+
+        # حفظ الداعمين المرتبطين بهذا المستخدم
+        fans_seen_now = []
+        for fan in (result.donor_rankings or []):
+            fan_uid = fan.get("unique_id") or f"uid_{fan.get('user_id')}"
+            if fan_uid:
+                fans_seen_now.append({
+                    "unique_id": fan_uid,
+                    "user_id": fan.get("user_id"),
+                    "amount": _safe_int(fan.get("total_sent") or fan.get("contribution")),
+                    "seen_at": now_iso,
+                    "source_url": result.url,
+                })
+        if fans_seen_now:
+            record["top_fans_seen"].extend(fans_seen_now)
+            # احتفظ بآخر 1000 سجل داعمين
+            if len(record["top_fans_seen"]) > 1000:
+                record["top_fans_seen"] = record["top_fans_seen"][-1000:]
+
+        # إحصائيات تجميعية
+        record["stats_summary"] = {
+            "total_appearances": record["appearance_count"],
+            "total_streams_detected": len(record["stream_history"]),
+            "total_snapshots": len(record["snapshots"]),
+            "total_fans_seen": len(record["top_fans_seen"]),
+            "latest_follower_count": _safe_int(owner.follower_count),
+            "latest_viewer_count": _safe_int((result.live or {}).get("viewer_count")),
+        }
+
+        _save_user_record(unique_id, record)
+        saved_users.append({"unique_id": unique_id, "type": "owner"})
+
+    # ── 2) حفظ بيانات كل داعم ───────────────────────────────────────────────────
+    for fan in (result.donor_rankings or []):
+        fan_uid = fan.get("unique_id")
+        if not fan_uid:
+            continue
+        fan_record = _load_user_record(fan_uid)
+        if fan_record is None:
+            fan_record = _new_user_record(fan_uid)
+        fan_record["last_seen"] = datetime.utcnow().isoformat() + "Z"
+        fan_record["appearance_count"] = _safe_int(fan_record.get("appearance_count")) + 1
+        fan_record.setdefault("profile", {})
+        fan_record["profile"].update({
+            "unique_id": fan_uid,
+            "user_id": fan.get("user_id"),
+            "sec_uid": fan.get("sec_uid"),
+            "follower_count": fan.get("follower_count"),
+            "nickname": fan.get("nickname") or fan_record["profile"].get("nickname"),
+            "updated_at": datetime.utcnow().isoformat() + "Z",
+        })
+        fan_record.setdefault("donations_seen", [])
+        fan_record["donations_seen"].append({
+            "to_streamer": owner.unique_id,
+            "amount": _safe_int(fan.get("total_sent") or fan.get("contribution")),
+            "seen_at": datetime.utcnow().isoformat() + "Z",
+            "source_url": result.url,
+        })
+        if len(fan_record["donations_seen"]) > 200:
+            fan_record["donations_seen"] = fan_record["donations_seen"][-200:]
+
+        _save_user_record(fan_uid, fan_record)
+        saved_users.append({"unique_id": fan_uid, "type": "fan"})
+
+    # تسجيل في raw_keys
+    if saved_users:
+        result.raw_keys.append(f"persisted_users_{len(saved_users)}")
+        result.persisted_users = saved_users  # type: ignore[attr-defined]
+        logger.info(f"💾 Persisted {len(saved_users)} users to JSON DB at {USERS_DB_DIR}")
+    else:
+        logger.debug("No users to persist (no author or fans found)")
+
+
+def list_saved_users() -> Dict[str, Any]:
+    """يُرجع قائمة بكل المستخدمين المحفوظين في قاعدة البيانات المحلية.
+
+    Returns:
+        {
+            "total_users": N,
+            "users": [
+                {
+                    "unique_id": "dr.tiktok",
+                    "nickname": "Dr. TiKToK",
+                    "follower_count": 174699,
+                    "verified": true,
+                    "last_seen": "2026-...",
+                    "first_seen": "2026-...",
+                    "appearance_count": 5,
+                    "streams_detected": 3,
+                    "latest_viewer_count": 24427,
+                    "is_live_now": false,
+                    "influence_score": 66.19,
+                    "trust_score": 80,
+                },
+                ...
+            ]
+        }
+    """
+    if not os.path.exists(USERS_DB_DIR):
+        return {"total_users": 0, "users": [], "db_dir": USERS_DB_DIR}
+
+    users = []
+    for fname in sorted(os.listdir(USERS_DB_DIR)):
+        if not fname.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(USERS_DB_DIR, fname), "r", encoding="utf-8") as f:
+                record = json.load(f)
+            if not isinstance(record, dict):
+                continue
+
+            profile = record.get("profile", {}) or {}
+            snapshots = record.get("snapshots", []) or []
+            latest = snapshots[-1] if snapshots else {}
+
+            users.append({
+                "unique_id": record.get("unique_id") or profile.get("unique_id") or fname[:-5],
+                "nickname": profile.get("nickname"),
+                "user_id": profile.get("user_id"),
+                "avatar": profile.get("avatar"),
+                "verified": profile.get("verified"),
+                "follower_count": profile.get("follower_count"),
+                "following_count": profile.get("following_count"),
+                "first_seen": record.get("first_seen"),
+                "last_seen": record.get("last_seen"),
+                "appearance_count": record.get("appearance_count", 0),
+                "streams_detected": len(record.get("stream_history", [])),
+                "snapshots_count": len(snapshots),
+                "fans_seen_count": len(record.get("top_fans_seen", [])),
+                "latest_viewer_count": latest.get("viewer_count"),
+                "latest_is_live": latest.get("is_live"),
+                "latest_influence_score": latest.get("influence_score"),
+                "latest_trust_score": latest.get("trust_score"),
+                "latest_engagement_grade": latest.get("engagement_grade"),
+            })
+        except Exception as e:
+            logger.warning(f"Failed to read user file {fname}: {e}")
+            continue
+
+    # ترتيب: الأحدث ظهوراً أولاً
+    users.sort(key=lambda u: u.get("last_seen") or "", reverse=True)
+    return {"total_users": len(users), "users": users, "db_dir": USERS_DB_DIR}
+
+
+def get_user_detail(unique_id: str) -> Dict[str, Any]:
+    """يُرجع التفاصيل الكاملة لمستخدم محدد من قاعدة البيانات."""
+    record = _load_user_record(unique_id)
+    if not record:
+        return {"success": False, "error": "User not found", "unique_id": unique_id}
+
+    # إضافة إحصائيات البثوث
+    streams = record.get("stream_history", [])
+    if streams:
+        total_stream_time_minutes = 0
+        for s in streams:
+            started = _safe_int(s.get("started_at"))
+            last_seen = _safe_int(s.get("last_seen_epoch"))
+            if started and last_seen and last_seen > started:
+                total_stream_time_minutes += (last_seen - started) // 60
+
+        record["stream_stats"] = {
+            "total_streams": len(streams),
+            "total_stream_time_minutes": total_stream_time_minutes,
+            "total_stream_time_hours": round(total_stream_time_minutes / 60.0, 2),
+            "average_peak_viewers": (
+                sum(_safe_int(s.get("peak_viewer_count")) for s in streams) // len(streams)
+                if streams else 0
+            ),
+            "first_stream_at": streams[0].get("started_at_iso") if streams else None,
+            "latest_stream_at": streams[-1].get("last_seen_at") if streams else None,
+            "latest_stream_room_id": streams[-1].get("room_id") if streams else None,
+        }
+
+    record["success"] = True
+    return record
+
+
+def sync_users_to_github(commit_message: str = None) -> Dict[str, Any]:
+    """يدفع جميع ملفات المستخدمين المحفوظة إلى GitHub repo.
+
+    يتطلب:
+      - GH_TOKEN في متغيرات البيئة (يُضبط على Render)
+      - GITHUB_REPO_OWNER (افتراضي: abuhoney)
+      - GITHUB_REPO_NAME (افتراضي: tiktok-extractor-pro)
+
+    Returns:
+        {
+            "success": true/false,
+            "pushed_files": N,
+            "commit_sha": "...",
+            "commit_url": "..."
+        }
+    """
+    gh_token = os.environ.get("GH_TOKEN")
+    if not gh_token:
+        return {
+            "success": False,
+            "error": "GH_TOKEN not set in environment",
+            "hint": "Set GH_TOKEN env var on Render to enable GitHub sync",
+        }
+
+    repo_owner = os.environ.get("GITHUB_REPO_OWNER", "abuhoney")
+    repo_name = os.environ.get("GITHUB_REPO_NAME", "tiktok-extractor-pro")
+    target_dir = "data/users"  # المسار في GitHub repo
+
+    if not os.path.exists(USERS_DB_DIR):
+        return {"success": False, "error": f"Users DB dir not found: {USERS_DB_DIR}"}
+
+    files_to_push = [
+        f for f in os.listdir(USERS_DB_DIR)
+        if f.endswith(".json")
+    ]
+    if not files_to_push:
+        return {"success": True, "pushed_files": 0, "message": "No files to sync"}
+
+    api_base = f"https://api.github.com/repos/{repo_owner}/{repo_name}/contents/{target_dir}"
+    headers = {
+        "Authorization": f"token {gh_token}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "tiktok-extractor-pro",
+    }
+
+    pushed = 0
+    failed = []
+    commit_sha = None
+
+    for fname in files_to_push[:50]:  # حد أقصى 50 ملف لكل دورة (تجنّب rate limit)
+        try:
+            file_path = os.path.join(USERS_DB_DIR, fname)
+            with open(file_path, "rb") as f:
+                content_bytes = f.read()
+            content_b64 = base64.b64encode(content_bytes).decode("ascii")
+
+            # تحقق من وجود الملف للحصول على sha (للتحديث بدل الإنشاء)
+            check_url = f"{api_base}/{fname}"
+            check_resp = requests.get(check_url, headers=headers, timeout=15)
+            existing_sha = None
+            if check_resp.status_code == 200:
+                existing_sha = check_resp.json().get("sha")
+
+            payload = {
+                "message": commit_message or f"chore: sync user data {fname}",
+                "content": content_b64,
+                "branch": "main",
+            }
+            if existing_sha:
+                payload["sha"] = existing_sha
+
+            put_resp = requests.put(check_url, headers=headers, json=payload, timeout=30)
+            if put_resp.status_code in (200, 201):
+                pushed += 1
+                if not commit_sha:
+                    commit_sha = put_resp.json().get("commit", {}).get("sha")
+            else:
+                failed.append({"file": fname, "status": put_resp.status_code,
+                               "error": put_resp.text[:200]})
+        except Exception as e:
+            failed.append({"file": fname, "error": str(e)})
+
+    return {
+        "success": pushed > 0,
+        "pushed_files": pushed,
+        "failed_files": failed[:5],
+        "total_in_db": len(files_to_push),
+        "commit_sha": commit_sha,
+        "commit_url": f"https://github.com/{repo_owner}/{repo_name}/commit/{commit_sha}" if commit_sha else None,
+        "repo": f"{repo_owner}/{repo_name}",
+        "target_dir": target_dir,
+    }
 
 
 # ────────────────────────────────────────────────────────────────────────────

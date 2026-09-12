@@ -11,13 +11,18 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 /**
  * MainActivity — loads the TikTok Extractor Pro PWA inside an in-app WebView.
  *
- * Simple and robust: uses XML layout, try/catch around everything, and shows
- * a clear Arabic error message if anything goes wrong.
+ * v4.4: Adds two Floating Action Buttons (FABs):
+ *   - fabDatabase: Opens the Users Database tab (monitoring saved users, streams, fans)
+ *   - fabInteract: Quick access to auto-interact feature
+ *
+ * The FABs inject JavaScript into the WebView to switch tabs and trigger actions.
  */
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "TikTokExtractor";
@@ -26,20 +31,23 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private ProgressBar progressBar;
     private TextView errorView;
+    private FloatingActionButton fabDatabase;
+    private FloatingActionButton fabInteract;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.i(TAG, "MainActivity.onCreate() starting");
+        Log.i(TAG, "MainActivity.onCreate() v4.4 starting");
 
         try {
-            // Use the XML layout — more reliable than building UI programmatically
             setContentView(R.layout.activity_main);
 
             progressBar = findViewById(R.id.progressBar);
             errorView = findViewById(R.id.errorView);
             webView = findViewById(R.id.webview);
+            fabDatabase = findViewById(R.id.fabDatabase);
+            fabInteract = findViewById(R.id.fabInteract);
 
             if (webView == null) {
                 Log.e(TAG, "WebView is null after findViewById — layout issue");
@@ -81,6 +89,9 @@ public class MainActivity extends AppCompatActivity {
                 public void onPageFinished(WebView view, String url) {
                     Log.i(TAG, "onPageFinished: " + url);
                     if (progressBar != null) progressBar.setVisibility(View.GONE);
+                    // إظهار أزرار FAB بعد تحميل الصفحة
+                    if (fabDatabase != null) fabDatabase.show();
+                    if (fabInteract != null) fabInteract.show();
                 }
 
                 @Override
@@ -90,7 +101,6 @@ public class MainActivity extends AppCompatActivity {
                     String desc = error != null && error.getDescription() != null
                             ? error.getDescription().toString() : "خطأ غير معروف";
                     Log.e(TAG, "onReceivedError: url=" + failingUrl + " desc=" + desc);
-                    // Only show error for main frame
                     if (request != null && request.isForMainFrame()) {
                         showError("تعذّر تحميل الصفحة:\n" + desc + "\n\nتحقق من الإنترنت وأعد المحاولة.");
                     }
@@ -118,6 +128,78 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
+            // ─── زر قاعدة البيانات: يفتح تبويب المراقبة ───
+            if (fabDatabase != null) {
+                fabDatabase.setOnClickListener(v -> {
+                    Log.i(TAG, "FAB Database clicked — switching to database tab");
+                    // إخفاء الأزرار مؤقتاً
+                    fabDatabase.hide();
+                    fabInteract.hide();
+                    // تنفيذ JavaScript لتبديل التبويب
+                    runJs("(() => {"
+                        + "  const tab = document.querySelector('.nav-tab[data-tab=\"database\"]');"
+                        + "  if (tab) { tab.click(); }"
+                        + "  else {"
+                        + "    // إذا كانت الواجهة قديمة، انتقل مباشرة لقسم /api/users"
+                        + "    window.location.href = '/#database';"
+                        + "  }"
+                        + "})();");
+                    toast("📊 فتح قاعدة البيانات");
+                    // إعادة إظهار الزر بعد 800ms
+                    v.postDelayed(() -> {
+                        if (fabDatabase != null) fabDatabase.show();
+                        if (fabInteract != null) fabInteract.show();
+                    }, 800);
+                });
+
+                fabDatabase.setOnLongClickListener(v -> {
+                    Log.i(TAG, "FAB Database long-clicked — refreshing users list");
+                    runJs("(() => {"
+                        + "  const btn = document.getElementById('dbRefreshBtn');"
+                        + "  if (btn) btn.click();"
+                        + "})();");
+                    toast("🔄 تحديث قائمة المستخدمين");
+                    return true;
+                });
+            }
+
+            // ─── زر التفاعل التلقائي: يفتح نافذة الإدخال السريع ───
+            if (fabInteract != null) {
+                fabInteract.setOnClickListener(v -> {
+                    Log.i(TAG, "FAB Interact clicked — extracting current URL");
+                    // استخرج الرابط من حقل الإدخال
+                    runJs("(() => {"
+                        + "  const input = document.getElementById('urlInput');"
+                        + "  const url = input ? input.value : '';"
+                        + "  if (!url) {"
+                        + "    alert('الصق رابط TikTok أولاً في حقل البحث');"
+                        + "    return;"
+                        + "  }"
+                        + "  // انقر زر الاستخراج"
+                        + "  const btn = document.getElementById('extractBtn');"
+                        + "  if (btn) btn.click();"
+                        + "})();");
+                    toast("⚡ بدء الاستخراج والتحليل");
+                });
+
+                fabInteract.setOnLongClickListener(v -> {
+                    Log.i(TAG, "FAB Interact long-clicked — triggering GitHub sync");
+                    runJs("(() => {"
+                        + "  const btn = document.getElementById('dbSyncBtn');"
+                        + "  if (btn) {"
+                        + "    // بدّل لتبويب قاعدة البيانات أولاً"
+                        + "    const tab = document.querySelector('.nav-tab[data-tab=\"database\"]');"
+                        + "    if (tab) tab.click();"
+                        + "    setTimeout(() => btn.click(), 500);"
+                        + "  } else {"
+                        + "    alert('مزامنة GitHub متاحة من تبويب قاعدة البيانات');"
+                        + "  }"
+                        + "})();");
+                    toast("🔄 مزامنة مع GitHub...");
+                    return true;
+                });
+            }
+
             // Restore state if rotating, otherwise load fresh
             if (savedInstanceState != null) {
                 webView.restoreState(savedInstanceState);
@@ -127,11 +209,41 @@ public class MainActivity extends AppCompatActivity {
                 webView.loadUrl(PWA_URL);
             }
 
+            // إخفاء أزرار FAB في البداية حتى تُحمّل الصفحة
+            if (fabDatabase != null) fabDatabase.hide();
+            if (fabInteract != null) fabInteract.hide();
+
         } catch (Exception e) {
             Log.e(TAG, "onCreate() crashed", e);
             showError("خطأ في بدء التطبيق:\n" + e.getMessage()
                     + "\n\nأعد تثبيت التطبيق أو تواصل مع المطور.");
         }
+    }
+
+    /**
+     * ينفذ JavaScript في WebView بأمان.
+     */
+    private void runJs(String js) {
+        if (webView != null) {
+            try {
+                webView.post(() -> webView.evaluateJavascript(js, null));
+            } catch (Exception e) {
+                Log.e(TAG, "runJs failed", e);
+            }
+        }
+    }
+
+    /**
+     * يعرض رسالة Toast قصيرة.
+     */
+    private void toast(String message) {
+        runOnUiThread(() -> {
+            try {
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                Log.e(TAG, "toast failed", e);
+            }
+        });
     }
 
     private void showError(String message) {

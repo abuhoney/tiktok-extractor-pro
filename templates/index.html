@@ -41,6 +41,19 @@
       </div>
     </header>
 
+    <!-- تبويبات التنقل -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="extract">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        استخراج البيانات
+      </button>
+      <button class="nav-tab" data-tab="database">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 3C7.58 3 4 4.79 4 7s3.58 4 8 4 8-1.79 8-4-3.58-4-8-4M4 9v3c0 2.21 3.58 4 8 4s8-1.79 8-4V9c0 2.21-3.58 4-8 4s-8-1.79-8-4m0 5v3c0 2.21 3.58 4 8 4s8-1.79 8-4v-3c0 2.21-3.58 4-8 4s-8-1.79-8-4z"/></svg>
+        قاعدة البيانات
+        <span class="nav-tab-badge" id="usersBadge" hidden>0</span>
+      </button>
+    </nav>
+
     <!-- بطاقة الإدخال -->
     <section class="input-card">
       <form id="extractForm" autocomplete="off">
@@ -228,6 +241,57 @@
         <div class="feature-icon">🔒</div>
         <h4>خصوصية كاملة</h4>
         <p>كل المعالجة محلية — لا تخزين، لا تتبّع</p>
+      </div>
+    </section>
+
+    <!-- ════════ تبويب قاعدة البيانات v4.4 ════════ -->
+    <section id="databaseSection" class="database-section" hidden>
+      <div class="db-header">
+        <div class="db-stats" id="dbStats">
+          <div class="db-stat-card">
+            <div class="db-stat-value" id="dbStatTotal">0</div>
+            <div class="db-stat-label">إجمالي المستخدمين</div>
+          </div>
+          <div class="db-stat-card">
+            <div class="db-stat-value" id="dbStatLive">0</div>
+            <div class="db-stat-label">يبثّ الآن</div>
+          </div>
+          <div class="db-stat-card">
+            <div class="db-stat-value" id="dbStatStreams">0</div>
+            <div class="db-stat-label">بثوث مسجّلة</div>
+          </div>
+          <div class="db-stat-card">
+            <div class="db-stat-value" id="dbStatVerified">0</div>
+            <div class="db-stat-label">حسابات موثّقة</div>
+          </div>
+        </div>
+        <div class="db-actions">
+          <input type="text" id="dbSearch" placeholder="🔍 ابحث باسم المستخدم..." class="db-search">
+          <label class="db-checkbox">
+            <input type="checkbox" id="dbLiveOnly">
+            <span>يبثّ الآن فقط</span>
+          </label>
+          <button class="btn-primary" id="dbRefreshBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 6V3L8 7l4 4V8c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H4c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z"/></svg>
+            تحديث
+          </button>
+          <button class="btn-ghost" id="dbSyncBtn" title="مزامنة مع GitHub">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            مزامنة GitHub
+          </button>
+        </div>
+      </div>
+
+      <div id="dbSyncResult" class="db-sync-result" hidden></div>
+
+      <div class="db-content">
+        <div class="db-users-list" id="dbUsersList">
+          <div class="db-empty">لا يوجد مستخدمون محفوظون بعد. استخرج رابطاً ليبدأ الحفظ التلقائي.</div>
+        </div>
+        <div class="db-user-detail" id="dbUserDetail" hidden>
+          <button class="btn-ghost db-back-btn" id="dbBackBtn">← رجوع للقائمة</button>
+          <div id="dbUserDetailContent"></div>
+        </div>
       </div>
     </section>
 

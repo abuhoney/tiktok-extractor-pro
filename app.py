@@ -28,6 +28,7 @@ import json
 import logging
 import os
 import re
+from datetime import datetime
 from typing import Any, Dict
 
 import requests
@@ -100,7 +101,7 @@ def health():
 def info():
     """معلومات الإصدار والاستراتيجيات المدعومة."""
     return jsonify({
-        "version": "4.3.0",
+        "version": "4.4.0",
         "demo_mode": False,
         "strategies": [
             "yt-dlp (primary — works from any IP)",
@@ -121,6 +122,7 @@ def info():
             "_assess_account_risk",
             "_extract_commerce_data",
             "_aggregate_deep_analytics",
+            "_persist_user_data (v4.4)",
         ],
         "endpoints": {
             "GET  /": "Web UI",
@@ -137,12 +139,20 @@ def info():
             "POST /api/influence-score": "Influence + trust score only",
             "GET  /api/temporal-snapshots/<unique_id>": "Snapshot history",
             "POST /api/insights": "Actionable insights only",
+            "GET  /api/users": "v4.4 List all saved users",
+            "GET  /api/users/<unique_id>": "Get user full record",
+            "GET  /api/users/<unique_id>/stream-history": "User stream timeline",
+            "GET  /api/users/<unique_id>/snapshots": "User follower chart data",
+            "POST /api/sync-db": "Sync users DB to GitHub",
+            "DELETE /api/users/<unique_id>": "Delete user from DB",
             "GET  /.well-known/assetlinks.json": "TWA deep-link config",
         },
         "env": {
             "TIKTOK_PROXY": "configured" if os.environ.get("TIKTOK_PROXY") else "not set",
             "ENABLE_PLAYWRIGHT": os.environ.get("ENABLE_PLAYWRIGHT", "false"),
             "PORT": os.environ.get("PORT", "10000"),
+            "USERS_DB_DIR": os.environ.get("USERS_DB_DIR", "/tmp/tiktok_users_db"),
+            "GITHUB_SYNC_ENABLED": "true" if os.environ.get("GH_TOKEN") else "no GH_TOKEN",
         },
     })
 
@@ -626,6 +636,140 @@ def api_insights():
         })
     except Exception as e:
         logger.exception("insights crashed")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ────────────────────────────────────────────────────────────────────────────
+#  v4.4: Users Database Endpoints — قاعدة بيانات المستخدمين
+# ────────────────────────────────────────────────────────────────────────────
+@app.route("/api/users")
+def api_users():
+    """يُرجع قائمة بكل المستخدمين المحفوظين في قاعدة البيانات.
+
+    Query params:
+        ?search=<query>  للبحث بالاسم/unique_id
+        ?limit=N         (افتراضي 100، أقصى 500)
+        ?live_only=true  فقط المستخدمون الذين بثّوا مباشر آخر مرة
+    """
+    from extractor import list_saved_users
+
+    search = request.args.get("search", "").strip().lower()
+    try:
+        limit = int(request.args.get("limit", "100"))
+    except ValueError:
+        limit = 100
+    limit = max(1, min(500, limit))
+    live_only = request.args.get("live_only", "").lower() in ("true", "1", "yes")
+
+    data = list_saved_users()
+    users = data.get("users", [])
+
+    # فلترة بالبحث
+    if search:
+        users = [
+            u for u in users
+            if search in (u.get("unique_id") or "").lower()
+            or search in (u.get("nickname") or "").lower()
+        ]
+
+    # فلترة بالبث المباشر
+    if live_only:
+        users = [u for u in users if u.get("latest_is_live")]
+
+    users = users[:limit]
+
+    return jsonify({
+        "success": True,
+        "total_users": data.get("total_users", 0),
+        "returned_count": len(users),
+        "db_dir": data.get("db_dir"),
+        "users": users,
+    })
+
+
+@app.route("/api/users/<unique_id>")
+def api_user_detail(unique_id: str):
+    """يُرجع التفاصيل الكاملة لمستخدم محدد: profile + snapshots + stream_history + top_fans."""
+    from extractor import get_user_detail
+    data = get_user_detail(unique_id)
+    if not data.get("success"):
+        return jsonify(data), 404
+    return jsonify(data)
+
+
+@app.route("/api/users/<unique_id>/stream-history")
+def api_user_stream_history(unique_id: str):
+    """يُرجع سجل البثوث لمستخدم محدد فقط (للجدول الزمني)."""
+    from extractor import get_user_detail
+    data = get_user_detail(unique_id)
+    if not data.get("success"):
+        return jsonify(data), 404
+
+    streams = data.get("stream_history", [])
+    return jsonify({
+        "success": True,
+        "unique_id": unique_id,
+        "total_streams": len(streams),
+        "streams": streams,
+        "stream_stats": data.get("stream_stats", {}),
+    })
+
+
+@app.route("/api/users/<unique_id>/snapshots")
+def api_user_snapshots(unique_id: str):
+    """يُرجع لقطات المتابعين والإحصائيات عبر الزمن (لرسم بياني)."""
+    from extractor import get_user_detail
+    data = get_user_detail(unique_id)
+    if not data.get("success"):
+        return jsonify(data), 404
+
+    snapshots = data.get("snapshots", [])
+    # اختصر البيانات للعرض البياني
+    chart_data = []
+    for s in snapshots[-100:]:  # آخر 100 لقطة
+        chart_data.append({
+            "timestamp": s.get("timestamp"),
+            "follower_count": s.get("follower_count"),
+            "viewer_count": s.get("viewer_count"),
+            "view_count": s.get("view_count"),
+            "is_live": s.get("is_live"),
+            "influence_score": s.get("influence_score"),
+        })
+
+    return jsonify({
+        "success": True,
+        "unique_id": unique_id,
+        "total_snapshots": len(snapshots),
+        "chart_data": chart_data,
+    })
+
+
+@app.route("/api/sync-db", methods=["POST"])
+def api_sync_db():
+    """يدفع جميع ملفات المستخدمين المحفوظة إلى GitHub repo (data/users/)."""
+    from extractor import sync_users_to_github
+    data = request.get_json(silent=True) or {}
+    commit_message = data.get("commit_message") or f"sync users DB - {datetime.utcnow().isoformat()}"
+
+    try:
+        result = sync_users_to_github(commit_message)
+        return jsonify(result)
+    except Exception as e:
+        logger.exception("sync-db crashed")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/users/<unique_id>", methods=["DELETE"])
+def api_delete_user(unique_id: str):
+    """يحذف مستخدماً من قاعدة البيانات المحلية."""
+    from extractor import _get_user_file_path
+    path = _get_user_file_path(unique_id)
+    if not os.path.exists(path):
+        return jsonify({"success": False, "error": "User not found"}), 404
+    try:
+        os.remove(path)
+        return jsonify({"success": True, "deleted": unique_id})
+    except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 

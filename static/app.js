@@ -490,3 +490,376 @@
   console.log('%cTikTok Extractor Pro', 'font-size:24px;font-weight:bold;color:#ff2d55');
   console.log('%cجاهز للاستخدام — الصق رابط TikTok بأي صيغة', 'color:#25f4ee');
 })();
+
+
+/* ============================================================
+   v4.4 — Database Tab Logic
+   ============================================================ */
+(() => {
+  'use strict';
+
+  const API_BASE = window.location.origin;
+  const $$ = (s, root=document) => Array.from(root.querySelectorAll(s));
+
+  // ───── تبديل التبويبات ─────
+  const tabs = $$('.nav-tab');
+  const extractSection = document.querySelector('.input-card')?.parentElement;
+  const dbSection = document.getElementById('databaseSection');
+
+  // إخفاء كل أقسام الاستخراج افتراضياً ما عدا أول واحد
+  const extractSections = [
+    document.querySelector('.input-card'),
+    document.getElementById('loadingSection'),
+    document.getElementById('resultSection'),
+    document.getElementById('featuresSection'),
+  ].filter(Boolean);
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t === tab));
+      if (target === 'extract') {
+        extractSections.forEach(s => s.hidden = false);
+        if (dbSection) dbSection.hidden = true;
+      } else if (target === 'database') {
+        extractSections.forEach(s => s.hidden = true);
+        if (dbSection) dbSection.hidden = false;
+        loadUsers();
+      }
+    });
+  });
+
+  // ───── عناصر DOM لقاعدة البيانات ─────
+  const dbEls = {
+    list: document.getElementById('dbUsersList'),
+    detail: document.getElementById('dbUserDetail'),
+    detailContent: document.getElementById('dbUserDetailContent'),
+    backBtn: document.getElementById('dbBackBtn'),
+    refreshBtn: document.getElementById('dbRefreshBtn'),
+    syncBtn: document.getElementById('dbSyncBtn'),
+    search: document.getElementById('dbSearch'),
+    liveOnly: document.getElementById('dbLiveOnly'),
+    syncResult: document.getElementById('dbSyncResult'),
+    statTotal: document.getElementById('dbStatTotal'),
+    statLive: document.getElementById('dbStatLive'),
+    statStreams: document.getElementById('dbStatStreams'),
+    statVerified: document.getElementById('dbStatVerified'),
+    usersBadge: document.getElementById('usersBadge'),
+  };
+
+  let searchTimer = null;
+
+  // ───── تحميل قائمة المستخدمين ─────
+  async function loadUsers() {
+    if (!dbEls.list) return;
+    dbEls.list.innerHTML = '<div class="db-empty">⏳ جاري التحميل...</div>';
+    try {
+      const params = new URLSearchParams();
+      if (dbEls.search.value.trim()) params.set('search', dbEls.search.value.trim());
+      if (dbEls.liveOnly.checked) params.set('live_only', 'true');
+      params.set('limit', '200');
+
+      const resp = await fetch(`${API_BASE}/api/users?${params}`);
+      const data = await resp.json();
+
+      if (!data.success || !data.users?.length) {
+        dbEls.list.innerHTML = '<div class="db-empty">لا يوجد مستخدمون محفوظون. استخرج رابطاً ليبدأ الحفظ التلقائي.</div>';
+        updateStats(0, 0, 0, 0);
+        return;
+      }
+
+      // إحصائيات
+      const total = data.total_users || data.users.length;
+      const live = data.users.filter(u => u.latest_is_live).length;
+      const streams = data.users.reduce((s, u) => s + (u.streams_detected || 0), 0);
+      const verified = data.users.filter(u => u.verified).length;
+      updateStats(total, live, streams, verified);
+
+      // عرض البطاقات
+      dbEls.list.innerHTML = data.users.map(u => renderUserCard(u)).join('');
+
+      // ربط الأحداث
+      $$('.db-user-card', dbEls.list).forEach(card => {
+        card.addEventListener('click', () => {
+          const uid = card.dataset.uid;
+          if (uid) showUserDetail(uid);
+        });
+      });
+    } catch (e) {
+      dbEls.list.innerHTML = `<div class="db-empty">❌ فشل التحميل: ${e.message}</div>`;
+    }
+  }
+
+  function updateStats(total, live, streams, verified) {
+    if (dbEls.statTotal) dbEls.statTotal.textContent = total.toLocaleString('en-US');
+    if (dbEls.statLive) dbEls.statLive.textContent = live.toLocaleString('en-US');
+    if (dbEls.statStreams) dbEls.statStreams.textContent = streams.toLocaleString('en-US');
+    if (dbEls.statVerified) dbEls.statVerified.textContent = verified.toLocaleString('en-US');
+    if (dbEls.usersBadge) {
+      if (total > 0) {
+        dbEls.usersBadge.textContent = total > 99 ? '99+' : total;
+        dbEls.usersBadge.hidden = false;
+      } else {
+        dbEls.usersBadge.hidden = true;
+      }
+    }
+  }
+
+  function renderUserCard(u) {
+    const isLive = u.latest_is_live;
+    const avatar = u.avatar
+      ? `<img src="${u.avatar}" alt="" onerror="this.style.display='none'">`
+      : `<div style="display:flex;align-items:center;justify-content:center;color:#6b6b85;font-size:20px;">@</div>`;
+    const verified = u.verified ? '<span class="verified-tick">✓</span>' : '';
+    const influence = u.latest_influence_score ? `${u.latest_influence_score}/100` : '—';
+    const followers = u.follower_count ? formatNum(u.follower_count) : '—';
+    const viewers = u.latest_viewer_count ? formatNum(u.latest_viewer_count) : '—';
+    const streams = u.streams_detected || 0;
+    const appearances = u.appearance_count || 0;
+
+    return `
+      <div class="db-user-card ${isLive ? 'live' : ''}" data-uid="${escapeHtml(u.unique_id)}">
+        <div class="db-user-avatar">${avatar}</div>
+        <div class="db-user-info">
+          <div class="db-user-name">
+            ${isLive ? '<span class="db-live-dot"></span>' : ''}
+            ${escapeHtml(u.nickname || u.unique_id || 'مستخدم')}
+            ${verified}
+          </div>
+          <div class="db-user-uid">@${escapeHtml(u.unique_id || 'unknown')}</div>
+          <div class="db-user-meta">
+            <span>👥 <strong>${followers}</strong></span>
+            <span>👀 <strong>${viewers}</strong></span>
+            <span>🎬 <strong>${streams}</strong></span>
+            <span>⭐ <strong>${influence}</strong></span>
+            <span>🔁 <strong>${appearances}</strong></span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ───── عرض تفاصيل مستخدم ─────
+  async function showUserDetail(uid) {
+    if (!dbEls.detail || !dbEls.detailContent) return;
+    dbEls.list.hidden = true;
+    dbEls.detail.hidden = false;
+    dbEls.detailContent.innerHTML = '<div class="db-empty">⏳ جاري التحميل...</div>';
+
+    try {
+      const resp = await fetch(`${API_BASE}/api/users/${encodeURIComponent(uid)}`);
+      const data = await resp.json();
+      if (!data.success) throw new Error(data.error || 'User not found');
+      dbEls.detailContent.innerHTML = renderUserDetail(data);
+    } catch (e) {
+      dbEls.detailContent.innerHTML = `<div class="db-empty">❌ ${e.message}</div>`;
+    }
+  }
+
+  function renderUserDetail(d) {
+    const profile = d.profile || {};
+    const avatar = profile.avatar
+      ? `<img src="${profile.avatar}" alt="" onerror="this.style.display='none'">`
+      : '';
+    const verified = profile.verified ? '<span class="verified-tick">✓ موثّق</span>' : '';
+    const streams = d.stream_history || [];
+    const fans = (d.top_fans_seen || []).slice(-20).reverse();
+    const snapshots = d.snapshots || [];
+    const stats = d.stream_stats || {};
+    const latest = snapshots[snapshots.length - 1] || {};
+
+    return `
+      <div class="db-user-detail-header">
+        ${avatar ? `<div>${avatar}</div>` : ''}
+        <div>
+          <h2 style="margin:0;font-size:20px;">${escapeHtml(profile.nickname || d.unique_id)}</h2>
+          <div style="color:var(--text-mute);font-family:var(--font-mono);">@${escapeHtml(d.unique_id || '')}</div>
+          <div style="margin-top:6px;">${verified}</div>
+          ${profile.signature ? `<div style="color:var(--text-dim);font-size:13px;margin-top:6px;">${escapeHtml(profile.signature)}</div>` : ''}
+        </div>
+      </div>
+
+      <div class="db-detail-stats">
+        <div class="db-detail-stat">
+          <div class="db-detail-stat-value">${formatNum(profile.follower_count || 0)}</div>
+          <div class="db-detail-stat-label">متابع</div>
+        </div>
+        <div class="db-detail-stat">
+          <div class="db-detail-stat-value">${formatNum(profile.following_count || 0)}</div>
+          <div class="db-detail-stat-label">يتابع</div>
+        </div>
+        <div class="db-detail-stat">
+          <div class="db-detail-stat-value">${d.appearance_count || 0}</div>
+          <div class="db-detail-stat-label">ظهور</div>
+        </div>
+        <div class="db-detail-stat">
+          <div class="db-detail-stat-value">${streams.length}</div>
+          <div class="db-detail-stat-label">بثوث مسجّلة</div>
+        </div>
+        <div class="db-detail-stat">
+          <div class="db-detail-stat-value">${snapshots.length}</div>
+          <div class="db-detail-stat-label">لقطات</div>
+        </div>
+        <div class="db-detail-stat">
+          <div class="db-detail-stat-value">${latest.influence_score || '—'}</div>
+          <div class="db-detail-stat-label">درجة التأثير</div>
+        </div>
+        <div class="db-detail-stat">
+          <div class="db-detail-stat-value">${latest.trust_score || '—'}</div>
+          <div class="db-detail-stat-label">درجة الثقة</div>
+        </div>
+        <div class="db-detail-stat">
+          <div class="db-detail-stat-value">${stats.total_stream_time_hours || 0}h</div>
+          <div class="db-detail-stat-label">ساعات بث</div>
+        </div>
+      </div>
+
+      <div style="color:var(--text-dim);font-size:12px;margin-bottom:16px;">
+        أول ظهور: ${d.first_seen || '—'} | آخر ظهور: ${d.last_seen || '—'}
+      </div>
+
+      ${streams.length ? `
+        <div class="db-section-title">🎬 سجل البثوث (${streams.length})</div>
+        <div class="db-streams-timeline">
+          ${streams.slice(-15).reverse().map(s => renderStreamItem(s)).join('')}
+        </div>
+      ` : ''}
+
+      ${fans.length ? `
+        <div class="db-section-title">💎 آخر الداعمين (${fans.length})</div>
+        <div class="db-fans-list">
+          ${fans.map(f => `
+            <div class="db-fan-item">
+              <span class="db-fan-name">@${escapeHtml(f.unique_id || 'unknown')}</span>
+              <span class="db-fan-amount">${formatNum(f.amount || 0)} 💎</span>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      ${snapshots.length ? `
+        <div class="db-section-title">📈 آخر اللقطات (${snapshots.length})</div>
+        <div class="db-streams-timeline">
+          ${snapshots.slice(-10).reverse().map(s => `
+            <div class="db-stream-item ${s.is_live ? 'live-now' : ''}">
+              <span class="db-stream-time">${(s.timestamp || '').substring(0, 19)}</span>
+              <span class="db-stream-meta">
+                ${s.is_live ? '<span class="db-live-dot"></span>' : ''}
+                👥 ${formatNum(s.follower_count || 0)} |
+                👀 ${formatNum(s.viewer_count || 0)} |
+                🎬 ${formatNum(s.view_count || 0)}
+              </span>
+              <span class="db-stream-viewers">${s.influence_score ? `⭐ ${s.influence_score}` : ''}</span>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    `;
+  }
+
+  function renderStreamItem(s) {
+    const isLive = s.last_seen_epoch && (Date.now() / 1000 - s.last_seen_epoch < 600);
+    const startedAt = s.started_at_iso ? new Date(s.started_at_iso).toLocaleString('ar-EG') : 'غير معروف';
+    const lastSeen = s.last_seen_at ? new Date(s.last_seen_at).toLocaleString('ar-EG') : '—';
+    const duration = (s.started_at && s.last_seen_epoch)
+      ? `${Math.round((s.last_seen_epoch - s.started_at) / 60)} دقيقة`
+      : '—';
+
+    return `
+      <div class="db-stream-item ${isLive ? 'live-now' : ''}">
+        <span class="db-stream-time">${startedAt}</span>
+        <span class="db-stream-meta">
+          ${isLive ? '<span class="db-live-dot"></span>بث مباشر الآن' : `استمر: ${duration}`}
+          <br>Room: ${escapeHtml(s.room_id || '—')}
+        </span>
+        <span class="db-stream-viewers">👥 ${formatNum(s.peak_viewer_count || 0)}</span>
+      </div>
+    `;
+  }
+
+  // ───── المزامنة مع GitHub ─────
+  async function syncToGitHub() {
+    if (!dbEls.syncBtn) return;
+    dbEls.syncBtn.disabled = true;
+    dbEls.syncBtn.innerHTML = '<span>⏳ جاري المزامنة...</span>';
+    dbEls.syncResult.hidden = false;
+    dbEls.syncResult.className = 'db-sync-result';
+    dbEls.syncResult.textContent = '⏳ جاري رفع الملفات إلى GitHub...';
+
+    try {
+      const resp = await fetch(`${API_BASE}/api/sync-db`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commit_message: `sync users DB - ${new Date().toISOString()}` }),
+      });
+      const data = await resp.json();
+
+      if (data.success) {
+        dbEls.syncResult.className = 'db-sync-result success';
+        dbEls.syncResult.innerHTML = `
+          ✅ <strong>تمت المزامنة بنجاح!</strong><br>
+          📁 الملفات المرفوعة: ${data.pushed_files}<br>
+          🔗 <a href="${data.commit_url || '#'}" target="_blank" style="color:var(--accent-2);">عرض الـ commit على GitHub</a>
+        `;
+      } else {
+        dbEls.syncResult.className = 'db-sync-result error';
+        dbEls.syncResult.innerHTML = `❌ <strong>فشلت المزامنة:</strong> ${escapeHtml(data.error || 'unknown')}<br>${data.hint ? `ℹ️ ${escapeHtml(data.hint)}` : ''}`;
+      }
+    } catch (e) {
+      dbEls.syncResult.className = 'db-sync-result error';
+      dbEls.syncResult.innerHTML = `❌ خطأ: ${escapeHtml(e.message)}`;
+    } finally {
+      dbEls.syncBtn.disabled = false;
+      dbEls.syncBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg> مزامنة GitHub';
+    }
+  }
+
+  // ───── أدوات مساعدة ─────
+  function formatNum(n) {
+    if (n === null || n === undefined) return '0';
+    n = Number(n);
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+    if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
+    return String(n);
+  }
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // ───── ربط الأحداث ─────
+  if (dbEls.refreshBtn) dbEls.refreshBtn.addEventListener('click', loadUsers);
+  if (dbEls.syncBtn) dbEls.syncBtn.addEventListener('click', syncToGitHub);
+  if (dbEls.backBtn) dbEls.backBtn.addEventListener('click', () => {
+    dbEls.detail.hidden = true;
+    dbEls.list.hidden = false;
+  });
+  if (dbEls.search) {
+    dbEls.search.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(loadUsers, 300);
+    });
+  }
+  if (dbEls.liveOnly) dbEls.liveOnly.addEventListener('change', loadUsers);
+
+  // تحميل المستخدمين عند فتح التبويب لأول مرة (لتحديث الـ badge)
+  setTimeout(() => {
+    fetch(`${API_BASE}/api/users?limit=1`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.total_users > 0 && dbEls.usersBadge) {
+          dbEls.usersBadge.textContent = data.total_users > 99 ? '99+' : data.total_users;
+          dbEls.usersBadge.hidden = false;
+        }
+      })
+      .catch(() => {});
+  }, 2000);
+
+  console.log('%c[v4.4] Database tab initialized', 'color:#25f4ee');
+})();
