@@ -242,7 +242,7 @@ public class MainActivity extends AppCompatActivity {
                 int code = conn.getResponseCode();
                 String resp = readResponse(conn);
                 if (code == 200) {
-                    JSONObject d = new JSONObject(resp);
+                    final JSONObject d = new JSONObject(resp);
                     final String msg = "📊 إحصائيات المشروع:\n\n"
                         + "👤 مستخدمون متتبّعون: " + d.optInt("total_users_tracked", 0) + "\n"
                         + "🎬 بثوث مسجّلة: " + d.optInt("total_streams_detected", 0) + "\n"
@@ -300,7 +300,7 @@ public class MainActivity extends AppCompatActivity {
                 int code = conn.getResponseCode();
                 String resp = readResponse(conn);
                 if (code == 200) {
-                    JSONObject d = new JSONObject(resp);
+                    final JSONObject d = new JSONObject(resp);
                     int total = d.optInt("total_users", 0);
                     StringBuilder msg = new StringBuilder();
                     msg.append("📋 إجمالي المستخدمين: ").append(total).append("\n\n");
@@ -340,7 +340,7 @@ public class MainActivity extends AppCompatActivity {
                 int code = conn.getResponseCode();
                 String resp = readResponse(conn);
                 if (code == 200) {
-                    JSONObject d = new JSONObject(resp);
+                    final JSONObject d = new JSONObject(resp);
                     final String msg = "📈 إحصائيات البثوث:\n\n"
                         + "🎬 إجمالي البثوث: " + d.optInt("total_streams", 0) + "\n"
                         + "👀 إجمالي المشاهدين: " + d.optInt("total_peak_viewers", 0) + "\n"
@@ -375,7 +375,7 @@ public class MainActivity extends AppCompatActivity {
                 int code = conn.getResponseCode();
                 String resp = readResponse(conn);
                 if (code == 200) {
-                    JSONObject d = new JSONObject(resp);
+                    final JSONObject d = new JSONObject(resp);
                     final String msg = "👥 إحصائيات المعجبين:\n\n"
                         + "📊 إجمالي السجلات: " + d.optInt("total_fans_records", 0) + "\n"
                         + "👤 معجبون فريدون: " + d.optInt("unique_fans", 0);
@@ -431,7 +431,7 @@ public class MainActivity extends AppCompatActivity {
                 int code = conn.getResponseCode();
                 String resp = readResponse(conn);
                 if (code == 200) {
-                    JSONObject d = new JSONObject(resp);
+                    final JSONObject d = new JSONObject(resp);
                     final boolean success = d.optBoolean("success", false);
                     final int pushed = d.optInt("pushed_files", 0);
                     runOnUiThread(() -> {
@@ -461,7 +461,7 @@ public class MainActivity extends AppCompatActivity {
                 int code = conn.getResponseCode();
                 String resp = readResponse(conn);
                 if (code == 200) {
-                    JSONObject d = new JSONObject(resp);
+                    final JSONObject d = new JSONObject(resp);
                     JSONArray users = d.optJSONArray("users");
                     if (users != null && users.length() > 0) {
                         JSONObject firstUser = users.getJSONObject(0);
