@@ -1,0 +1,21 @@
+# render.yaml — إعدادات النشر على Render
+# هذا الملف يُعرّف الخدمة بشكل صريح لتجنب أخطاء "requirements.txt not found"
+
+services:
+  - type: web
+    name: tiktok-extractor-pro
+    env: python
+    region: oregon
+    plan: free
+    # جميع الملفات في الجذر (flat structure) — لا حاجة لتحديد rootDir
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    # متغيرات البيئة (تُضبط من Render Dashboard بدلاً من هنا للأمان)
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: PORT
+        value: 10000
+      # GH_TOKEN يُضبط يدوياً من Render Dashboard → Environment
+    healthCheckPath: /api/health
+    autoDeploy: true

@@ -1,0 +1,41 @@
+{
+  "unique_id": "live_fest2026",
+  "first_seen": "2026-09-12T19:36:25.926285Z",
+  "last_seen": "2026-09-12T19:30:00Z",
+  "appearance_count": 1,
+  "profile": {
+    "unique_id": "live_fest2026",
+    "nickname": "Live Fest 2026",
+    "user_id": "7123696644457743366",
+    "sec_uid": "MS4wLjABAAAArwnWOJMKRjJ0LdfJTV4iaG8D45YJaja624wz9v",
+    "follower_count": 174699,
+    "verified": false
+  },
+  "stream_history": [
+    {
+      "started_at": null,
+      "started_at_iso": null,
+      "detected_at": "2026-09-12T19:30:00Z",
+      "detected_at_epoch": 1789241785,
+      "last_seen_at": "2026-09-12T19:30:00Z",
+      "last_seen_epoch": 1789241785,
+      "room_id": null,
+      "peak_viewer_count": 0,
+      "source_url": "https://vt.tiktok.com/ZS9S49qe8QCny-bbSSo/"
+    }
+  ],
+  "snapshots": [
+    {
+      "timestamp": "2026-09-12T19:30:00Z",
+      "epoch": 1789241785,
+      "source_url": "https://vt.tiktok.com/ZS9S49qe8QCny-bbSSo/",
+      "kind": "live",
+      "follower_count": 174699,
+      "is_live": true,
+      "viewer_count": 0,
+      "influence_score": null
+    }
+  ],
+  "top_fans_seen": [],
+  "stats_history": []
+}

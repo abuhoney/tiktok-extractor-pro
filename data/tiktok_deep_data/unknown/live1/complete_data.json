@@ -1,0 +1,79 @@
+{
+  "url": "https://www.tiktok.com/hk/about",
+  "saved_at": "2026-09-13T20:27:35.704319Z",
+  "unique_id": "unknown",
+  "live_number": 1,
+  "live_dir": "/home/z/my-project/tiktok_extractor/data/tiktok_deep_data/unknown/live1",
+  "user_info": {
+    "username": null,
+    "user_id": null,
+    "sec_uid": null,
+    "country": null,
+    "followers": 0,
+    "total_likes": 0,
+    "bio": "",
+    "avatar": ""
+  },
+  "live_details": {
+    "room_id": null,
+    "stream_id": null,
+    "start_time": 0,
+    "cover": "",
+    "rank_text": "",
+    "total_views": 0
+  },
+  "url_params": {
+    "url": "https://www.tiktok.com/hk/about",
+    "url_type": "unknown",
+    "user_id": null,
+    "sec_user_id": null,
+    "room_id": null,
+    "video_id": null,
+    "checksum": null,
+    "share_link_id": null,
+    "share_region": null,
+    "timestamp": null,
+    "utm_source": null
+  },
+  "extracted_files": {
+    "js_files": [
+      "https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/log-sdk/collect/5.2/oversea/collect.js",
+      "https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/tiktok-infra/csp/sdk-pre/slardar.web.pre.js",
+      "https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/tiktok-infra/csp/sdk-pre/tea.pre.js",
+      "https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/tiktok_privacy_protection_framework/loader/1.0.0.951/index.js",
+      "https://sf16-website.neutral.ttwstatic.com/obj/tiktok_web_static/tiktok/web/tiktok_web_pages/build/remixContext-b926e17cc5710043474c-4dfd0279d03b76371b367465192bab73ef558366.js",
+      "https://sf16-website.neutral.ttwstatic.com/obj/tiktok_web_static/tiktok/web/tiktok_web_pages/build/remixScrollRestoration-ed9120107ad96fac7eb2-4dfd0279d03b76371b367465192bab73ef558366.js",
+      "https://sf16m-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/webmssdk/1.0.0.95/webmssdk.js"
+    ],
+    "css_files": [
+      "https://sf16-website.neutral.ttwstatic.com/obj/tiktok_web_static/tiktok/web/tiktok_web_pages/build/_assets/app-42b586c6f46d0d5300cc.css",
+      "https://sf16-website.neutral.ttwstatic.com/obj/tiktok_web_static/tiktok/web/tiktok_web_pages/build/_assets/fonts-da8945a969c5b1142b97.css",
+      "https://sf16-website.neutral.ttwstatic.com/obj/tiktok_web_static/tiktok/web/tiktok_web_pages/build/_assets/index-614873d3f540f05581d9.css",
+      "https://sf16-website.neutral.ttwstatic.com/obj/tiktok_web_static/tiktok/web/tiktok_web_pages/build/_assets/root-752096121d68439e317b-4dfd0279d03b76371b367465192bab73ef558366.css"
+    ],
+    "images": []
+  },
+  "json_blocks_summary": {
+    "has_universal_data": false,
+    "has_sigi_state": false,
+    "has_pumbaa_rule": false,
+    "has_slardar_config": false,
+    "has_api_domains": false
+  },
+  "gift_boxes_summary": {
+    "total_boxes": 0,
+    "highest_level": 0,
+    "total_diamond_value": 0
+  },
+  "webmssdk": {
+    "success": true,
+    "path": "/home/z/my-project/tiktok_extractor/data/tiktok_deep_data/unknown/live1/webmssdk.js",
+    "version": "1.0.0.417",
+    "url": "https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/webmssdk/1.0.0.417/webmssdk.js",
+    "size_bytes": 243702
+  },
+  "saved_files": [
+    "/home/z/my-project/tiktok_extractor/data/tiktok_deep_data/unknown/live1/page.html",
+    "/home/z/my-project/tiktok_extractor/data/tiktok_deep_data/unknown/live1/js_files.txt"
+  ]
+}

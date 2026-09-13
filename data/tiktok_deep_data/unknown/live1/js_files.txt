@@ -1,0 +1,7 @@
+https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/log-sdk/collect/5.2/oversea/collect.js
+https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/tiktok-infra/csp/sdk-pre/slardar.web.pre.js
+https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/tiktok-infra/csp/sdk-pre/tea.pre.js
+https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/tiktok_privacy_protection_framework/loader/1.0.0.951/index.js
+https://sf16-website.neutral.ttwstatic.com/obj/tiktok_web_static/tiktok/web/tiktok_web_pages/build/remixContext-b926e17cc5710043474c-4dfd0279d03b76371b367465192bab73ef558366.js
+https://sf16-website.neutral.ttwstatic.com/obj/tiktok_web_static/tiktok/web/tiktok_web_pages/build/remixScrollRestoration-ed9120107ad96fac7eb2-4dfd0279d03b76371b367465192bab73ef558366.js
+https://sf16m-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/webmssdk/1.0.0.95/webmssdk.js
