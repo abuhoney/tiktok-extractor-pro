@@ -1033,6 +1033,125 @@ def api_stats_sessions():
 
 
 # ────────────────────────────────────────────────────────────────────────────
+#  v5.1: ZIP Export Endpoints — تنزيل البيانات كملفات ZIP
+# ────────────────────────────────────────────────────────────────────────────
+@app.route("/api/export/<export_type>")
+def api_export_zip(export_type: str):
+    """يُنزّل بيانات المشروع كملف ZIP حسب النوع المطلوب.
+
+    الأنواع المدعومة:
+      - stats      → إحصائيات شاملة (JSON)
+      - deep       → كل البيانات العميقة (page.html, webmssdk.js, json/, etc)
+      - sessions   → الجلسات المحفوظة
+      - users      → بيانات المستخدمين المحفوظين
+      - all        → كل ما سبق في ZIP واحد
+    """
+    import io as _io
+    import zipfile as _zipf
+
+    data_root = os.environ.get("DATA_ROOT", "data")
+    tmp_dir = "/tmp/tiktok_export"
+    os.makedirs(tmp_dir, exist_ok=True)
+
+    buf = _io.BytesIO()
+    zf = _zipf.ZipFile(buf, 'w', _zipf.ZIP_DEFLATED)
+
+    def _add_json(name: str, data):
+        zf.writestr(f"{name}.json", json.dumps(data, ensure_ascii=False, indent=2, default=str))
+
+    def _add_dir(prefix: str, src_dir: str):
+        if not os.path.exists(src_dir):
+            return
+        for root, dirs, files in os.walk(src_dir):
+            for fname in files:
+                fpath = os.path.join(root, fname)
+                arcname = os.path.relpath(fpath, src_dir)
+                zf.write(fpath, os.path.join(prefix, arcname))
+
+    if export_type == "stats":
+        from statictor import full_stats
+        _add_json("full_stats", full_stats())
+        _add_json("headline", full_stats().get("headline", {}))
+
+    elif export_type == "deep":
+        deep_dir = os.path.join(data_root, "tiktok_deep_data")
+        _add_dir("tiktok_deep_data", deep_dir)
+
+    elif export_type == "sessions":
+        # GitHub-backed sessions
+        gh_dir = os.path.join(data_root, "sessions")
+        _add_dir("sessions_github", gh_dir)
+        # Local sessions
+        local_dir = "/tmp/tiktok_sessions_local"
+        _add_dir("sessions_local", local_dir)
+
+    elif export_type == "users":
+        users_dir = os.path.join(data_root, "users")
+        _add_dir("users", users_dir)
+
+    elif export_type == "all":
+        from statictor import full_stats
+        _add_json("full_stats", full_stats())
+        _add_dir("tiktok_deep_data", os.path.join(data_root, "tiktok_deep_data"))
+        _add_dir("users", os.path.join(data_root, "users"))
+        _add_dir("sessions_github", os.path.join(data_root, "sessions"))
+        _add_dir("sessions_local", "/tmp/tiktok_sessions_local")
+        # أضف ملف README
+        zf.writestr("README.txt", "TikTok Extractor Pro v5.1 — Full Export\n"
+                     "Generated: " + datetime.utcnow().isoformat() + "Z\n"
+                     "Contents:\n"
+                     "  - full_stats.json: comprehensive statistics\n"
+                     "  - tiktok_deep_data/: deep extraction files (page.html, webmssdk.js, json/)\n"
+                     "  - users/: user database records\n"
+                     "  - sessions_github/: sessions saved to GitHub\n"
+                     "  - sessions_local/: sessions saved locally\n")
+
+    else:
+        return jsonify({"success": False, "error": f"Unknown export type: {export_type}",
+                        "valid_types": ["stats", "deep", "sessions", "users", "all"]}), 400
+
+    zf.close()
+    buf.seek(0)
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    filename = f"tiktok_export_{export_type}_{timestamp}.zip"
+    return Response(
+        buf.getvalue(),
+        mimetype="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@app.route("/api/export/deep/<unique_id>/live<int:live_number>")
+def api_export_deep_single(unique_id: str, live_number: int):
+    """يُنزّل استخراج عميق محدد كملف ZIP (page.html + webmssdk.js + json/ + complete_data.json)."""
+    import io as _io
+    import zipfile as _zipf
+    from onlinetiktok import DeepDataStorage
+
+    storage = DeepDataStorage()
+    uid_safe = storage._sanitize_id(unique_id)
+    live_dir = os.path.join(storage.base_dir, uid_safe, f"live{live_number}")
+    if not os.path.exists(live_dir):
+        return jsonify({"success": False, "error": "Extraction not found"}), 404
+
+    buf = _io.BytesIO()
+    zf = _zipf.ZipFile(buf, 'w', _zipf.ZIP_DEFLATED)
+    for root, dirs, files in os.walk(live_dir):
+        for fname in files:
+            fpath = os.path.join(root, fname)
+            arcname = os.path.relpath(fpath, live_dir)
+            zf.write(fpath, arcname)
+    zf.close()
+    buf.seek(0)
+    filename = f"deep_{unique_id}_live{live_number}.zip"
+    return Response(
+        buf.getvalue(),
+        mimetype="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+# ────────────────────────────────────────────────────────────────────────────
 #  تشغيل الخادم
 # ────────────────────────────────────────────────────────────────────────────
 def main():

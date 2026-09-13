@@ -208,11 +208,17 @@ public class MainActivity extends AppCompatActivity {
             "🔐 حالة الجلسة (sessionid)",
             "🌐 فتح الرابط في TikTok",
             "🔄 مزامنة GitHub",
-            "📥 تنزيل webmssdk.js الأخير"
+            "📥 تنزيل webmssdk.js الأخير",
+            "📦 تنزيل الإحصائيات (ZIP)",
+            "📦 تنزيل البيانات العميقة (ZIP)",
+            "📦 تنزيل الجلسات (ZIP)",
+            "📦 تنزيل كل شيء (ZIP)",
+            "💾 حفظ الإحصائيات محلياً",
+            "📂 عرض الإحصائيات المحفوظة محلياً"
         };
 
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
-        builder.setTitle("🛠️ أدوات المشروع — v5.0")
+        builder.setTitle("🛠️ أدوات المشروع — v5.1")
                .setItems(options, (dialog, which) -> {
                    switch (which) {
                        case 0: showStatsHeadline(); break;
@@ -224,10 +230,102 @@ public class MainActivity extends AppCompatActivity {
                        case 6: openInTikTokFromInput(); break;
                        case 7: syncGitHub(); break;
                        case 8: downloadLatestWebmssdk(); break;
+                       case 9: downloadZip("stats"); break;
+                       case 10: downloadZip("deep"); break;
+                       case 11: downloadZip("sessions"); break;
+                       case 12: downloadZip("all"); break;
+                       case 13: saveStatsLocally(); break;
+                       case 14: showLocalStats(); break;
                    }
                })
                .setNegativeButton("إغلاق", null)
                .show();
+    }
+
+    // ─── v5.1: تنزيل ZIP لكل نوع ───
+    private void downloadZip(String type) {
+        toast("⏳ جاري تجهيز ملف ZIP...");
+        new Thread(() -> {
+            try {
+                String downloadUrl = PWA_URL + "api/export/" + type;
+                runOnUiThread(() -> {
+                    try {
+                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(downloadUrl));
+                        browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(browserIntent);
+                        toast("📦 تنزيل ZIP: " + type);
+                    } catch (Exception e) {
+                        toast("❌ تعذّر التنزيل: " + e.getMessage());
+                    }
+                });
+            } catch (Exception e) {
+                Log.e(TAG, "downloadZip failed", e);
+                runOnUiThread(() -> toast("❌ خطأ: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    // ─── v5.1: حفظ الإحصائيات محلياً على الجهاز ───
+    private void saveStatsLocally() {
+        toast("⏳ جاري الحفظ محلياً...");
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(PWA_URL + "api/stats/headline");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                int code = conn.getResponseCode();
+                String resp = readResponse(conn);
+                if (code == 200) {
+                    // احفظ في SharedPreferences
+                    prefs.edit().putString("local_stats", resp).apply();
+                    prefs.edit().putString("local_stats_saved_at", new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(new java.util.Date())).apply();
+                    runOnUiThread(() -> toast("✅ تم حفظ الإحصائيات محلياً"));
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "saveStatsLocally failed", e);
+                runOnUiThread(() -> toast("❌ خطأ: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    // ─── v5.1: عرض الإحصائيات المحفوظة محلياً ───
+    private void showLocalStats() {
+        String saved = prefs.getString("local_stats", null);
+        String savedAt = prefs.getString("local_stats_saved_at", "غير معروف");
+        if (saved == null) {
+            toast("ℹ️ لا توجد إحصائيات محفوظة محلياً. استخدم '💾 حفظ الإحصائيات محلياً' أولاً");
+            return;
+        }
+        try {
+            final JSONObject d = new JSONObject(saved);
+            final String savedAtFinal = savedAt;
+            runOnUiThread(() -> {
+                try {
+                    String msg = "📊 الإحصائيات المحفوظة محلياً:\n"
+                        + "📅 حفظ بتاريخ: " + savedAtFinal + "\n\n"
+                        + "👤 مستخدمون متتبّعون: " + d.optInt("total_users_tracked", 0) + "\n"
+                        + "🎬 بثوث مسجّلة: " + d.optInt("total_streams_detected", 0) + "\n"
+                        + "📦 استخراجات عميقة: " + d.optInt("total_extractions", 0) + "\n"
+                        + "📁 ملفات محفوظة: " + d.optInt("total_files_stored", 0) + "\n"
+                        + "💾 حجم التخزين: " + d.optDouble("storage_mb", 0) + " MB\n"
+                        + "🔑 ملفات webmssdk: " + d.optInt("webmssdk_files", 0) + "\n"
+                        + "🔐 جلسات ملتقطة: " + d.optInt("total_sessions_captured", 0) + "\n"
+                        + "👥 معجبون مسجّلون: " + d.optInt("total_fans_seen", 0) + "\n"
+                        + "✅ حسابات موثّقة: " + d.optInt("verified_accounts", 0);
+                    new android.app.AlertDialog.Builder(MainActivity.this)
+                        .setTitle("📊 الإحصائيات المحفوظة محلياً")
+                        .setMessage(msg)
+                        .setPositiveButton("حسناً", null)
+                        .show();
+                } catch (Exception e) {
+                    toast("❌ خطأ في قراءة البيانات المحفوظة");
+                }
+            });
+        } catch (Exception e) {
+            toast("❌ خطأ: " + e.getMessage());
+        }
     }
 
     private void showStatsHeadline() {
