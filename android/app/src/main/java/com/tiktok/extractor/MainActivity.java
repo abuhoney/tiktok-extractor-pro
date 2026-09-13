@@ -468,13 +468,14 @@ public class MainActivity extends AppCompatActivity {
                         String uid = firstUser.optString("unique_id", "unknown");
                         int liveCount = firstUser.optInt("live_count", 1);
                         // افتح رابط التنزيل في المتصفح
-                        String downloadUrl = PWA_URL + "api/deep/users/" + uid + "/live" + liveCount + "/download/webmssdk.js";
+                        final String downloadUrl = PWA_URL + "api/deep/users/" + uid + "/live" + liveCount + "/download/webmssdk.js";
+                        final String finalUid = uid;
                         runOnUiThread(() -> {
                             try {
                                 Intent browserIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(downloadUrl));
                                 browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                                 startActivity(browserIntent);
-                                toast("📥 تنزيل webmssdk.js من @" + uid);
+                                toast("📥 تنزيل webmssdk.js من @" + finalUid);
                             } catch (Exception e) {
                                 toast("❌ تعذّر التنزيل");
                             }
