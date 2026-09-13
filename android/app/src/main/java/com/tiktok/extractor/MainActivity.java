@@ -19,6 +19,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
@@ -191,6 +192,302 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+    
+    // ════════════════════════════════════════════════════════════════
+    //  v5.0: قائمة الأدوات الشاملة — تتيح الوصول لكل الوظائف
+    // ════════════════════════════════════════════════════════════════
+
+    private void showToolsMenu() {
+        String[] options = {
+            "📊 الإحصائيات الشاملة",
+            "🔬 استخراج عميق للرابط الحالي",
+            "📋 قائمة المستخدمين (بيانات عميقة)",
+            "📈 إحصائيات البثوث",
+            "👥 إحصائيات المعجبين",
+            "🔐 حالة الجلسة (sessionid)",
+            "🌐 فتح الرابط في TikTok",
+            "🔄 مزامنة GitHub",
+            "📥 تنزيل webmssdk.js الأخير"
+        };
+
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("🛠️ أدوات المشروع — v5.0")
+               .setItems(options, (dialog, which) -> {
+                   switch (which) {
+                       case 0: showStatsHeadline(); break;
+                       case 1: triggerDeepExtract(); break;
+                       case 2: showDeepUsers(); break;
+                       case 3: showStreamsStats(); break;
+                       case 4: showFansStats(); break;
+                       case 5: openSessionTab(); break;
+                       case 6: openInTikTokFromInput(); break;
+                       case 7: syncGitHub(); break;
+                       case 8: downloadLatestWebmssdk(); break;
+                   }
+               })
+               .setNegativeButton("إغلاق", null)
+               .show();
+    }
+
+    private void showStatsHeadline() {
+        toast("⏳ جاري جلب الإحصائيات...");
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(PWA_URL + "api/stats/headline");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                int code = conn.getResponseCode();
+                String resp = readResponse(conn);
+                if (code == 200) {
+                    JSONObject d = new JSONObject(resp);
+                    final String msg = "📊 إحصائيات المشروع:\n\n"
+                        + "👤 مستخدمون متتبّعون: " + d.optInt("total_users_tracked", 0) + "\n"
+                        + "🎬 بثوث مسجّلة: " + d.optInt("total_streams_detected", 0) + "\n"
+                        + "📦 استخراجات عميقة: " + d.optInt("total_extractions", 0) + "\n"
+                        + "📁 ملفات محفوظة: " + d.optInt("total_files_stored", 0) + "\n"
+                        + "💾 حجم التخزين: " + d.optDouble("storage_mb", 0) + " MB\n"
+                        + "🔑 ملفات webmssdk: " + d.optInt("webmssdk_files", 0) + "\n"
+                        + "🔐 جلسات ملتقطة: " + d.optInt("total_sessions_captured", 0) + "\n"
+                        + "👥 معجبون مسجّلون: " + d.optInt("total_fans_seen", 0) + "\n"
+                        + "✅ حسابات موثّقة: " + d.optInt("verified_accounts", 0);
+                    runOnUiThread(() -> {
+                        new android.app.AlertDialog.Builder(MainActivity.this)
+                            .setTitle("📊 الإحصائيات الشاملة")
+                            .setMessage(msg)
+                            .setPositiveButton("حسناً", null)
+                            .show();
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "showStatsHeadline failed", e);
+                runOnUiThread(() -> toast("❌ خطأ: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    private void triggerDeepExtract() {
+        runJs("(() => {"
+            + "  const input = document.getElementById('urlInput');"
+            + "  const url = input ? input.value : '';"
+            + "  if (!url) { alert('الصق رابطاً أولاً'); return; }"
+            + "  fetch('/api/deep/extract', {"
+            + "    method: 'POST',"
+            + "    headers: {'Content-Type': 'application/json'},"
+            + "    body: JSON.stringify({url: url})"
+            + "  }).then(r => r.json()).then(d => {"
+            + "    if (d.success) {"
+            + "      alert('✅ استخراج عميق ناجح!\\n👤 @' + d.unique_id + '\\n📁 live' + d.live_number + '\\n📦 ' + d.files_saved.length + ' ملفات\\n🔑 webmssdk: ' + (d.webmssdk.success ? 'نعم' : 'لا'));"
+            + "    } else {"
+            + "      alert('❌ فشل: ' + (d.error || 'unknown'));"
+            + "    }"
+            + "  }).catch(e => alert('خطأ: ' + e));"
+            + "})();");
+        toast("🔬 استخراج عميق");
+    }
+
+    private void showDeepUsers() {
+        toast("⏳ جاري جلب القائمة...");
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(PWA_URL + "api/deep/users");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                int code = conn.getResponseCode();
+                String resp = readResponse(conn);
+                if (code == 200) {
+                    JSONObject d = new JSONObject(resp);
+                    int total = d.optInt("total_users", 0);
+                    StringBuilder msg = new StringBuilder();
+                    msg.append("📋 إجمالي المستخدمين: ").append(total).append("\n\n");
+                    JSONArray users = d.optJSONArray("users");
+                    if (users != null) {
+                        for (int i = 0; i < users.length() && i < 20; i++) {
+                            JSONObject u = users.getJSONObject(i);
+                            msg.append("• @").append(u.optString("unique_id"))
+                               .append(" (").append(u.optInt("live_count", 0)).append(" استخراجات)\n");
+                        }
+                    }
+                    final String finalMsg = msg.toString();
+                    runOnUiThread(() -> {
+                        new android.app.AlertDialog.Builder(MainActivity.this)
+                            .setTitle("📋 المستخدمون بالبيانات العميقة")
+                            .setMessage(finalMsg)
+                            .setPositiveButton("حسناً", null)
+                            .show();
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "showDeepUsers failed", e);
+                runOnUiThread(() -> toast("❌ خطأ: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    private void showStreamsStats() {
+        toast("⏳ جاري جلب إحصائيات البثوث...");
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(PWA_URL + "api/stats/streams");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                int code = conn.getResponseCode();
+                String resp = readResponse(conn);
+                if (code == 200) {
+                    JSONObject d = new JSONObject(resp);
+                    final String msg = "📈 إحصائيات البثوث:\n\n"
+                        + "🎬 إجمالي البثوث: " + d.optInt("total_streams", 0) + "\n"
+                        + "👀 إجمالي المشاهدين: " + d.optInt("total_peak_viewers", 0) + "\n"
+                        + "🚪 إجمالي الداخلين: " + d.optInt("total_enter_count", 0) + "\n"
+                        + "❤️ إجمالي الإعجابات: " + d.optInt("total_live_likes", 0) + "\n"
+                        + "⏰ أطول بث (ساعات): " + d.optDouble("longest_stream_hours", 0) + "\n"
+                        + "📊 متوسط المشاهدين: " + d.optInt("avg_viewers_per_stream", 0);
+                    runOnUiThread(() -> {
+                        new android.app.AlertDialog.Builder(MainActivity.this)
+                            .setTitle("📈 إحصائيات البثوث")
+                            .setMessage(msg)
+                            .setPositiveButton("حسناً", null)
+                            .show();
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "showStreamsStats failed", e);
+                runOnUiThread(() -> toast("❌ خطأ: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    private void showFansStats() {
+        toast("⏳ جاري جلب إحصائيات المعجبين...");
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(PWA_URL + "api/stats/fans");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                int code = conn.getResponseCode();
+                String resp = readResponse(conn);
+                if (code == 200) {
+                    JSONObject d = new JSONObject(resp);
+                    final String msg = "👥 إحصائيات المعجبين:\n\n"
+                        + "📊 إجمالي السجلات: " + d.optInt("total_fans_records", 0) + "\n"
+                        + "👤 معجبون فريدون: " + d.optInt("unique_fans", 0);
+                    runOnUiThread(() -> {
+                        new android.app.AlertDialog.Builder(MainActivity.this)
+                            .setTitle("👥 إحصائيات المعجبين")
+                            .setMessage(msg)
+                            .setPositiveButton("حسناً", null)
+                            .show();
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "showFansStats failed", e);
+                runOnUiThread(() -> toast("❌ خطأ: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    private void openSessionTab() {
+        hideAllFABs();
+        runJs("(() => { const t = document.querySelector('.nav-tab[data-tab=\"session\"]'); if (t) t.click(); })();");
+        toast("🔐 تبويب الجلسة");
+        webView.postDelayed(this::showAllFABs, 800);
+    }
+
+    private void openInTikTokFromInput() {
+        runJs("(() => {"
+            + "  const input = document.getElementById('urlInput');"
+            + "  const url = input ? input.value : '';"
+            + "  if (url && url.length > 0) {"
+            + "    Android.openInTikTok(url);"
+            + "  } else {"
+            + "    alert('الصق رابط TikTok أولاً');"
+            + "  }"
+            + "})();");
+    }
+
+    private void syncGitHub() {
+        toast("⏳ جاري المزامنة...");
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(PWA_URL + "api/sync-db");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(30000);
+                conn.setReadTimeout(30000);
+                byte[] body = "{}".getBytes("UTF-8");
+                java.io.OutputStream os = conn.getOutputStream();
+                os.write(body);
+                os.close();
+                int code = conn.getResponseCode();
+                String resp = readResponse(conn);
+                if (code == 200) {
+                    JSONObject d = new JSONObject(resp);
+                    final boolean success = d.optBoolean("success", false);
+                    final int pushed = d.optInt("pushed_files", 0);
+                    runOnUiThread(() -> {
+                        if (success) {
+                            toast("✅ تمت مزامنة " + pushed + " ملف إلى GitHub");
+                        } else {
+                            toast("⚠️ المزامنة لم تنجح: " + d.optString("error", ""));
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "syncGitHub failed", e);
+                runOnUiThread(() -> toast("❌ خطأ: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    private void downloadLatestWebmssdk() {
+        toast("⏳ البحث عن أحدث webmssdk.js...");
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(PWA_URL + "api/deep/users");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                int code = conn.getResponseCode();
+                String resp = readResponse(conn);
+                if (code == 200) {
+                    JSONObject d = new JSONObject(resp);
+                    JSONArray users = d.optJSONArray("users");
+                    if (users != null && users.length() > 0) {
+                        JSONObject firstUser = users.getJSONObject(0);
+                        String uid = firstUser.optString("unique_id", "unknown");
+                        int liveCount = firstUser.optInt("live_count", 1);
+                        // افتح رابط التنزيل في المتصفح
+                        String downloadUrl = PWA_URL + "api/deep/users/" + uid + "/live" + liveCount + "/download/webmssdk.js";
+                        runOnUiThread(() -> {
+                            try {
+                                Intent browserIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(downloadUrl));
+                                browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                startActivity(browserIntent);
+                                toast("📥 تنزيل webmssdk.js من @" + uid);
+                            } catch (Exception e) {
+                                toast("❌ تعذّر التنزيل");
+                            }
+                        });
+                    } else {
+                        runOnUiThread(() -> toast("ℹ️ لا توجد بيانات عميقة محفوظة"));
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "downloadLatestWebmssdk failed", e);
+                runOnUiThread(() -> toast("❌ خطأ: " + e.getMessage()));
+            }
+        }).start();
+    }
 
     /**
      * يُعدّد أزرار FAB الثلاثة
@@ -205,8 +502,8 @@ public class MainActivity extends AppCompatActivity {
                 v.postDelayed(this::showAllFABs, 800);
             });
             fabDatabase.setOnLongClickListener(v -> {
-                runJs("(() => { const b = document.getElementById('dbRefreshBtn'); if (b) b.click(); })();");
-                toast("🔄 تحديث القائمة");
+                // ضغطة طويلة: افتح قائمة الأدوات الشاملة v5.0
+                showToolsMenu();
                 return true;
             });
         }
