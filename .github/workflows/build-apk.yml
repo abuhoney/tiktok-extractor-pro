@@ -1,0 +1,84 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.2'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          build-tools-version: '34.0.0'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build Debug APK
+        working-directory: android
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Copy APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/tiktok-extractor-pro.apk
+
+      - name: Extract version
+        id: version
+        working-directory: android
+        run: |
+          VERSION=$(grep 'versionName' app/build.gradle | head -1 | sed -E 's/.*versionName\s+"([^"]+)".*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "APK version: $VERSION"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiktok-extractor-pro-v${{ steps.version.outputs.version }}
+          path: android/app/build/outputs/apk/tiktok-extractor-pro.apk
+          retention-days: 90
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: TikTok Extractor Pro v${{ steps.version.outputs.version }}
+          body: |
+            # TikTok Extractor Pro v${{ steps.version.outputs.version }}
+
+            ## الميزات
+            - 3 أزرار عائمة: 🔵 قاعدة البيانات | 🟠 تسجيل الدخول | 🔴 فتح في TikTok
+            - ضغط مطوّل على 🔵: قائمة أدوات بـ 15 خيار
+            - v5.2: متصفح داخلي يفتح TikTok داخل التطبيق
+            - مراقب الجلسة: يلتقط sessionid تلقائياً
+          files: android/app/build/outputs/apk/tiktok-extractor-pro.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
