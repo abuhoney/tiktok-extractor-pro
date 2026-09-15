@@ -898,6 +898,152 @@ def api_session_status(unique_id: str):
 
 
 # ────────────────────────────────────────────────────────────────────────────
+#  v5.1: Reactor Endpoints — تفاعلات TikTok
+# ────────────────────────────────────────────────────────────────────────────
+@app.route("/api/react/accounts")
+def api_react_accounts():
+    """يُرجع قائمة الحسابات المتاحة للتفاعل."""
+    from reactor import list_reactor_accounts
+    return jsonify(list_reactor_accounts())
+
+
+@app.route("/api/react/execute", methods=["POST"])
+def api_react_execute():
+    """ينفّذ تفاعلاً محدداً."""
+    from reactor import execute_reaction
+    data = request.get_json(silent=True) or request.form
+    action = (data.get("action") or "").strip()
+    if not action:
+        return jsonify({"success": False, "error": "action is required"}), 400
+    try:
+        result = execute_reaction(action, data)
+        return jsonify(result)
+    except Exception as e:
+        logger.exception("react execute crashed")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/react/stats")
+def api_react_stats():
+    """يُرجع إحصائيات التفاعل."""
+    from reactor import get_reactor_stats
+    account_key = request.args.get("account", None)
+    return jsonify(get_reactor_stats(account_key))
+
+
+# ────────────────────────────────────────────────────────────────────────────
+#  v5.1: Monitor Endpoints — مراقبة شاملة
+# ────────────────────────────────────────────────────────────────────────────
+@app.route("/api/monitor/live")
+def api_monitor_live():
+    """يلتقط لقطة بث مباشر."""
+    from monitor import monitor_live
+    room_id = request.args.get("room_id", "").strip()
+    url = request.args.get("url", "").strip()
+    if not room_id and not url:
+        return jsonify({"success": False, "error": "room_id or url is required"}), 400
+    return jsonify(monitor_live(room_id=room_id or None, url=url or None))
+
+
+@app.route("/api/monitor/live/all")
+def api_monitor_live_all():
+    """يراقب كل البثوث النشطة."""
+    from monitor import monitor_all_live
+    return jsonify(monitor_all_live())
+
+
+@app.route("/api/monitor/sessions")
+def api_monitor_sessions():
+    """يفحص كل الجلسات المحفوظة."""
+    from monitor import monitor_sessions
+    return jsonify(monitor_sessions())
+
+
+@app.route("/api/monitor/deep")
+def api_monitor_deep():
+    """يراقب كل البيانات العميقة."""
+    from monitor import monitor_deep_data
+    return jsonify(monitor_deep_data())
+
+
+@app.route("/api/monitor/deep/<unique_id>/live<int:live_number>")
+def api_monitor_deep_single(unique_id: str, live_number: int):
+    """يراقب استخراجاً واحداً."""
+    from monitor import monitor_deep_single
+    return jsonify(monitor_deep_single(unique_id, live_number))
+
+
+@app.route("/api/monitor/gifts", methods=["POST"])
+def api_monitor_gifts():
+    """يحلل صناديق الهدايا."""
+    from monitor import monitor_gift_boxes
+    data = request.get_json(silent=True) or request.form
+    html = data.get("html", "")
+    webcast_data = data.get("webcast_data", {})
+    return jsonify(monitor_gift_boxes(html, webcast_data))
+
+
+@app.route("/api/monitor/report")
+def api_monitor_report():
+    """يجمع كل تقارير المراقبة في تقرير واحد شامل."""
+    from monitor import full_monitor_report
+    return jsonify(full_monitor_report())
+
+
+# ────────────────────────────────────────────────────────────────────────────
+#  v5.1: ZIP Export Endpoints
+# ────────────────────────────────────────────────────────────────────────────
+@app.route("/api/export/<export_type>")
+def api_export_zip(export_type: str):
+    """يُنزّل بيانات المشروع كملف ZIP حسب النوع."""
+    import io as _io
+    import zipfile as _zipf
+    from statictor import full_stats
+
+    data_root = os.environ.get("DATA_ROOT", "data")
+    buf = _io.BytesIO()
+    zf = _zipf.ZipFile(buf, 'w', _zipf.ZIP_DEFLATED)
+
+    def _add_json(name, data):
+        zf.writestr(f"{name}.json", json.dumps(data, ensure_ascii=False, indent=2, default=str))
+
+    def _add_dir(prefix, src_dir):
+        if not os.path.exists(src_dir):
+            return
+        for root, dirs, files in os.walk(src_dir):
+            for fname in files:
+                fpath = os.path.join(root, fname)
+                arcname = os.path.relpath(fpath, src_dir)
+                zf.write(fpath, os.path.join(prefix, arcname))
+
+    if export_type == "stats":
+        _add_json("full_stats", full_stats())
+    elif export_type == "deep":
+        _add_dir("tiktok_deep_data", os.path.join(data_root, "tiktok_deep_data"))
+    elif export_type == "sessions":
+        _add_dir("sessions_github", os.path.join(data_root, "sessions"))
+        _add_dir("sessions_local", "/tmp/tiktok_sessions_local")
+    elif export_type == "users":
+        _add_dir("users", os.path.join(data_root, "users"))
+    elif export_type == "all":
+        _add_json("full_stats", full_stats())
+        _add_dir("tiktok_deep_data", os.path.join(data_root, "tiktok_deep_data"))
+        _add_dir("users", os.path.join(data_root, "users"))
+        _add_dir("sessions_github", os.path.join(data_root, "sessions"))
+        _add_dir("sessions_local", "/tmp/tiktok_sessions_local")
+        zf.writestr("README.txt", "TikTok Extractor Pro v5.1 — Full Export\n")
+    else:
+        return jsonify({"success": False, "error": f"Unknown type: {export_type}"}), 400
+
+    zf.close()
+    buf.seek(0)
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    filename = f"tiktok_export_{export_type}_{timestamp}.zip"
+    return Response(buf.getvalue(), mimetype="application/zip",
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+
+# ────────────────────────────────────────────────────────────────────────────
 #  تشغيل الخادم
 # ────────────────────────────────────────────────────────────────────────────
 def main():
