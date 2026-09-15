@@ -785,7 +785,7 @@ public class MainActivity extends AppCompatActivity {
         toast("⏳ جاري جلب " + title + "...");
         new Thread(() -> {
             try {
-                java.net.URL url = new java.net.URL(PWA_URL + endpoint.replace("/", "", 1));
+                java.net.URL url = new java.net.URL(PWA_URL + (endpoint.startsWith("/") ? endpoint.substring(1) : endpoint));
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(15000);
@@ -916,7 +916,7 @@ public class MainActivity extends AppCompatActivity {
                 conn.setConnectTimeout(15000);
                 String resp = readResponse(conn);
                 final JSONObject d = new JSONObject(resp);
-                JSONArray users = d.optJSONArray("users");
+                final JSONArray users = d.optJSONArray("users");
                 if (users != null && users.length() > 0) {
                     JSONObject first = users.getJSONObject(0);
                     final String uid = first.optString("unique_id", "unknown");
