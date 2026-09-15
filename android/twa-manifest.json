@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "name": "TikTok Extractor Pro",
+  "description": "تطبيق أندرويد لاستخراج البيانات والصلاحيات من روابط TikTok",
+  "package_name": "com.tiktok.extractor",
+  "package_id": "com.tiktok.extractor",
+  "launcher_name": "TT Extractor",
+  "theme_color": "#FF2D55",
+  "background_color": "#07070D",
+  "manifest_url": "https://tiktok-extractor-pro.onrender.com/manifest.json",
+  "start_url": "/",
+  "icon_urls": [
+    "https://tiktok-extractor-pro.onrender.com/static/icons/icon-192.png",
+    "https://tiktok-extractor-pro.onrender.com/static/icons/icon-512.png"
+  ],
+  "maskable_icon_url": "https://tiktok-extractor-pro.onrender.com/static/icons/icon-maskable-512.png",
+  "splash_screen_fade_out_duration": 300,
+  "signing_key": {
+    "path": "android.keystore",
+    "alias": "androiddebugkey"
+  },
+  "app_version_name": "1.0.0",
+  "app_version_code": 1,
+  "orientation": "default",
+  "full_scope": "/"
+}

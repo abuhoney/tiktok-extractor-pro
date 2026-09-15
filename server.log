@@ -1,0 +1,16 @@
+23:09:43 | INFO    | tiktok_server | Starting TikTok Extractor on http://127.0.0.1:5050
+23:09:43 | INFO    | tiktok_server | Using waitress production WSGI server
+23:09:43 | INFO    | waitress | Serving on http://127.0.0.1:5050
+23:09:44 | INFO    | tiktok_server | extract request: https://vt.tiktok.com/ZS9SywNGM9dLR-5kYDj/
+23:09:44 | INFO    | tiktok_server | extract request: https://vt.tiktok.com/ZS9SywNGM9dLR-5kYDj/
+[23:10:04] Starting server...
+[23:10:04] Server PID: 2044
+23:10:05 | INFO    | tiktok_server | Starting TikTok Extractor on http://0.0.0.0:5060
+23:10:05 | INFO    | tiktok_server | Using waitress production WSGI server
+23:10:05 | INFO    | waitress | Serving on http://0.0.0.0:5060
+[23:10:10] Server exited with code 137, restarting in 2s...
+[23:10:12] Starting server...
+[23:10:12] Server PID: 2062
+23:10:13 | INFO    | tiktok_server | Starting TikTok Extractor on http://0.0.0.0:5060
+23:10:13 | INFO    | tiktok_server | Using waitress production WSGI server
+23:10:13 | INFO    | waitress | Serving on http://0.0.0.0:5060
