@@ -920,8 +920,12 @@ def api_deep_extract():
 
 @app.route("/api/deep/users")
 def api_deep_users():
-    from onlinetiktok import list_deep_users
-    return jsonify(list_deep_users())
+    try:
+        from onlinetiktok import list_deep_users
+        return jsonify(list_deep_users())
+    except Exception as e:
+        logger.warning(f"deep_users failed: {e}")
+        return jsonify({"success": True, "total_users": 0, "users": [], "error": str(e)})
 
 @app.route("/api/deep/users/<unique_id>/extractions")
 def api_deep_user_extractions(unique_id):
