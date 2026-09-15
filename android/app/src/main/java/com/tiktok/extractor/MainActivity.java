@@ -6,64 +6,61 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import org.json.JSONObject;
 import org.json.JSONArray;
-import java.net.URLEncoder;
+import org.json.JSONObject;
+
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
- * MainActivity — TikTok Extractor Pro v4.6
- *
- * 3 Floating Action Buttons:
- *   - fabDatabase (cyan): Monitor users/sessions database
- *   - fabLogin (orange): TikTok login capture — opens WebView, captures ALL cookies after manual login
- *   - fabInteract (pink): Quick extract current URL
- *
- * v4.6 KEY FEATURE: Login Event Capture
- *   When user taps fabLogin:
- *     1. Opens a full-screen WebView to tiktok.com/login
- *     2. User enters email/password MANUALLY (no automation)
- *     3. After successful login, captures ALL cookies: sessionid, ttwid, msToken, sid_tt, etc.
- *     4. Uploads them to GitHub via /api/session endpoint
- *     5. Returns to main PWA view
- *
- * This is legitimate: user performs the login themselves, we just capture the resulting cookies.
+ * TikTok Extractor Pro v5.2 — APK v1.0.26
+ * All UI text in English. Desktop mode for in-app browser.
  */
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "TikTokExtractor";
     private static final String PWA_URL = "https://tiktok-extractor-pro.onrender.com/";
-    private static final String TIKTOK_LOGIN_URL = "https://www.tiktok.com/login/phone-or-email/email";
-    private static final String TIKTOK_HOME_URL = "https://www.tiktok.com/";
-    private static final String PREFS_NAME = "tiktok_session_prefs";
 
     private WebView webView;
-    private WebView loginWebView;  // Separate WebView for login capture
+    private WebView browserWebView;
     private ProgressBar progressBar;
     private TextView errorView;
+    private TextView browserStatusBar;
     private FloatingActionButton fabDatabase, fabLogin, fabInteract;
     private SharedPreferences prefs;
+    private boolean sessionCapturedInBrowser = false;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.i(TAG, "MainActivity.onCreate() v4.6 starting");
-        prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-
+        Log.i(TAG, "MainActivity v1.0.26 starting");
+        prefs = getSharedPreferences("tiktok_session_prefs", Context.MODE_PRIVATE);
         try {
             setContentView(R.layout.activity_main);
             progressBar = findViewById(R.id.progressBar);
@@ -72,33 +69,21 @@ public class MainActivity extends AppCompatActivity {
             fabDatabase = findViewById(R.id.fabDatabase);
             fabLogin = findViewById(R.id.fabLogin);
             fabInteract = findViewById(R.id.fabInteract);
-
-            if (webView == null) {
-                showError("خطأ داخلي: WebView غير متوفر.\nأعد تثبيت التطبيق.");
-                return;
-            }
-
+            if (webView == null) { showError("Internal error: WebView not found."); return; }
             setupMainWebView();
             setupFABs();
-
-            if (savedInstanceState != null) {
-                webView.restoreState(savedInstanceState);
-            } else {
-                webView.loadUrl(PWA_URL);
-            }
-
-            // إخفاء أزرار FAB حتى تُحمّل الصفحة
+            if (savedInstanceState != null) { webView.restoreState(savedInstanceState); }
+            else { webView.loadUrl(PWA_URL); }
             hideAllFABs();
-
         } catch (Exception e) {
-            Log.e(TAG, "onCreate() crashed", e);
-            showError("خطأ في بدء التطبيق:\n" + e.getMessage());
+            Log.e(TAG, "onCreate crashed", e);
+            showError("App startup error: " + e.getMessage());
         }
     }
 
-    /**
-     * يُعدّد WebView الرئيسي (لوحة التحكم PWA)
-     */
+    // ════════════════════════════════════════════════════════════════
+    //  Main WebView setup
+    // ════════════════════════════════════════════════════════════════
     @SuppressLint("SetJavaScriptEnabled")
     private void setupMainWebView() {
         WebSettings settings = webView.getSettings();
@@ -108,769 +93,144 @@ public class MainActivity extends AppCompatActivity {
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
-        settings.setSupportZoom(false);
-        settings.setBuiltInZoomControls(false);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        settings.setUserAgentString(
-            "Mozilla/5.0 (Linux; Android 14; TikTokExtractorPro) " +
-            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36"
-        );
+        settings.setUserAgentString("Mozilla/5.0 (Linux; Android 14; TikTokExtractorPro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36");
 
-        // ─── v5.2: JavascriptInterface لفتح الروابط داخل التطبيق ───
         webView.addJavascriptInterface(new Object() {
-            @android.webkit.JavascriptInterface
-            public void openInTikTok(String url) {
-                openInAppBrowserInternal(url);
-            }
-            @android.webkit.JavascriptInterface
-            public void openInAppBrowser(String url) {
-                openInAppBrowserInternal(url);
-            }
+            @JavascriptInterface public void openInTikTok(String url) { openInAppBrowserInternal(url); }
+            @JavascriptInterface public void openInAppBrowser(String url) { openInAppBrowserInternal(url); }
         }, "Android");
 
         webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
-                if (progressBar != null) {
-                    progressBar.setVisibility(View.VISIBLE);
-                    progressBar.setProgress(0);
-                }
+            @Override public void onPageStarted(WebView v, String url, android.graphics.Bitmap favicon) {
+                if (progressBar != null) { progressBar.setVisibility(View.VISIBLE); progressBar.setProgress(0); }
                 if (errorView != null) errorView.setVisibility(View.GONE);
                 if (webView != null) webView.setVisibility(View.VISIBLE);
             }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
+            @Override public void onPageFinished(WebView v, String url) {
                 if (progressBar != null) progressBar.setVisibility(View.GONE);
                 showAllFABs();
             }
-
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request != null && request.isForMainFrame()) {
-                    String desc = error != null && error.getDescription() != null
-                            ? error.getDescription().toString() : "خطأ غير معروف";
-                    showError("تعذّر تحميل الصفحة:\n" + desc);
+            @Override public void onReceivedError(WebView v, WebResourceRequest req, WebResourceError err) {
+                if (req != null && req.isForMainFrame()) {
+                    String desc = err != null && err.getDescription() != null ? err.getDescription().toString() : "Unknown error";
+                    showError("Failed to load page:\n" + desc);
                 }
             }
         });
-
         webView.setWebChromeClient(new android.webkit.WebChromeClient() {
-            @Override
-            public void onProgressChanged(WebView view, int newProgress) {
-                if (progressBar != null) {
-                    progressBar.setProgress(newProgress);
-                    if (newProgress >= 100) progressBar.setVisibility(View.GONE);
-                }
+            @Override public void onProgressChanged(WebView v, int p) {
+                if (progressBar != null) { progressBar.setProgress(p); if (p >= 100) progressBar.setVisibility(View.GONE); }
             }
-            @Override
-            public boolean onConsoleMessage(android.webkit.ConsoleMessage cm) {
-                Log.d(TAG, "JS[" + cm.messageLevel() + "]: " + cm.message());
-                return true;
+            @Override public boolean onConsoleMessage(android.webkit.ConsoleMessage cm) {
+                Log.d(TAG, "JS[" + cm.messageLevel() + "]: " + cm.message()); return true;
             }
         });
     }
 
-    /**
-     * يُعدّد أزرار FAB الثلاثة
-     */
+    // ════════════════════════════════════════════════════════════════
+    //  FAB setup
+    // ════════════════════════════════════════════════════════════════
     private void setupFABs() {
-        // ─── زر قاعدة البيانات ───
         if (fabDatabase != null) {
             fabDatabase.setOnClickListener(v -> {
                 hideAllFABs();
                 runJs("(() => { const t = document.querySelector('.nav-tab[data-tab=\"database\"]'); if (t) t.click(); })();");
-                toast("📊 فتح قاعدة البيانات");
+                toast("Database");
                 v.postDelayed(this::showAllFABs, 800);
             });
-            fabDatabase.setOnLongClickListener(v -> {
-                showToolsMenu();
-                return true;
-            });
+            fabDatabase.setOnLongClickListener(v -> { showToolsMenu(); return true; });
         }
-
-        // ─── زر تسجيل الدخول (التقاط الأحداث) ───
         if (fabLogin != null) {
-            fabLogin.setOnClickListener(v -> {
-                Log.i(TAG, "FAB Login clicked — opening TikTok login WebView");
-                openLoginCaptureWebView();
-            });
-            fabLogin.setOnLongClickListener(v -> {
-                // ضغطة طويلة: فحص الجلسة المحفوظة سابقاً
-                checkSavedSession();
-                return true;
-            });
+            fabLogin.setOnClickListener(v -> openLoginCaptureWebView());
+            fabLogin.setOnLongClickListener(v -> { checkSavedSession(); return true; });
         }
-
-        // ─── زر التفاعل: يفتح الرابط داخل WebView داخل التطبيق ───
         if (fabInteract != null) {
             fabInteract.setOnClickListener(v -> {
-                Log.i(TAG, "FAB Interact clicked — opening URL in in-app WebView");
-                runJs("(() => {"
-                    + "  const input = document.getElementById('urlInput');"
-                    + "  const url = input ? input.value : '';"
-                    + "  if (url && url.length > 0) {"
-                    + "    Android.openInAppBrowser(url);"
-                    + "  } else {"
-                    + "    alert('الصق رابط TikTok أولاً في حقل البحث');"
-                    + "  }"
-                    + "})();");
+                runJs("(() => { const i = document.getElementById('urlInput'); const u = i ? i.value : ''; if (u) Android.openInAppBrowser(u); else alert('Paste a TikTok URL first'); })();");
             });
-            fabInteract.setOnLongClickListener(v -> {
-                // ضغطة طويلة: استخراج عميق (يحفظ page.html + webmssdk.js + json/)
-                runJs("(() => {"
-                    + "  const input = document.getElementById('urlInput');"
-                    + "  const url = input ? input.value : '';"
-                    + "  if (!url) { alert('الصق رابطاً أولاً'); return; }"
-                    + "  fetch('/api/deep/extract', {"
-                    + "    method: 'POST',"
-                    + "    headers: {'Content-Type': 'application/json'},"
-                    + "    body: JSON.stringify({url: url})"
-                    + "  }).then(r => r.json()).then(d => {"
-                    + "    if (d.success) {"
-                    + "      alert('✅ استخراج عميق ناجح!\\n👤 @' + d.unique_id + '\\n📁 live' + d.live_number + '\\n📦 ' + d.files_saved.length + ' ملفات\\n🔑 webmssdk: ' + (d.webmssdk.success ? 'نعم' : 'لا'));"
-                    + "    } else {"
-                    + "      alert('❌ فشل: ' + (d.error || 'unknown'));"
-                    + "    }"
-                    + "  }).catch(e => alert('خطأ: ' + e));"
-                    + "})();");
-                toast("🔬 استخراج عميق");
-                return true;
-            });
+            fabInteract.setOnLongClickListener(v -> { triggerDeepExtract(); return true; });
         }
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  v4.6: Login Event Capture — يفتح WebView لتسجيل دخول يدوي
-    //         ويلتقط كل الكوكيز تلقائياً بعد النجاح
+    //  Tools Menu (20 options, all English)
     // ════════════════════════════════════════════════════════════════
-
-    /**
-     * يفتح WebView مستقل لتسجيل الدخول إلى TikTok.
-     * المستخدم يُدخل بريده/كلمة مروره بنفسه (لا أتمتة).
-     * بعد النجاح، يلتقط النظام كل الكوكيز ويُرسلها إلى /api/session.
-     */
-    @SuppressLint("SetJavaScriptEnabled")
-    private void openLoginCaptureWebView() {
-        toast("🔐 افتح TikTok وسجّل دخولك بنفسك");
-
-        // إنشاء WebView مستقل بشكل برمجي
-        loginWebView = new WebView(this);
-        WebSettings settings = loginWebView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-        settings.setUserAgentString(
-            "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 " +
-            "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
-        );
-
-        // تفعيل cookies (مهم جداً)
-        CookieManager cookieManager = CookieManager.getInstance();
-        cookieManager.setAcceptCookie(true);
-        cookieManager.setAcceptThirdPartyCookies(loginWebView, true);
-
-        // إخفاء الـ WebView الرئيسي وإظهار login WebView
-        webView.setVisibility(View.GONE);
-        hideAllFABs();
-        // إضافة login WebView إلى الـ layout
-        android.view.ViewGroup root = (android.view.ViewGroup) webView.getParent();
-        root.addView(loginWebView, new android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT
-        ));
-
-        // مُراقب لالتقاط الكوكيز بعد كل تحميل صفحة
-        loginWebView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                Log.i(TAG, "Login page loaded: " + url);
-
-                // افحص الكوكيز بعد كل تنقل
-                String cookies = cookieManager.getCookie("https://www.tiktok.com/");
-                if (cookies != null && cookies.contains("sessionid")) {
-                    Log.i(TAG, "✓ sessionid detected in cookies — capturing!");
-                    captureAndUploadSession(cookies, url);
-                }
-            }
-
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                Log.e(TAG, "Login WebView error: " + (error != null ? error.getDescription() : "unknown"));
-            }
-        });
-
-        // زر إغلاق (يظهر كـ overlay)
-        TextView closeBtn = new TextView(this);
-        closeBtn.setText("✕ إغلاق");
-        closeBtn.setBackgroundColor(0xCC000000);
-        closeBtn.setTextColor(0xFFFFFFFF);
-        closeBtn.setPadding(24, 12, 24, 12);
-        closeBtn.setTextSize(14);
-        closeBtn.setOnClickListener(v -> closeLoginWebView());
-        android.widget.FrameLayout.LayoutParams closeParams = new android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
-            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
-        );
-        closeParams.gravity = android.view.Gravity.TOP | android.view.Gravity.RIGHT;
-        closeParams.topMargin = 40;
-        closeParams.rightMargin = 20;
-        ((android.view.ViewGroup) webView.getParent()).addView(closeBtn, closeParams);
-
-        // تعليمات للمستخدم
-        TextView hint = new TextView(this);
-        hint.setText("📝 سجّل دخولك إلى TikTok أدناه.\nسيتم التقاط الجلسة تلقائياً عند النجاح.");
-        hint.setBackgroundColor(0xCC000000);
-        hint.setTextColor(0xFFFFFFFF);
-        hint.setPadding(24, 16, 24, 16);
-        hint.setTextSize(12);
-        android.widget.FrameLayout.LayoutParams hintParams = new android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
-        );
-        hintParams.gravity = android.view.Gravity.BOTTOM;
-        hintParams.bottomMargin = 20;
-        ((android.view.ViewGroup) webView.getParent()).addView(hint, hintParams);
-
-        // تحميل صفحة تسجيل الدخول
-        loginWebView.loadUrl(TIKTOK_LOGIN_URL);
-    }
-
-    /**
-     * يلتقط كل الكوكيز من CookieManager ويُرسلها إلى /api/session على Render.
-     */
-    private void captureAndUploadSession(String cookieString, String currentUrl) {
-        Log.i(TAG, "Capturing cookies, length=" + cookieString.length());
-
-        // تحليل الكوكيز إلى خريطة
-        Map<String, String> cookies = parseCookies(cookieString);
-        String sessionid = cookies.get("sessionid");
-        String uniqueId = prefs.getString("last_unique_id", "");
-
-        if (sessionid == null || sessionid.isEmpty()) {
-            Log.w(TAG, "sessionid not found in cookies — skipping");
-            return;
-        }
-
-        Log.i(TAG, "✓ Captured sessionid (length=" + sessionid.length() + ")");
-
-        // إذا لم يكن لدينا unique_id، اسأل المستخدم
-        if (uniqueId.isEmpty()) {
-            // استخرج من الكوكيز إن أمكن (مثل unique_id cookie أو sid_tt)
-            uniqueId = cookies.getOrDefault("unique_id", cookies.getOrDefault("sid_tt", "user"));
-        }
-        final String finalCaptureUniqueId = uniqueId;
-
-        // بناء JSON payload
-        try {
-            JSONObject extraCookies = new JSONObject();
-            for (String key : new String[]{"ttwid", "msToken", "sid_tt", "passport_csrf_token",
-                                            "passport_csrf_token_default", "sid_guard", "uid_tt",
-                                            "uid_tt_ss", "tt_chain_token", "cmpl_token"}) {
-                String val = cookies.get(key);
-                if (val != null && !val.isEmpty()) {
-                    extraCookies.put(key, val);
-                }
-            }
-
-            JSONObject payload = new JSONObject();
-            payload.put("unique_id", uniqueId);
-            payload.put("sessionid", sessionid);
-            payload.put("extra_cookies", extraCookies);
-
-            Log.i(TAG, "Uploading session for: " + uniqueId);
-
-            // إرسال إلى /api/session عبر thread خلفي
-            new Thread(() -> {
-                try {
-                    java.net.URL url = new java.net.URL(PWA_URL + "api/session");
-                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                    conn.setRequestMethod("POST");
-                    conn.setRequestProperty("Content-Type", "application/json");
-                    conn.setDoOutput(true);
-                    conn.setConnectTimeout(15000);
-                    conn.setReadTimeout(30000);
-
-                    byte[] body = payload.toString().getBytes("UTF-8");
-                    java.io.OutputStream os = conn.getOutputStream();
-                    os.write(body);
-                    os.close();
-
-                    int code = conn.getResponseCode();
-                    String response = readResponse(conn);
-                    Log.i(TAG, "Session upload response: " + code + " — " + response.substring(0, Math.min(200, response.length())));
-
-                    runOnUiThread(() -> {
-                        if (code == 200) {
-                            toast("✅ تم التقاط الجلسة وحفظها في GitHub!");
-                            // احفظ unique_id للاستخدام لاحقاً
-                            prefs.edit().putString("last_unique_id", finalCaptureUniqueId).apply();
-                            // أغلق WebView بعد نجاح الالتقاط
-                            closeLoginWebView();
-                        } else {
-                            toast("⚠️ فشل حفظ الجلسة: HTTP " + code);
-                        }
-                    });
-                } catch (Exception e) {
-                    Log.e(TAG, "Session upload failed", e);
-                    runOnUiThread(() -> toast("❌ خطأ شبكي: " + e.getMessage()));
-                }
-            }).start();
-
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to build session payload", e);
-        }
-    }
-
-    /**
-     * يُحلّل سلسلة الكوكيز (key=value; key=value) إلى خريطة.
-     */
-    private Map<String, String> parseCookies(String cookieString) {
-        Map<String, String> cookies = new HashMap<>();
-        if (cookieString == null) return cookies;
-        String[] parts = cookieString.split(";");
-        for (String part : parts) {
-            int eq = part.indexOf('=');
-            if (eq > 0) {
-                String key = part.substring(0, eq).trim();
-                String value = part.substring(eq + 1).trim();
-                cookies.put(key, value);
-            }
-        }
-        return cookies;
-    }
-
-    /**
-     * يقرأ استجابة HTTP كنص.
-     */
-    private String readResponse(java.net.HttpURLConnection conn) {
-        try {
-            java.io.InputStream is = conn.getResponseCode() >= 400
-                    ? conn.getErrorStream() : conn.getInputStream();
-            java.io.BufferedReader reader = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(is, "UTF-8"));
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) sb.append(line);
-            reader.close();
-            return sb.toString();
-        } catch (Exception e) {
-            return "(error reading response: " + e.getMessage() + ")";
-        }
-    }
-
-    /**
-     * يُغلق WebView تسجيل الدخول ويعيد الواجهة الرئيسية.
-     */
-    private void closeLoginWebView() {
-        if (loginWebView != null) {
-            try {
-                android.view.ViewGroup root = (android.view.ViewGroup) webView.getParent();
-                root.removeView(loginWebView);
-                loginWebView.destroy();
-                loginWebView = null;
-            } catch (Exception e) {
-                Log.e(TAG, "closeLoginWebView failed", e);
-            }
-        }
-        webView.setVisibility(View.VISIBLE);
-        showAllFABs();
-    }
-
-    /**
-     * يفحص ما إذا كانت هناك جلسة محفوظة للمستخدم.
-     */
-    private void checkSavedSession() {
-        String uniqueId = prefs.getString("last_unique_id", "");
-        if (uniqueId.isEmpty()) {
-            toast("ℹ️ لا توجد جلسة محفوظة. استخدم زر تسجيل الدخول أولاً.");
-            return;
-        }
-        toast("🔍 فحص الجلسة المحفوظة لـ " + uniqueId);
-        runJs("(() => { fetch('/api/session/" + uniqueId + "/status').then(r=>r.json()).then(d=>{ alert(d.has_session ? '✅ جلسة محفوظة!\\nبتاريخ: ' + d.saved_at : 'ℹ️ لا توجد جلسة محفوظة'); }).catch(e=>alert('خطأ: '+e)); })();");
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    //  أدوات مساعدة عامة
-    // ════════════════════════════════════════════════════════════════
-
-    // ════════════════════════════════════════════════════════════════
-    //  v5.2: In-App Browser — فتح الروابط داخل WebView داخل التطبيق
-    //         مع مراقبة الجلسة والتقاط الكوكيز تلقائياً
-    // ════════════════════════════════════════════════════════════════
-
-    private WebView browserWebView;
-    private TextView browserStatusBar;
-    private boolean sessionCapturedInBrowser = false;
-
-    @SuppressLint("SetJavaScriptEnabled")
-    private void openInAppBrowserInternal(String url) {
-        Log.i(TAG, "Opening in-app browser: " + url);
-        toast("🌐 فتح داخل التطبيق...");
-
-        sessionCapturedInBrowser = false;
-
-        // إنشاء WebView مستقل للتصفح
-        browserWebView = new WebView(this);
-        WebSettings settings = browserWebView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        settings.setLoadWithOverviewMode(true);
-        settings.setUseWideViewPort(true);
-        settings.setSupportZoom(true);
-        settings.setBuiltInZoomControls(true);
-        settings.setDisplayZoomControls(false);
-        settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        settings.setUserAgentString(
-            "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 " +
-            "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
-        );
-
-        // تفعيل cookies
-        CookieManager cookieManager = CookieManager.getInstance();
-        cookieManager.setAcceptCookie(true);
-        cookieManager.setAcceptThirdPartyCookies(browserWebView, true);
-
-        // إخفاء الـ WebView الرئيسي وإظهار browser WebView
-        webView.setVisibility(View.GONE);
-        hideAllFABs();
-
-        android.view.ViewGroup root = (android.view.ViewGroup) webView.getParent();
-        root.addView(browserWebView, new android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT
-        ));
-
-        // شريط حالة الجلسة (يظهر في الأعلى)
-        browserStatusBar = new TextView(this);
-        browserStatusBar.setText("🌐 تصفح TikTok | 🔍 جاري مراقبة الجلسة...");
-        browserStatusBar.setBackgroundColor(0xCC000000);
-        browserStatusBar.setTextColor(0xFFFFFFFF);
-        browserStatusBar.setPadding(24, 16, 24, 16);
-        browserStatusBar.setTextSize(12);
-        android.widget.FrameLayout.LayoutParams statusParams = new android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
-        );
-        statusParams.gravity = android.view.Gravity.TOP;
-        root.addView(browserStatusBar, statusParams);
-
-        // زر إغلاق
-        TextView closeBtn = new TextView(this);
-        closeBtn.setText("✕ إغلاق");
-        closeBtn.setBackgroundColor(0xCCFF2D55);
-        closeBtn.setTextColor(0xFFFFFFFF);
-        closeBtn.setPadding(24, 12, 24, 12);
-        closeBtn.setTextSize(14);
-        closeBtn.setOnClickListener(v -> closeInAppBrowser());
-        android.widget.FrameLayout.LayoutParams closeParams = new android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
-            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
-        );
-        closeParams.gravity = android.view.Gravity.TOP | android.view.Gravity.RIGHT;
-        closeParams.topMargin = 60;
-        closeParams.rightMargin = 16;
-        root.addView(closeBtn, closeParams);
-
-        // زر فحص الجلسة
-        TextView checkSessionBtn = new TextView(this);
-        checkSessionBtn.setText("🔍 فحص الجلسة");
-        checkSessionBtn.setBackgroundColor(0xCC25F4EE);
-        checkSessionBtn.setTextColor(0xFF000000);
-        checkSessionBtn.setPadding(24, 12, 24, 12);
-        checkSessionBtn.setTextSize(14);
-        checkSessionBtn.setOnClickListener(v -> checkAndCaptureSession());
-        android.widget.FrameLayout.LayoutParams checkParams = new android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
-            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
-        );
-        checkParams.gravity = android.view.Gravity.TOP | android.view.Gravity.LEFT;
-        checkParams.topMargin = 60;
-        checkParams.leftMargin = 16;
-        root.addView(checkSessionBtn, checkParams);
-
-        // مُراقب لالتقاط الكوكيز بعد كل تحميل صفحة
-        browserWebView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                Log.i(TAG, "Browser page loaded: " + url);
-
-                // افحص الكوكيز بعد كل تنقل
-                String cookies = cookieManager.getCookie("https://www.tiktok.com/");
-                if (cookies != null) {
-                    if (cookies.contains("sessionid") && !sessionCapturedInBrowser) {
-                        sessionCapturedInBrowser = true;
-                        Log.i(TAG, "✓ sessionid detected in browser cookies!");
-                        if (browserStatusBar != null) {
-                            browserStatusBar.setText("🌐 تصفح TikTok | ✅ تم التقاط الجلسة! (sessionid مكتشف)");
-                            browserStatusBar.setBackgroundColor(0xCC00D68F);
-                        }
-                        toast("✅ تم اكتشاف sessionid! الجلسة نشطة");
-                        // التقط وحفظ الجلسة
-                        captureAndUploadSession(cookies, url);
-                    } else if (!sessionCapturedInBrowser) {
-                        // حدّث الشريط
-                        if (browserStatusBar != null) {
-                            boolean hasSid = cookies.contains("sid_tt");
-                            boolean hasTtwid = cookies.contains("ttwid");
-                            if (hasSid || hasTtwid) {
-                                browserStatusBar.setText("🌐 تصفح TikTok | 🟡 جلسة جزئية (لا sessionid بعد) — سجّل دخولك");
-                            } else {
-                                browserStatusBar.setText("🌐 تصفح TikTok | 🔍 جاري مراقبة الجلسة...");
-                            }
-                        }
-                    }
-                }
-            }
-
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                Log.e(TAG, "Browser error: " + (error != null ? error.getDescription() : "unknown"));
-            }
-        });
-
-        // تحميل الرابط
-        browserWebView.loadUrl(url);
-    }
-
-    /**
-     * يفحص الجلسة الحالية في الـ browser WebView ويعرض حالتها.
-     */
-    private void checkAndCaptureSession() {
-        if (browserWebView == null) {
-            toast("ℹ️ لا يوجد متصفح نشط");
-            return;
-        }
-
-        CookieManager cookieManager = CookieManager.getInstance();
-        String cookies = cookieManager.getCookie("https://www.tiktok.com/");
-
-        if (cookies == null || cookies.isEmpty()) {
-            toast("ℹ️ لا توجد كوكيز — تصفّح صفحة TikTok أولاً");
-            return;
-        }
-
-        // تحليل الكوكيز
-        Map<String, String> cookieMap = parseCookies(cookies);
-        boolean hasSessionid = cookieMap.containsKey("sessionid") && !cookieMap.get("sessionid").isEmpty();
-        boolean hasSidTt = cookieMap.containsKey("sid_tt") && !cookieMap.get("sid_tt").isEmpty();
-        boolean hasTtwid = cookieMap.containsKey("ttwid") && !cookieMap.get("ttwid").isEmpty();
-        boolean hasMsToken = cookieMap.containsKey("msToken") && !cookieMap.get("msToken").isEmpty();
-
-        StringBuilder status = new StringBuilder();
-        status.append("🔍 فحص الجلسة الحالية:\n\n");
-        status.append("🔑 sessionid: ").append(hasSessionid ? "✅ موجود" : "❌ غير موجود").append("\n");
-        status.append("🔑 sid_tt: ").append(hasSidTt ? "✅ موجود" : "❌ غير موجود").append("\n");
-        status.append("🔑 ttwid: ").append(hasTtwid ? "✅ موجود" : "❌ غير موجود").append("\n");
-        status.append("🔑 msToken: ").append(hasMsToken ? "✅ موجود" : "❌ غير موجود").append("\n");
-        status.append("\n📊 إجمالي الكوكيز: ").append(cookieMap.size()).append("\n\n");
-
-        if (hasSessionid) {
-            status.append("✅ الجلسة كاملة ونشطة!");
-            if (browserStatusBar != null) {
-                browserStatusBar.setText("🌐 تصفح TikTok | ✅ جلسة نشطة (sessionid موجود)");
-                browserStatusBar.setBackgroundColor(0xCC00D68F);
-            }
-            // التقط وحفظ
-            captureAndUploadSession(cookies, browserWebView.getUrl() != null ? browserWebView.getUrl() : "");
-            status.append("\n💾 تم حفظ الجلسة تلقائياً");
-        } else if (hasSidTt || hasTtwid) {
-            status.append("🟡 جلسة جزئية — سجّل دخولك للحصول على sessionid");
-            if (browserStatusBar != null) {
-                browserStatusBar.setText("🌐 تصفح TikTok | 🟡 جلسة جزئية — سجّل دخولك");
-                browserStatusBar.setBackgroundColor(0xCCFFB547);
-            }
-        } else {
-            status.append("❌ لا توجد جلسة — سجّل دخولك إلى TikTok");
-            if (browserStatusBar != null) {
-                browserStatusBar.setText("🌐 تصفح TikTok | ❌ لا جلسة — سجّل دخولك");
-                browserStatusBar.setBackgroundColor(0xCCFF4D6D);
-            }
-        }
-
-        final String finalStatus = status.toString();
-        runOnUiThread(() -> {
-            new android.app.AlertDialog.Builder(this)
-                .setTitle("🔍 فحص الجلسة")
-                .setMessage(finalStatus)
-                .setPositiveButton("حسناً", null)
-                .show();
-        });
-    }
-
-    /**
-     * يُغلق متصفح الـ in-app browser ويعيد الواجهة الرئيسية.
-     */
-    private void closeInAppBrowser() {
-        if (browserWebView != null) {
-            try {
-                android.view.ViewGroup root = (android.view.ViewGroup) webView.getParent();
-                root.removeView(browserWebView);
-                root.removeView(browserStatusBar);
-                browserWebView.destroy();
-                browserWebView = null;
-                browserStatusBar = null;
-            } catch (Exception e) {
-                Log.e(TAG, "closeInAppBrowser failed", e);
-            }
-        }
-        webView.setVisibility(View.VISIBLE);
-        showAllFABs();
-        toast("✅ عودة للواجهة الرئيسية");
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    //  v5.1: قائمة الأدوات الشاملة — 20 خيار
-    // ════════════════════════════════════════════════════════════════
-
     private void showToolsMenu() {
-        String[] options = {
-            "📊 الإحصائيات الشاملة",
-            "🔬 استخراج عميق",
-            "📋 قائمة المستخدمين",
-            "📈 إحصائيات البثوث",
-            "👥 إحصائيات المعجبين",
-            "🔐 تبويب الجلسة",
-            "🌐 فتح الرابط في المتصفح الداخلي",
-            "🔄 مزامنة GitHub",
-            "📥 تنزيل webmssdk.js",
-            "─── تفاعلات ───",
-            "👍 إعجاب بالبث",
-            "👥 متابعة المستخدم",
-            "💬 إرسال تعليق",
-            "🚪 دخول غرفة بث",
-            "📊 إحصائيات التفاعل",
-            "─── مراقبة ───",
-            "📡 مراقبة بث مباشر",
-            "🔍 تقرير المراقبة الشامل",
-            "─── تنزيل ZIP ───",
-            "📦 تنزيل كل شيء (ZIP)"
+        String[] opts = {
+            "Full Statistics", "Deep Extract", "Users List", "Streams Stats",
+            "Fans Stats", "Session Tab", "Open URL In-App", "Sync GitHub",
+            "Download webmssdk.js", "--- Interactions ---",
+            "Send Like", "Follow User", "Send Comment", "Enter Live Room",
+            "Interaction Stats", "--- Monitor ---",
+            "Monitor Live", "Monitor Report", "--- Export ---",
+            "Download All (ZIP)"
         };
-
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
-        builder.setTitle("🛠️ أدوات v5.1")
-               .setItems(options, (dialog, which) -> {
-                   switch (which) {
-                       case 0: fetchAndShowJson("الإحصائيات", "/api/stats/headline"); break;
-                       case 1: triggerDeepExtract(); break;
-                       case 2: fetchAndShowJson("المستخدمون", "/api/deep/users"); break;
-                       case 3: fetchAndShowJson("البثوث", "/api/stats/streams"); break;
-                       case 4: fetchAndShowJson("المعجبون", "/api/stats/fans"); break;
-                       case 5: openSessionTab(); break;
-                       case 6: openInTikTokFromInput(); break;
-                       case 7: syncGitHub(); break;
-                       case 8: downloadLatestWebmssdk(); break;
-                       case 9: break; // separator
-                       case 10: executeInteraction("send_like"); break;
-                       case 11: executeInteraction("follow_user"); break;
-                       case 12: executeInteraction("send_comment"); break;
-                       case 13: executeInteraction("enter_live_room"); break;
-                       case 14: fetchAndShowJson("إحصائيات التفاعل", "/api/react/stats"); break;
-                       case 15: break; // separator
-                       case 16: fetchAndShowJson("مراقبة البث", "/api/monitor/live/all"); break;
-                       case 17: fetchAndShowJson("تقرير المراقبة", "/api/monitor/report"); break;
-                       case 18: break; // separator
-                       case 19: downloadZip("all"); break;
-                   }
-               })
-               .setNegativeButton("إغلاق", null)
-               .show();
+        new AlertDialog.Builder(this).setTitle("Tools v5.2").setItems(opts, (d, w) -> {
+            switch (w) {
+                case 0: fetchAndShowJson("Statistics", "api/stats/headline"); break;
+                case 1: triggerDeepExtract(); break;
+                case 2: fetchAndShowJson("Users", "api/deep/users"); break;
+                case 3: fetchAndShowJson("Streams", "api/stats/streams"); break;
+                case 4: fetchAndShowJson("Fans", "api/stats/fans"); break;
+                case 5: openSessionTab(); break;
+                case 6: openInTikTokFromInput(); break;
+                case 7: syncGitHub(); break;
+                case 8: downloadLatestWebmssdk(); break;
+                case 10: executeInteraction("send_like"); break;
+                case 11: executeInteraction("follow_user"); break;
+                case 12: executeInteraction("send_comment"); break;
+                case 13: executeInteraction("enter_live_room"); break;
+                case 14: fetchAndShowJson("Interaction Stats", "api/react/stats"); break;
+                case 16: fetchAndShowJson("Live Monitor", "api/monitor/live/all"); break;
+                case 17: fetchAndShowJson("Monitor Report", "api/monitor/report"); break;
+                case 19: downloadZip("all"); break;
+            }
+        }).setNegativeButton("Close", null).show();
     }
 
     private void fetchAndShowJson(String title, String endpoint) {
-        toast("⏳ جاري جلب " + title + "...");
+        toast("Loading " + title + "...");
         new Thread(() -> {
             try {
-                java.net.URL url = new java.net.URL(PWA_URL + (endpoint.startsWith("/") ? endpoint.substring(1) : endpoint));
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(15000);
+                URL url = new URL(PWA_URL + endpoint);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET"); conn.setConnectTimeout(15000); conn.setReadTimeout(15000);
                 int code = conn.getResponseCode();
                 String resp = readResponse(conn);
                 if (code == 200) {
-                    // نسّق JSON
-                    try {
-                        JSONObject d = new JSONObject(resp);
-                        final String formatted = d.toString(2);
-                        runOnUiThread(() -> {
-                            new android.app.AlertDialog.Builder(MainActivity.this)
-                                .setTitle("📊 " + title)
-                                .setMessage(formatted.length() > 4000 ? formatted.substring(0, 4000) + "..." : formatted)
-                                .setPositiveButton("حسناً", null)
-                                .show();
-                        });
-                    } catch (Exception e) {
-                        final String raw = resp;
-                        runOnUiThread(() -> {
-                            new android.app.AlertDialog.Builder(MainActivity.this)
-                                .setTitle("📊 " + title)
-                                .setMessage(raw.length() > 4000 ? raw.substring(0, 4000) : raw)
-                                .setPositiveButton("حسناً", null)
-                                .show();
-                        });
-                    }
-                } else {
-                    runOnUiThread(() -> toast("❌ HTTP " + code));
-                }
+                    String display;
+                    try { display = new JSONObject(resp).toString(2); }
+                    catch (Exception e) { display = resp; }
+                    if (display.length() > 4000) display = display.substring(0, 4000) + "...";
+                    final String finalDisplay = display;
+                    mainHandler.post(() -> new AlertDialog.Builder(this).setTitle(title).setMessage(finalDisplay).setPositiveButton("OK", null).show());
+                } else { mainHandler.post(() -> toast("Error: HTTP " + code)); }
             } catch (Exception e) {
                 Log.e(TAG, "fetchAndShowJson failed", e);
-                runOnUiThread(() -> toast("❌ " + e.getMessage()));
+                mainHandler.post(() -> toast("Error: " + e.getMessage()));
             }
         }).start();
     }
 
     private void executeInteraction(String action) {
-        // استخرج room_id/sec_uid من حقل الإدخال أولاً
-        runJs("(() => {"
-            + "  const input = document.getElementById('urlInput');"
-            + "  const url = input ? input.value : '';"
-            + "  if (!url) { alert('الصق رابطاً أولاً'); return; }"
-            + "  fetch('/api/extract?url=' + encodeURIComponent(url))"
-            + "    .then(r => r.json()).then(d => {"
-            + "      if (!d.success) { alert('فشل الاستخراج'); return; }"
-            + "      const body = {action: '" + action + "'};"
-            + "      if (d.all_ids) {"
-            + "        body.room_id = d.all_ids.room_id || '';"
-            + "        body.sec_uid = d.all_ids.sec_uid || '';"
-            + "        body.user_id = d.all_ids.user_id || '';"
-            + "        body.video_id = d.content_id || '';"
-            + "      }"
-            + "      fetch('/api/react/execute', {"
-            + "        method: 'POST',"
-            + "        headers: {'Content-Type': 'application/json'},"
-            + "        body: JSON.stringify(body)"
-            + "      }).then(r => r.json()).then(result => {"
-            + "        alert('نتيجة: ' + (result.success ? '✅ نجح' : '❌ فشل') + '\\n' + JSON.stringify(result, null, 2).substring(0, 500));"
-            + "      }).catch(e => alert('خطأ: ' + e));"
-            + "    }).catch(e => alert('خطأ استخراج: ' + e));"
-            + "})();");
-        toast("⚡ " + action);
+        runJs("(() => { const i = document.getElementById('urlInput'); const u = i ? i.value : ''; if (!u) { alert('Paste a URL first'); return; }"
+            + "fetch('/api/extract?url=' + encodeURIComponent(u)).then(r => r.json()).then(d => {"
+            + "if (!d.success) { alert('Extraction failed'); return; }"
+            + "const body = {action: '" + action + "'};"
+            + "if (d.all_ids) { body.room_id = d.all_ids.room_id || ''; body.sec_uid = d.all_ids.sec_uid || ''; body.user_id = d.all_ids.user_id || ''; body.video_id = d.content_id || ''; }"
+            + "fetch('/api/react/execute', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})"
+            + ".then(r => r.json()).then(r => { alert('Result: ' + (r.success ? 'SUCCESS' : 'FAILED') + '\\n' + JSON.stringify(r, null, 2).substring(0, 500)); })"
+            + ".catch(e => alert('Error: ' + e)); }).catch(e => alert('Extract error: ' + e)); })();");
+        toast("Running: " + action);
     }
 
     private void triggerDeepExtract() {
-        runJs("(() => {"
-            + "  const input = document.getElementById('urlInput');"
-            + "  const url = input ? input.value : '';"
-            + "  if (!url) { alert('الصق رابطاً أولاً'); return; }"
-            + "  fetch('/api/deep/extract', {"
-            + "    method: 'POST',"
-            + "    headers: {'Content-Type': 'application/json'},"
-            + "    body: JSON.stringify({url: url})"
-            + "  }).then(r => r.json()).then(d => {"
-            + "    if (d.success) {"
-            + "      alert('✅ استخراج ناجح!\\n👤 @' + d.unique_id + '\\n📁 live' + d.live_number + '\\n📦 ' + d.files_saved.length + ' ملفات');"
-            + "    } else {"
-            + "      alert('❌ فشل: ' + (d.error || 'unknown'));"
-            + "    }"
-            + "  }).catch(e => alert('خطأ: ' + e));"
-            + "})();");
+        runJs("(() => { const i = document.getElementById('urlInput'); const u = i ? i.value : ''; if (!u) { alert('Paste a URL first'); return; }"
+            + "fetch('/api/deep/extract', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: u})})"
+            + ".then(r => r.json()).then(d => { if (d.success) { alert('Deep extract OK! @' + d.unique_id + ' live' + d.live_number + ' (' + d.files_saved.length + ' files)'); } else { alert('Failed: ' + (d.error || 'unknown')); } })"
+            + ".catch(e => alert('Error: ' + e)); })();");
     }
 
     private void openSessionTab() {
@@ -880,186 +240,326 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openInTikTokFromInput() {
-        runJs("(() => {"
-            + "  const input = document.getElementById('urlInput');"
-            + "  const url = input ? input.value : '';"
-            + "  if (url) { Android.openInAppBrowser(url); }"
-            + "  else { alert('الصق رابطاً أولاً'); }"
-            + "})();");
+        runJs("(() => { const i = document.getElementById('urlInput'); const u = i ? i.value : ''; if (u) Android.openInAppBrowser(u); else alert('Paste a URL first'); })();");
     }
 
     private void syncGitHub() {
-        toast("⏳ جاري المزامنة...");
+        toast("Syncing...");
         new Thread(() -> {
             try {
-                java.net.URL url = new java.net.URL(PWA_URL + "api/sync-db");
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setDoOutput(true);
-                conn.getOutputStream().write("{}".getBytes("UTF-8"));
-                int code = conn.getResponseCode();
+                URL url = new URL(PWA_URL + "api/sync-db");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST"); conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true); conn.getOutputStream().write("{}".getBytes("UTF-8"));
                 String resp = readResponse(conn);
-                final JSONObject d = new JSONObject(resp);
-                runOnUiThread(() -> toast(d.optBoolean("success") ? "✅ تمت مزامنة " + d.optInt("pushed_files") + " ملف" : "⚠️ " + d.optString("error")));
-            } catch (Exception e) {
-                runOnUiThread(() -> toast("❌ " + e.getMessage()));
-            }
+                JSONObject d = new JSONObject(resp);
+                boolean ok = d.optBoolean("success", false);
+                int pushed = d.optInt("pushed_files", 0);
+                mainHandler.post(() -> toast(ok ? "Synced " + pushed + " files" : "Sync failed: " + d.optString("error")));
+            } catch (Exception e) { mainHandler.post(() -> toast("Error: " + e.getMessage())); }
         }).start();
     }
 
     private void downloadLatestWebmssdk() {
-        toast("⏳ البحث عن webmssdk.js...");
+        toast("Searching for webmssdk.js...");
         new Thread(() -> {
             try {
-                java.net.URL url = new java.net.URL(PWA_URL + "api/deep/users");
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(15000);
-                String resp = readResponse(conn);
-                final JSONObject d = new JSONObject(resp);
-                final JSONArray users = d.optJSONArray("users");
+                URL url = new URL(PWA_URL + "api/deep/users");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET"); conn.setConnectTimeout(15000);
+                JSONObject d = new JSONObject(readResponse(conn));
+                JSONArray users = d.optJSONArray("users");
                 if (users != null && users.length() > 0) {
                     JSONObject first = users.getJSONObject(0);
                     final String uid = first.optString("unique_id", "unknown");
                     final int liveCount = first.optInt("live_count", 1);
                     final String dlUrl = PWA_URL + "api/deep/users/" + uid + "/live" + liveCount + "/download/webmssdk.js";
-                    runOnUiThread(() -> {
-                        try {
-                            startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(dlUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                            toast("📥 تنزيل webmssdk.js من @" + uid);
-                        } catch (Exception e) { toast("❌ تعذّر التنزيل"); }
+                    mainHandler.post(() -> {
+                        try { startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(dlUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); toast("Downloading webmssdk.js from @" + uid); }
+                        catch (Exception e) { toast("Download failed"); }
                     });
-                } else {
-                    runOnUiThread(() -> toast("ℹ️ لا توجد بيانات عميقة"));
-                }
-            } catch (Exception e) {
-                runOnUiThread(() -> toast("❌ " + e.getMessage()));
-            }
+                } else { mainHandler.post(() -> toast("No deep data found")); }
+            } catch (Exception e) { mainHandler.post(() -> toast("Error: " + e.getMessage())); }
         }).start();
     }
 
     private void downloadZip(String type) {
-        toast("⏳ تجهيز ZIP...");
+        toast("Preparing ZIP...");
+        final String dlUrl = PWA_URL + "api/export/" + type;
+        mainHandler.post(() -> {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(dlUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); toast("Downloading ZIP: " + type); }
+            catch (Exception e) { toast("Download failed"); }
+        });
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  In-App Browser with Desktop Mode (FIXED: no crash)
+    // ════════════════════════════════════════════════════════════════
+    @SuppressLint("SetJavaScriptEnabled")
+    private void openInAppBrowserInternal(String url) {
+        Log.i(TAG, "Opening in-app browser: " + url);
+        // MUST run on UI thread — JavascriptInterface calls from background
+        mainHandler.post(() -> {
+            try {
+                toast("Opening in-app browser...");
+                sessionCapturedInBrowser = false;
+                browserWebView = new WebView(this);
+                WebSettings s = browserWebView.getSettings();
+                s.setJavaScriptEnabled(true);
+                s.setDomStorageEnabled(true);
+                s.setDatabaseEnabled(true);
+                s.setCacheMode(WebSettings.LOAD_DEFAULT);
+                s.setLoadWithOverviewMode(true);
+                s.setUseWideViewPort(true);
+                s.setSupportZoom(true);
+                s.setBuiltInZoomControls(true);
+                s.setDisplayZoomControls(false);
+                s.setMediaPlaybackRequiresUserGesture(false);
+                s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+                // DESKTOP MODE — forces TikTok to show desktop layout
+                s.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
+
+                CookieManager cm = CookieManager.getInstance();
+                cm.setAcceptCookie(true);
+                cm.setAcceptThirdPartyCookies(browserWebView, true);
+
+                webView.setVisibility(View.GONE);
+                hideAllFABs();
+
+                ViewGroup root = (ViewGroup) webView.getParent();
+                root.addView(browserWebView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+                // Status bar
+                browserStatusBar = new TextView(this);
+                browserStatusBar.setText("Browsing TikTok | Monitoring session...");
+                browserStatusBar.setBackgroundColor(0xCC000000);
+                browserStatusBar.setTextColor(0xFFFFFFFF);
+                browserStatusBar.setPadding(24, 16, 24, 16);
+                browserStatusBar.setTextSize(12);
+                FrameLayout.LayoutParams sp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+                sp.gravity = Gravity.TOP;
+                root.addView(browserStatusBar, sp);
+
+                // Close button
+                TextView closeBtn = new TextView(this);
+                closeBtn.setText("X Close");
+                closeBtn.setBackgroundColor(0xCCFF2D55);
+                closeBtn.setTextColor(0xFFFFFFFF);
+                closeBtn.setPadding(24, 12, 24, 12);
+                closeBtn.setTextSize(14);
+                closeBtn.setOnClickListener(v -> closeInAppBrowser());
+                FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+                cp.gravity = Gravity.TOP | Gravity.RIGHT; cp.topMargin = 60; cp.rightMargin = 16;
+                root.addView(closeBtn, cp);
+
+                // Check session button
+                TextView checkBtn = new TextView(this);
+                checkBtn.setText("Check Session");
+                checkBtn.setBackgroundColor(0xCC25F4EE);
+                checkBtn.setTextColor(0xFF000000);
+                checkBtn.setPadding(24, 12, 24, 12);
+                checkBtn.setTextSize(14);
+                checkBtn.setOnClickListener(v -> checkAndCaptureSession());
+                FrameLayout.LayoutParams kp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+                kp.gravity = Gravity.TOP | Gravity.LEFT; kp.topMargin = 60; kp.leftMargin = 16;
+                root.addView(checkBtn, kp);
+
+                browserWebView.setWebViewClient(new WebViewClient() {
+                    @Override public void onPageFinished(WebView v, String pageUrl) {
+                        super.onPageFinished(v, pageUrl);
+                        Log.i(TAG, "Browser page loaded: " + pageUrl);
+                        String cookies = cm.getCookie("https://www.tiktok.com/");
+                        if (cookies != null) {
+                            if (cookies.contains("sessionid") && !sessionCapturedInBrowser) {
+                                sessionCapturedInBrowser = true;
+                                if (browserStatusBar != null) { browserStatusBar.setText("Browsing | Session captured! (sessionid found)"); browserStatusBar.setBackgroundColor(0xCC00D68F); }
+                                toast("Session captured!");
+                                captureAndUploadSession(cookies, pageUrl);
+                            } else if (!sessionCapturedInBrowser && browserStatusBar != null) {
+                                if (cookies.contains("sid_tt") || cookies.contains("ttwid"))
+                                    browserStatusBar.setText("Browsing | Partial session — please login");
+                                else
+                                    browserStatusBar.setText("Browsing | Monitoring session...");
+                            }
+                        }
+                    }
+                });
+                browserWebView.loadUrl(url);
+            } catch (Exception e) {
+                Log.e(TAG, "openInAppBrowserInternal crashed", e);
+                toast("Browser error: " + e.getMessage());
+            }
+        });
+    }
+
+    private void checkAndCaptureSession() {
+        if (browserWebView == null) { toast("No active browser"); return; }
+        CookieManager cm = CookieManager.getInstance();
+        String cookies = cm.getCookie("https://www.tiktok.com/");
+        if (cookies == null || cookies.isEmpty()) { toast("No cookies — browse TikTok first"); return; }
+        Map<String, String> cm2 = parseCookies(cookies);
+        boolean hasSid = cm2.containsKey("sessionid") && !cm2.get("sessionid").isEmpty();
+        boolean hasSidTt = cm2.containsKey("sid_tt") && !cm2.get("sid_tt").isEmpty();
+        boolean hasTtwid = cm2.containsKey("ttwid") && !cm2.get("ttwid").isEmpty();
+        boolean hasMs = cm2.containsKey("msToken") && !cm2.get("msToken").isEmpty();
+        StringBuilder sb = new StringBuilder();
+        sb.append("Session Check:\n\n");
+        sb.append("sessionid: ").append(hasSid ? "YES" : "NO").append("\n");
+        sb.append("sid_tt: ").append(hasSidTt ? "YES" : "NO").append("\n");
+        sb.append("ttwid: ").append(hasTtwid ? "YES" : "NO").append("\n");
+        sb.append("msToken: ").append(hasMs ? "YES" : "NO").append("\n");
+        sb.append("Total cookies: ").append(cm2.size()).append("\n\n");
+        if (hasSid) {
+            sb.append("Session is active and complete!");
+            if (browserStatusBar != null) { browserStatusBar.setText("Browsing | Session active"); browserStatusBar.setBackgroundColor(0xCC00D68F); }
+            captureAndUploadSession(cookies, browserWebView.getUrl() != null ? browserWebView.getUrl() : "");
+            sb.append("\nSession saved automatically");
+        } else if (hasSidTt || hasTtwid) {
+            sb.append("Partial session — login to get sessionid");
+        } else {
+            sb.append("No session — login to TikTok");
+        }
+        String status = sb.toString();
+        new AlertDialog.Builder(this).setTitle("Session Check").setMessage(status).setPositiveButton("OK", null).show();
+    }
+
+    private void closeInAppBrowser() {
+        if (browserWebView != null) {
+            try {
+                ViewGroup root = (ViewGroup) webView.getParent();
+                root.removeView(browserWebView);
+                if (browserStatusBar != null) root.removeView(browserStatusBar);
+                browserWebView.destroy(); browserWebView = null; browserStatusBar = null;
+            } catch (Exception e) { Log.e(TAG, "closeInAppBrowser failed", e); }
+        }
+        webView.setVisibility(View.VISIBLE);
+        showAllFABs();
+        toast("Back to main");
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  Login WebView (session capture)
+    // ════════════════════════════════════════════════════════════════
+    @SuppressLint("SetJavaScriptEnabled")
+    private void openLoginCaptureWebView() {
+        toast("Open TikTok and login");
+        mainHandler.post(() -> {
+            try {
+                browserWebView = new WebView(this);
+                WebSettings s = browserWebView.getSettings();
+                s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true); s.setDatabaseEnabled(true);
+                s.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
+                CookieManager cm = CookieManager.getInstance(); cm.setAcceptCookie(true); cm.setAcceptThirdPartyCookies(browserWebView, true);
+                webView.setVisibility(View.GONE); hideAllFABs();
+                ViewGroup root = (ViewGroup) webView.getParent();
+                root.addView(browserWebView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+                // Close button
+                TextView closeBtn = new TextView(this); closeBtn.setText("X Close"); closeBtn.setBackgroundColor(0xCCFF2D55); closeBtn.setTextColor(0xFFFFFFFF); closeBtn.setPadding(24, 12, 24, 12); closeBtn.setTextSize(14);
+                closeBtn.setOnClickListener(v -> closeInAppBrowser());
+                FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+                cp.gravity = Gravity.TOP | Gravity.RIGHT; cp.topMargin = 40; cp.rightMargin = 16;
+                root.addView(closeBtn, cp);
+                browserWebView.setWebViewClient(new WebViewClient() {
+                    private boolean alreadyCaptured = false;
+                    @Override public void onPageFinished(WebView v, String pageUrl) {
+                        if (!alreadyCaptured) {
+                            String cookies = cm.getCookie("https://www.tiktok.com/");
+                            if (cookies != null && cookies.contains("sessionid")) {
+                                alreadyCaptured = true;
+                                toast("Session captured!");
+                                captureAndUploadSession(cookies, pageUrl);
+                            }
+                        }
+                    }
+                });
+                browserWebView.loadUrl("https://www.tiktok.com/login/phone-or-email/email");
+            } catch (Exception e) { Log.e(TAG, "login WebView crashed", e); toast("Error: " + e.getMessage()); }
+        });
+    }
+
+    private void captureAndUploadSession(String cookieString, String currentUrl) {
+        Log.i(TAG, "Capturing cookies, length=" + cookieString.length());
+        Map<String, String> cookies = parseCookies(cookieString);
+        String sessionid = cookies.get("sessionid");
+        if (sessionid == null || sessionid.isEmpty()) { Log.w(TAG, "sessionid not found"); return; }
+        Log.i(TAG, "Captured sessionid (length=" + sessionid.length() + ")");
+        final JSONObject payload = new JSONObject();
+        try {
+            payload.put("sessionid", sessionid);
+            JSONObject extra = new JSONObject();
+            for (String k : new String[]{"ttwid","msToken","sid_tt","passport_csrf_token","sid_guard","uid_tt","uid_tt_ss","tt_chain_token","cmpl_token"}) {
+                String val = cookies.get(k); if (val != null && !val.isEmpty()) extra.put(k, val);
+            }
+            payload.put("extra_cookies", extra);
+        } catch (Exception e) { Log.e(TAG, "payload build failed", e); return; }
         new Thread(() -> {
-            final String dlUrl = PWA_URL + "api/export/" + type;
-            runOnUiThread(() -> {
+            try {
+                URL url = new URL(PWA_URL + "api/session/capture");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST"); conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true); conn.setConnectTimeout(30000); conn.setReadTimeout(60000);
+                conn.getOutputStream().write(payload.toString().getBytes("UTF-8"));
+                int code = conn.getResponseCode();
+                String resp = readResponse(conn);
+                Log.i(TAG, "Session upload: " + code + " — " + resp.substring(0, Math.min(200, resp.length())));
                 try {
-                    startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(dlUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                    toast("📦 تنزيل ZIP: " + type);
-                } catch (Exception e) { toast("❌ تعذّر التنزيل"); }
-            });
+                    JSONObject r = new JSONObject(resp);
+                    if (r.optBoolean("success")) { mainHandler.post(() -> { toast("Session saved! @" + r.optString("unique_id", "me")); closeInAppBrowser(); }); }
+                    else { mainHandler.post(() -> toast("Save failed: " + r.optString("error", ""))); }
+                } catch (Exception e) { mainHandler.post(() -> toast("Unexpected response")); }
+            } catch (Exception e) { Log.e(TAG, "upload failed", e); mainHandler.post(() -> toast("Network error: " + e.getMessage())); }
         }).start();
     }
 
-    private void runJs(String js) {
-        if (webView != null) {
-            try {
-                webView.post(() -> webView.evaluateJavascript(js, null));
-            } catch (Exception e) {
-                Log.e(TAG, "runJs failed", e);
-            }
+    private void checkSavedSession() {
+        String uid = prefs.getString("last_unique_id", "");
+        if (uid.isEmpty()) { toast("No saved session. Use login button first."); return; }
+        toast("Checking session for " + uid);
+        runJs("(() => { fetch('/api/session/" + uid + "/status').then(r=>r.json()).then(d=>{ alert(d.has_session ? 'Session saved! Saved at: ' + d.saved_at : 'No saved session'); }).catch(e=>alert('Error: '+e)); })();");
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  Utilities
+    // ════════════════════════════════════════════════════════════════
+    private void runJs(String js) { if (webView != null) webView.post(() -> webView.evaluateJavascript(js, null)); }
+    private void toast(String msg) { mainHandler.post(() -> { try { Toast.makeText(this, msg, Toast.LENGTH_LONG).show(); } catch (Exception e) { Log.e(TAG, "toast failed", e); } }); }
+    private void showError(String msg) { mainHandler.post(() -> { try { if (webView != null) webView.setVisibility(View.GONE); if (progressBar != null) progressBar.setVisibility(View.GONE); if (errorView != null) { errorView.setText(msg); errorView.setVisibility(View.VISIBLE); } } catch (Exception e) { Log.e(TAG, "showError failed", e); } }); }
+    private void hideAllFABs() { if (fabDatabase != null) fabDatabase.hide(); if (fabLogin != null) fabLogin.hide(); if (fabInteract != null) fabInteract.hide(); }
+    private void showAllFABs() { if (fabDatabase != null) fabDatabase.show(); if (fabLogin != null) fabLogin.show(); if (fabInteract != null) fabInteract.show(); }
+
+    private Map<String, String> parseCookies(String cookieString) {
+        Map<String, String> m = new HashMap<>();
+        if (cookieString == null) return m;
+        for (String part : cookieString.split(";")) {
+            int eq = part.indexOf('=');
+            if (eq > 0) m.put(part.substring(0, eq).trim(), part.substring(eq + 1).trim());
         }
+        return m;
     }
 
-    private void toast(String message) {
-        runOnUiThread(() -> {
-            try {
-                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-            } catch (Exception e) {
-                Log.e(TAG, "toast failed", e);
-            }
-        });
-    }
-
-    private void showError(String message) {
-        runOnUiThread(() -> {
-            try {
-                if (webView != null) webView.setVisibility(View.GONE);
-                if (progressBar != null) progressBar.setVisibility(View.GONE);
-                if (errorView != null) {
-                    errorView.setText(message);
-                    errorView.setVisibility(View.VISIBLE);
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "showError() failed", e);
-            }
-        });
-    }
-
-    private void hideAllFABs() {
-        if (fabDatabase != null) fabDatabase.hide();
-        if (fabLogin != null) fabLogin.hide();
-        if (fabInteract != null) fabInteract.hide();
-    }
-
-    private void showAllFABs() {
-        if (fabDatabase != null) fabDatabase.show();
-        if (fabLogin != null) fabLogin.show();
-        if (fabInteract != null) fabInteract.show();
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (browserWebView != null) {
-            // إذا كان متصفح الـ in-app مفتوحاً، ارجع للصفحة السابقة أو أغلق
-            if (browserWebView.canGoBack()) {
-                browserWebView.goBack();
-            } else {
-                closeInAppBrowser();
-            }
-            return;
-        }
-        if (loginWebView != null) {
-            // إذا كان WebView تسجيل الدخول مفتوحاً، أغلقه بدلاً من الخروج
-            closeLoginWebView();
-            return;
-        }
+    private String readResponse(HttpURLConnection conn) {
         try {
-            if (webView != null && webView.canGoBack()) {
-                webView.goBack();
-            } else {
-                super.onBackPressed();
-            }
-        } catch (Exception e) {
-            super.onBackPressed();
-        }
+            java.io.InputStream is = conn.getResponseCode() >= 400 ? conn.getErrorStream() : conn.getInputStream();
+            java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(is, "UTF-8"));
+            StringBuilder sb = new StringBuilder(); String line;
+            while ((line = r.readLine()) != null) sb.append(line);
+            r.close(); return sb.toString();
+        } catch (Exception e) { return "(error: " + e.getMessage() + ")"; }
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        try { if (webView != null) webView.onPause(); } catch (Exception e) {}
+    @Override public void onBackPressed() {
+        if (browserWebView != null) { if (browserWebView.canGoBack()) browserWebView.goBack(); else closeInAppBrowser(); return; }
+        try { if (webView != null && webView.canGoBack()) webView.goBack(); else super.onBackPressed(); }
+        catch (Exception e) { super.onBackPressed(); }
     }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        try { if (webView != null) webView.onResume(); } catch (Exception e) {}
-    }
-
-    @Override
-    protected void onDestroy() {
+    @Override protected void onPause() { super.onPause(); try { if (webView != null) webView.onPause(); } catch (Exception e) {} }
+    @Override protected void onResume() { super.onResume(); try { if (webView != null) webView.onResume(); } catch (Exception e) {} }
+    @Override protected void onDestroy() {
         try {
-            if (loginWebView != null) {
-                ((android.view.ViewGroup) loginWebView.getParent()).removeView(loginWebView);
-                loginWebView.destroy();
-                loginWebView = null;
-            }
-            if (webView != null) {
-                ((android.view.ViewGroup) webView.getParent()).removeView(webView);
-                webView.destroy();
-                webView = null;
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "onDestroy failed", e);
-        }
+            if (browserWebView != null) { ((ViewGroup) browserWebView.getParent()).removeView(browserWebView); browserWebView.destroy(); browserWebView = null; }
+            if (webView != null) { ((ViewGroup) webView.getParent()).removeView(webView); webView.destroy(); webView = null; }
+        } catch (Exception e) { Log.e(TAG, "onDestroy failed", e); }
         super.onDestroy();
     }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        try { if (webView != null) webView.saveState(outState); } catch (Exception e) {}
-    }
+    @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); try { if (webView != null) webView.saveState(out); } catch (Exception e) {} }
 }
