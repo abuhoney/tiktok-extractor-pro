@@ -183,8 +183,7 @@ public class MainActivity extends AppCompatActivity {
                 v.postDelayed(this::showAllFABs, 800);
             });
             fabDatabase.setOnLongClickListener(v -> {
-                runJs("(() => { const b = document.getElementById('dbRefreshBtn'); if (b) b.click(); })();");
-                toast("🔄 تحديث القائمة");
+                showToolsMenu();
                 return true;
             });
         }
@@ -722,6 +721,233 @@ public class MainActivity extends AppCompatActivity {
         webView.setVisibility(View.VISIBLE);
         showAllFABs();
         toast("✅ عودة للواجهة الرئيسية");
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  v5.1: قائمة الأدوات الشاملة — 20 خيار
+    // ════════════════════════════════════════════════════════════════
+
+    private void showToolsMenu() {
+        String[] options = {
+            "📊 الإحصائيات الشاملة",
+            "🔬 استخراج عميق",
+            "📋 قائمة المستخدمين",
+            "📈 إحصائيات البثوث",
+            "👥 إحصائيات المعجبين",
+            "🔐 تبويب الجلسة",
+            "🌐 فتح الرابط في المتصفح الداخلي",
+            "🔄 مزامنة GitHub",
+            "📥 تنزيل webmssdk.js",
+            "─── تفاعلات ───",
+            "👍 إعجاب بالبث",
+            "👥 متابعة المستخدم",
+            "💬 إرسال تعليق",
+            "🚪 دخول غرفة بث",
+            "📊 إحصائيات التفاعل",
+            "─── مراقبة ───",
+            "📡 مراقبة بث مباشر",
+            "🔍 تقرير المراقبة الشامل",
+            "─── تنزيل ZIP ───",
+            "📦 تنزيل كل شيء (ZIP)"
+        };
+
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("🛠️ أدوات v5.1")
+               .setItems(options, (dialog, which) -> {
+                   switch (which) {
+                       case 0: fetchAndShowJson("الإحصائيات", "/api/stats/headline"); break;
+                       case 1: triggerDeepExtract(); break;
+                       case 2: fetchAndShowJson("المستخدمون", "/api/deep/users"); break;
+                       case 3: fetchAndShowJson("البثوث", "/api/stats/streams"); break;
+                       case 4: fetchAndShowJson("المعجبون", "/api/stats/fans"); break;
+                       case 5: openSessionTab(); break;
+                       case 6: openInTikTokFromInput(); break;
+                       case 7: syncGitHub(); break;
+                       case 8: downloadLatestWebmssdk(); break;
+                       case 9: break; // separator
+                       case 10: executeInteraction("send_like"); break;
+                       case 11: executeInteraction("follow_user"); break;
+                       case 12: executeInteraction("send_comment"); break;
+                       case 13: executeInteraction("enter_live_room"); break;
+                       case 14: fetchAndShowJson("إحصائيات التفاعل", "/api/react/stats"); break;
+                       case 15: break; // separator
+                       case 16: fetchAndShowJson("مراقبة البث", "/api/monitor/live/all"); break;
+                       case 17: fetchAndShowJson("تقرير المراقبة", "/api/monitor/report"); break;
+                       case 18: break; // separator
+                       case 19: downloadZip("all"); break;
+                   }
+               })
+               .setNegativeButton("إغلاق", null)
+               .show();
+    }
+
+    private void fetchAndShowJson(String title, String endpoint) {
+        toast("⏳ جاري جلب " + title + "...");
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(PWA_URL + endpoint.replace("/", "", 1));
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                int code = conn.getResponseCode();
+                String resp = readResponse(conn);
+                if (code == 200) {
+                    // نسّق JSON
+                    try {
+                        JSONObject d = new JSONObject(resp);
+                        final String formatted = d.toString(2);
+                        runOnUiThread(() -> {
+                            new android.app.AlertDialog.Builder(MainActivity.this)
+                                .setTitle("📊 " + title)
+                                .setMessage(formatted.length() > 4000 ? formatted.substring(0, 4000) + "..." : formatted)
+                                .setPositiveButton("حسناً", null)
+                                .show();
+                        });
+                    } catch (Exception e) {
+                        final String raw = resp;
+                        runOnUiThread(() -> {
+                            new android.app.AlertDialog.Builder(MainActivity.this)
+                                .setTitle("📊 " + title)
+                                .setMessage(raw.length() > 4000 ? raw.substring(0, 4000) : raw)
+                                .setPositiveButton("حسناً", null)
+                                .show();
+                        });
+                    }
+                } else {
+                    runOnUiThread(() -> toast("❌ HTTP " + code));
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "fetchAndShowJson failed", e);
+                runOnUiThread(() -> toast("❌ " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    private void executeInteraction(String action) {
+        // استخرج room_id/sec_uid من حقل الإدخال أولاً
+        runJs("(() => {"
+            + "  const input = document.getElementById('urlInput');"
+            + "  const url = input ? input.value : '';"
+            + "  if (!url) { alert('الصق رابطاً أولاً'); return; }"
+            + "  fetch('/api/extract?url=' + encodeURIComponent(url))"
+            + "    .then(r => r.json()).then(d => {"
+            + "      if (!d.success) { alert('فشل الاستخراج'); return; }"
+            + "      const body = {action: '" + action + "'};"
+            + "      if (d.all_ids) {"
+            + "        body.room_id = d.all_ids.room_id || '';"
+            + "        body.sec_uid = d.all_ids.sec_uid || '';"
+            + "        body.user_id = d.all_ids.user_id || '';"
+            + "        body.video_id = d.content_id || '';"
+            + "      }"
+            + "      fetch('/api/react/execute', {"
+            + "        method: 'POST',"
+            + "        headers: {'Content-Type': 'application/json'},"
+            + "        body: JSON.stringify(body)"
+            + "      }).then(r => r.json()).then(result => {"
+            + "        alert('نتيجة: ' + (result.success ? '✅ نجح' : '❌ فشل') + '\\n' + JSON.stringify(result, null, 2).substring(0, 500));"
+            + "      }).catch(e => alert('خطأ: ' + e));"
+            + "    }).catch(e => alert('خطأ استخراج: ' + e));"
+            + "})();");
+        toast("⚡ " + action);
+    }
+
+    private void triggerDeepExtract() {
+        runJs("(() => {"
+            + "  const input = document.getElementById('urlInput');"
+            + "  const url = input ? input.value : '';"
+            + "  if (!url) { alert('الصق رابطاً أولاً'); return; }"
+            + "  fetch('/api/deep/extract', {"
+            + "    method: 'POST',"
+            + "    headers: {'Content-Type': 'application/json'},"
+            + "    body: JSON.stringify({url: url})"
+            + "  }).then(r => r.json()).then(d => {"
+            + "    if (d.success) {"
+            + "      alert('✅ استخراج ناجح!\\n👤 @' + d.unique_id + '\\n📁 live' + d.live_number + '\\n📦 ' + d.files_saved.length + ' ملفات');"
+            + "    } else {"
+            + "      alert('❌ فشل: ' + (d.error || 'unknown'));"
+            + "    }"
+            + "  }).catch(e => alert('خطأ: ' + e));"
+            + "})();");
+    }
+
+    private void openSessionTab() {
+        hideAllFABs();
+        runJs("(() => { const t = document.querySelector('.nav-tab[data-tab=\"session\"]'); if (t) t.click(); })();");
+        webView.postDelayed(this::showAllFABs, 800);
+    }
+
+    private void openInTikTokFromInput() {
+        runJs("(() => {"
+            + "  const input = document.getElementById('urlInput');"
+            + "  const url = input ? input.value : '';"
+            + "  if (url) { Android.openInAppBrowser(url); }"
+            + "  else { alert('الصق رابطاً أولاً'); }"
+            + "})();");
+    }
+
+    private void syncGitHub() {
+        toast("⏳ جاري المزامنة...");
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(PWA_URL + "api/sync-db");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+                conn.getOutputStream().write("{}".getBytes("UTF-8"));
+                int code = conn.getResponseCode();
+                String resp = readResponse(conn);
+                final JSONObject d = new JSONObject(resp);
+                runOnUiThread(() -> toast(d.optBoolean("success") ? "✅ تمت مزامنة " + d.optInt("pushed_files") + " ملف" : "⚠️ " + d.optString("error")));
+            } catch (Exception e) {
+                runOnUiThread(() -> toast("❌ " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    private void downloadLatestWebmssdk() {
+        toast("⏳ البحث عن webmssdk.js...");
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(PWA_URL + "api/deep/users");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(15000);
+                String resp = readResponse(conn);
+                final JSONObject d = new JSONObject(resp);
+                JSONArray users = d.optJSONArray("users");
+                if (users != null && users.length() > 0) {
+                    JSONObject first = users.getJSONObject(0);
+                    final String uid = first.optString("unique_id", "unknown");
+                    final int liveCount = first.optInt("live_count", 1);
+                    final String dlUrl = PWA_URL + "api/deep/users/" + uid + "/live" + liveCount + "/download/webmssdk.js";
+                    runOnUiThread(() -> {
+                        try {
+                            startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(dlUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                            toast("📥 تنزيل webmssdk.js من @" + uid);
+                        } catch (Exception e) { toast("❌ تعذّر التنزيل"); }
+                    });
+                } else {
+                    runOnUiThread(() -> toast("ℹ️ لا توجد بيانات عميقة"));
+                }
+            } catch (Exception e) {
+                runOnUiThread(() -> toast("❌ " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    private void downloadZip(String type) {
+        toast("⏳ تجهيز ZIP...");
+        new Thread(() -> {
+            final String dlUrl = PWA_URL + "api/export/" + type;
+            runOnUiThread(() -> {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(dlUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    toast("📦 تنزيل ZIP: " + type);
+                } catch (Exception e) { toast("❌ تعذّر التنزيل"); }
+            });
+        }).start();
     }
 
     private void runJs(String js) {
