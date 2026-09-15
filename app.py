@@ -1045,27 +1045,104 @@ def api_stats_sessions():
 # ── Session Capture (auto unique_id) ──
 @app.route("/api/session/capture", methods=["POST"])
 def api_capture_session():
-    from extractor import capture_session_from_cookies
+    """Captures session from cookies — auto-detects unique_id."""
+    from extractor import save_sessionid, get_sessionid
+    import urllib.parse, base64 as _b64
     d = request.get_json(silent=True) or request.form
     sessionid = (d.get("sessionid") or "").strip()
-    if not sessionid: return jsonify({"success": False, "error": "sessionid is required"}), 400
+    if not sessionid:
+        return jsonify({"success": False, "error": "sessionid is required"}), 400
+    extra_cookies = d.get("extra_cookies") or {}
+
+    # Try to fetch unique_id from TikTok
+    unique_id = "me"
     try:
-        return jsonify(capture_session_from_cookies(sessionid, d.get("extra_cookies") or {}))
-    except Exception as e:
-        logger.exception("capture_session crashed"); return jsonify({"success": False, "error": str(e)}), 500
+        cookie_header = "; ".join([f"sessionid={sessionid}"] + [f"{k}={v}" for k, v in extra_cookies.items() if v])
+        resp = requests.get("https://www.tiktok.com/passport/account/info/",
+                            headers={"Cookie": cookie_header, "User-Agent": DEFAULT_HEADERS["User-Agent"]},
+                            timeout=15, verify=False)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get("data") and data["data"].get("user"):
+                uid = data["data"]["user"].get("username") or data["data"]["user"].get("unique_id")
+                if uid:
+                    unique_id = uid
+    except:
+        pass
+
+    # Save session
+    save_result = save_sessionid(unique_id, sessionid, extra_cookies)
+
+    # If GitHub save fails, save locally
+    if not save_result.get("success"):
+        try:
+            local_dir = "/tmp/tiktok_sessions_local"
+            os.makedirs(local_dir, exist_ok=True)
+            import re as _re
+            safe_uid = _re.sub(r'[^a-zA-Z0-9_\.\-]', '_', unique_id)
+            local_path = os.path.join(local_dir, f"{safe_uid}.json")
+            session_record = {
+                "unique_id": unique_id,
+                "saved_at": datetime.utcnow().isoformat() + "Z",
+                "sessionid": sessionid,
+                "extra_cookies": extra_cookies,
+                "note": "Saved locally (GH_TOKEN not set).",
+            }
+            with open(local_path, "w", encoding="utf-8") as f:
+                json.dump(session_record, f, ensure_ascii=False, indent=2, default=str)
+            return jsonify({
+                "success": True, "unique_id": unique_id,
+                "saved_to": "local", "local_path": local_path,
+                "download_url": f"/api/session/local/{safe_uid}/download",
+                "warning": "GH_TOKEN not set — saved locally.",
+            })
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e), "unique_id": unique_id})
+
+    save_result["unique_id"] = unique_id
+    return jsonify(save_result)
+
 
 @app.route("/api/session/local")
 def api_list_local_sessions():
-    from extractor import list_local_sessions
-    return jsonify(list_local_sessions())
+    """Lists locally saved sessions."""
+    local_dir = "/tmp/tiktok_sessions_local"
+    if not os.path.exists(local_dir):
+        return jsonify({"success": True, "total": 0, "sessions": [], "dir": local_dir})
+    sessions = []
+    for fname in sorted(os.listdir(local_dir)):
+        if not fname.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(local_dir, fname), "r", encoding="utf-8") as f:
+                record = json.load(f)
+            sessions.append({
+                "unique_id": record.get("unique_id"),
+                "saved_at": record.get("saved_at"),
+                "filename": fname,
+                "size_bytes": os.path.getsize(os.path.join(local_dir, fname)),
+            })
+        except:
+            continue
+    return jsonify({"success": True, "total": len(sessions), "sessions": sessions, "dir": local_dir})
+
 
 @app.route("/api/session/local/<unique_id>/download")
 def api_download_local_session(unique_id):
-    from extractor import get_local_session_download
-    d = get_local_session_download(unique_id)
-    if not d.get("success"): return jsonify(d), 404
-    return Response(d["content"], mimetype="application/json",
-                    headers={"Content-Disposition": f'attachment; filename="session_{unique_id}.json"'})
+    """Downloads a locally saved session as JSON."""
+    import re as _re
+    local_dir = "/tmp/tiktok_sessions_local"
+    safe_uid = _re.sub(r'[^a-zA-Z0-9_\.\-]', '_', unique_id)
+    path = os.path.join(local_dir, f"{safe_uid}.json")
+    if not os.path.exists(path):
+        return jsonify({"success": False, "error": "Session not found"}), 404
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return Response(content, mimetype="application/json",
+                        headers={"Content-Disposition": f'attachment; filename="session_{unique_id}.json"'})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # ── Export ZIP ──
 @app.route("/api/export/<export_type>")
