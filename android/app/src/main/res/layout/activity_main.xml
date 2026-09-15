@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#07070d">
@@ -34,7 +35,7 @@
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:padding="24dp"
-                android:text="تعذّر تحميل التطبيق.\n\nتأكد من اتصالك بالإنترنت ثم أعد فتح التطبيق."
+                android:text="Failed to load.\nCheck internet connection."
                 android:textColor="#ff4d6d"
                 android:textSize="16sp"
                 android:visibility="gone" />
@@ -42,51 +43,52 @@
         </FrameLayout>
     </LinearLayout>
 
-    <!-- زر مراقبة قاعدة البيانات العائم (FAB) -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabDatabase"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|left"
-        android:layout_margin="20dp"
-        android:src="@android:drawable/ic_menu_sort_by_size"
-        android:backgroundTint="#25f4ee"
-        android:contentDescription="مراقبة قاعدة البيانات"
-        android:tint="#000000"
-        app:borderWidth="0dp"
-        app:elevation="8dp"
-        xmlns:app="http://schemas.android.com/apk/res-auto" />
+        android:layout_gravity="bottom|start"
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <!-- زر تسجيل الدخول (Gmail/sessionid) العائم -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabLogin"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|left"
-        android:layout_margin="20dp"
-        android:layout_marginBottom="84dp"
-        android:src="@android:drawable/ic_menu_manage"
-        android:backgroundTint="#ffaa00"
-        android:contentDescription="تسجيل الدخول عبر sessionid"
-        android:tint="#000000"
-        app:borderWidth="0dp"
-        app:elevation="8dp"
-        xmlns:app="http://schemas.android.com/apk/res-auto" />
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabInteract"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:src="@android:drawable/ic_menu_send"
+            android:backgroundTint="#ff2d55"
+            android:contentDescription="Open URL in-app"
+            android:tint="#ffffff"
+            app:borderWidth="0dp"
+            app:elevation="8dp"
+            app:fabSize="normal" />
 
-    <!-- زر التفاعل التلقائي العائم (FAB) - ثالث -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabInteract"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|left"
-        android:layout_margin="20dp"
-        android:layout_marginBottom="168dp"
-        android:src="@android:drawable/ic_menu_send"
-        android:backgroundTint="#ff2d55"
-        android:contentDescription="تفاعل تلقائي"
-        android:tint="#ffffff"
-        app:borderWidth="0dp"
-        app:elevation="8dp"
-        xmlns:app="http://schemas.android.com/apk/res-auto" />
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabLogin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:src="@android:drawable/ic_menu_manage"
+            android:backgroundTint="#ffaa00"
+            android:contentDescription="Login"
+            android:tint="#000000"
+            app:borderWidth="0dp"
+            app:elevation="8dp"
+            app:fabSize="normal" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabDatabase"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="0dp"
+            android:src="@android:drawable/ic_menu_sort_by_size"
+            android:backgroundTint="#25f4ee"
+            android:contentDescription="Database — long press for tools"
+            android:tint="#000000"
+            app:borderWidth="0dp"
+            app:elevation="8dp"
+            app:fabSize="normal" />
+
+    </LinearLayout>
 
 </FrameLayout>
