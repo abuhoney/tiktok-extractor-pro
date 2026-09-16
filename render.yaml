@@ -1,5 +1,11 @@
-# render.yaml — Render deployment configuration
-# Defines the service explicitly to avoid "requirements.txt not found" errors.
+# render.yaml — Render deployment configuration (v1.0.36)
+# Defines the service explicitly with REAL Playwright support.
+#
+# Key changes in v1.0.36:
+#   - playwright install chromium --with-deps (installs system libs for Chromium)
+#   - Pre-download webmssdk.js at build time (so first request is fast)
+#   - ENABLE_PLAYWRIGHT=true by default
+#   - PRELOAD_WEBMSSDK=true (cache webmssdk.js during build)
 #
 # All files live at the repo root (flat structure) — no rootDir needed.
 
@@ -12,7 +18,8 @@ services:
     # Flat structure — no rootDir needed
     buildCommand: |
       pip install -r requirements.txt &&
-      playwright install chromium
+      playwright install chromium --with-deps &&
+      python -c "import requests; r=requests.get('https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/webmssdk/1.0.0.417/webmssdk.js',verify=False,timeout=30); open('webmssdk_remote.js','w').write(r.text); print(f'Pre-cached webmssdk.js ({len(r.text)} bytes)')"
     startCommand: python app.py
     # Environment variables (set from Render Dashboard for security)
     envVars:
@@ -22,8 +29,12 @@ services:
         value: 10000
       - key: ENABLE_PLAYWRIGHT
         value: "true"
+      - key: PRELOAD_WEBMSSDK
+        value: "true"
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /opt/render/.cache/ms-playwright
       # GH_TOKEN — set manually from Render Dashboard → Environment
       # TIKTOK_PROXY — set manually if needed for geo-unblocking
     healthCheckPath: /api/health

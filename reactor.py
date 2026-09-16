@@ -90,12 +90,22 @@ class TikTokAccount:
     room_id: str = ""
     follower_count: int = 0
     verified: bool = False
+    # v1.0.36: Optional real X-Bogus from Playwright execution of webmssdk.js
+    x_bogus: str = ""
+    # ms_token alias (lowercase for query params)
+    @property
+    def ms_token(self) -> str:
+        return self.msToken
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+        d["ms_token"] = self.msToken
+        return d
 
     def is_valid(self) -> bool:
-        return bool(self.csrf_token and self.wid and self.nonce)
+        # v1.0.36: Account is valid if we have at least a real ttwid from TikTok
+        # (ttwid alone lets us access many web APIs without sessionid)
+        return bool(self.csrf_token and self.wid and self.nonce) or bool(self.ttwid)
 
 
 @dataclass
@@ -261,6 +271,12 @@ class InteractionBot:
             headers["X-Csrf-Token"] = self.account.csrf_token
         if self.account.sessionid:
             headers["X-Tt-Token"] = self.account.sessionid
+        # v1.0.36: Also send X-Bogus + msToken if we have them (real or fallback)
+        if hasattr(self.account, 'x_bogus') and self.account.x_bogus:
+            headers["X-Bogus"] = self.account.x_bogus
+        if hasattr(self.account, 'ms_token') and self.account.ms_token:
+            # Some endpoints require msToken as a query param instead of header
+            pass
         return headers
 
     def _build_cookies(self) -> Dict[str, str]:
@@ -269,7 +285,21 @@ class InteractionBot:
             v = getattr(self.account, k, "")
             if v:
                 cookies[k] = v
+        # v1.0.36: Real ttwid from TikTok is the most important cookie
+        # for authentication. If we have a real ttwid, it lets us access
+        # many TikTok web APIs even without sessionid.
         return cookies
+
+    def _build_query_params(self) -> Dict[str, str]:
+        """Build query parameters that some TikTok endpoints require."""
+        params = {}
+        if hasattr(self.account, 'ms_token') and self.account.ms_token:
+            params["msToken"] = self.account.ms_token
+        if hasattr(self.account, 'x_bogus') and self.account.x_bogus:
+            params["X-Bogus"] = self.account.x_bogus
+        params["aid"] = "1988"
+        params["device_platform"] = "web"
+        return params
 
     def _make_request(self, url: str, payload: Dict, action: str) -> InteractionResult:
         try:
