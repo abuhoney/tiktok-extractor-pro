@@ -1,0 +1,10 @@
+{
+  "unique_id": "test_user_v45",
+  "saved_at": "2026-09-12T19:36:41.072698Z",
+  "sessionid": "fake_sessionid_for_testing_only_abc123",
+  "extra_cookies": {
+    "ttwid": "test_ttwid",
+    "msToken": "test_mstoken"
+  },
+  "note": "Saved via APK — user manually provided sessionid from browser cookies"
+}

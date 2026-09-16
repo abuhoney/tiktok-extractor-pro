@@ -1,0 +1,30 @@
+# render.yaml — Render deployment configuration
+# Defines the service explicitly to avoid "requirements.txt not found" errors.
+#
+# All files live at the repo root (flat structure) — no rootDir needed.
+
+services:
+  - type: web
+    name: tiktok-extractor-pro
+    env: python
+    region: oregon
+    plan: free
+    # Flat structure — no rootDir needed
+    buildCommand: |
+      pip install -r requirements.txt &&
+      playwright install chromium
+    startCommand: python app.py
+    # Environment variables (set from Render Dashboard for security)
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: PORT
+        value: 10000
+      - key: ENABLE_PLAYWRIGHT
+        value: "true"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      # GH_TOKEN — set manually from Render Dashboard → Environment
+      # TIKTOK_PROXY — set manually if needed for geo-unblocking
+    healthCheckPath: /api/health
+    autoDeploy: true
