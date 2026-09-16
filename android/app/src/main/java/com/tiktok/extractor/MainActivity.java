@@ -40,16 +40,19 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * TikTok Extractor Pro v1.0.32
+ * TikTok Extractor Pro v1.0.34
  * - 3 FABs: pink (open URL), orange (login), cyan (database/tools)
  * - Long-press cyan: Tools menu with 20 options
  * - In-app browser with Desktop mode + session monitor
  * - Copy All / Deep Extract / Save Local / Check Session buttons in browser
  * - All UI in English
+ * - v1.0.34: Retry logic + loading indicator for Render free-tier wake-up
  */
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "TikTokExtractor";
     private static final String PWA_URL = "https://tiktok-extractor-pro.onrender.com/";
+    private static final int MAX_LOAD_RETRIES = 3;
+    private static final int LOAD_TIMEOUT_MS = 45000;  // 45 seconds per attempt
 
     private WebView webView;
     private WebView browserWebView;
@@ -65,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.i(TAG, "v1.0.32 starting");
+        Log.i(TAG, "v1.0.34 starting — with Render wake-up retry");
         prefs = getSharedPreferences("tiktok_session_prefs", Context.MODE_PRIVATE);
         try {
             setContentView(R.layout.activity_main);
@@ -78,13 +81,82 @@ public class MainActivity extends AppCompatActivity {
             if (webView == null) { showError("Internal error."); return; }
             setupMainWebView();
             setupFABs();
-            if (savedInstanceState != null) { webView.restoreState(savedInstanceState); }
-            else { webView.loadUrl(PWA_URL); }
+            if (savedInstanceState != null) {
+                webView.restoreState(savedInstanceState);
+            } else {
+                // Wake up the backend before loading the page (Render free tier sleeps)
+                wakeUpBackendAndLoad();
+            }
             hideAllFABs();
         } catch (Exception e) {
             Log.e(TAG, "onCreate crashed", e);
             showError("App startup error: " + e.getMessage());
         }
+    }
+
+    /**
+     * Wake up the Render backend (which may be sleeping on the free tier)
+     * before loading the URL. This shows a friendly "Waking up..." message
+     * and retries up to MAX_LOAD_RETRIES times.
+     */
+    private void wakeUpBackendAndLoad() {
+        showWakingUpMessage();
+        new Thread(() -> {
+            for (int attempt = 1; attempt <= MAX_LOAD_RETRIES; attempt++) {
+                try {
+                    Log.i(TAG, "Wake-up attempt " + attempt + "/" + MAX_LOAD_RETRIES);
+                    java.net.URL url = new URL(PWA_URL + "api/health");
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.setConnectTimeout(LOAD_TIMEOUT_MS);
+                    conn.setReadTimeout(LOAD_TIMEOUT_MS);
+                    conn.setRequestProperty("User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+                        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
+                    int code = conn.getResponseCode();
+                    if (code == 200) {
+                        Log.i(TAG, "Backend awake on attempt " + attempt);
+                        runOnUiThread(() -> {
+                            hideWakingUpMessage();
+                            webView.loadUrl(PWA_URL);
+                        });
+                        conn.disconnect();
+                        return;
+                    }
+                    conn.disconnect();
+                } catch (Exception e) {
+                    Log.w(TAG, "Wake-up attempt " + attempt + " failed: " + e.getMessage());
+                }
+            }
+            // All retries exhausted — try loading the URL anyway
+            Log.w(TAG, "Wake-up retries exhausted — loading URL directly");
+            runOnUiThread(() -> {
+                hideWakingUpMessage();
+                webView.loadUrl(PWA_URL);
+            });
+        }).start();
+    }
+
+    private void showWakingUpMessage() {
+        runOnUiThread(() -> {
+            if (progressBar != null) {
+                progressBar.setVisibility(View.VISIBLE);
+                progressBar.setProgress(0);
+            }
+            if (errorView != null) {
+                errorView.setText("⏳ Waking up the backend server...\nThis may take up to 60 seconds on first launch.\nPlease wait...");
+                errorView.setTextColor(0xFF25f4ee);
+                errorView.setVisibility(View.VISIBLE);
+            }
+            if (webView != null) webView.setVisibility(View.GONE);
+        });
+    }
+
+    private void hideWakingUpMessage() {
+        runOnUiThread(() -> {
+            if (errorView != null) errorView.setVisibility(View.GONE);
+            if (webView != null) webView.setVisibility(View.VISIBLE);
+        });
     }
 
     @SuppressLint("SetJavaScriptEnabled")

@@ -90,7 +90,7 @@ def health():
     return jsonify({
         "ok": True,
         "service": "tiktok-extractor",
-        "version": "3.0.0",
+        "version": "5.0.0",
         "demo_mode": False,
         "ytdlp_enabled": True,
         "playwright_enabled": os.environ.get("ENABLE_PLAYWRIGHT", "").lower() == "true",
@@ -100,9 +100,9 @@ def health():
 
 @app.route("/api/info")
 def info():
-    """معلومات الإصدار والاستراتيجيات المدعومة."""
+    """Version info, supported strategies, and full endpoint list."""
     return jsonify({
-        "version": "4.5.0",
+        "version": "5.0.0",
         "demo_mode": False,
         "strategies": [
             "yt-dlp (primary — works from any IP)",
@@ -125,14 +125,15 @@ def info():
             "_aggregate_deep_analytics",
             "_persist_user_data (v4.4)",
             "_upload_user_to_github (v4.5)",
+            "_enrich_with_session_values (v5.0 — auto-run integrator)",
         ],
         "endpoints": {
-            "GET  /": "Web UI",
+            "GET  /": "Web UI (English)",
             "POST /api/extract": "Extract TikTok URL data",
             "GET  /api/extract?url=...": "GET variant",
             "GET  /api/proxy?url=...": "Media proxy (CORS bypass)",
-            "GET  /api/health": "Health check",
-            "GET  /api/info": "Service info",
+            "GET  /api/health": "Health check (returns ok=true, version=5.0.0)",
+            "GET  /api/info": "Service info (this endpoint)",
             "POST /api/interact": "Execute real TikTok interaction",
             "POST /api/auto-interact": "Auto-extract + interact",
             "POST /api/batch-follow-fans": "Batch follow top fans",
@@ -153,6 +154,16 @@ def info():
             "DELETE /api/session/<unique_id>": "Delete session",
             "GET  /api/session/<unique_id>/status": "Check if session exists",
             "GET  /.well-known/assetlinks.json": "TWA deep-link config",
+            "POST /api/session-values": "v5.0 — Generate all 34 session values via live HTML fetch + webmssdk.js via Playwright + xbogus.py fallback + hashlib",
+            "POST /api/session-values/download": "v5.0 — Download session_values.json file",
+            "POST /api/mssdk-analyze": "v5.0 — 8-phase MSSDK analyzer (static, base64, zip, xor, ACrawler, deobfuscation)",
+            "POST /api/mssdk-sign": "v5.0 — Generate REAL X-Bogus / X-Gnarly / X-Mssdk-Info via Playwright + frontierSign()",
+        },
+        "v5_features": {
+            "tiktok_session_integrator": "Generates all 34 session values via full integration (live fetch + Playwright + hashlib + xbogus.py)",
+            "mssdk_analyzer": "Python port of strong signature.html — 8-phase analyzer + signature generator",
+            "auto_run": "Integrator auto-runs on every successful extraction, saving data/sessions/<unique_id>_session_values.json",
+            "playwright_executes_real_webmssdk": True,
         },
         "env": {
             "TIKTOK_PROXY": "configured" if os.environ.get("TIKTOK_PROXY") else "not set",
