@@ -897,6 +897,356 @@ def api_session_status(unique_id: str):
     })
 
 
+# ════════════════════════════════════════════════════════════════════════════
+#  v5.2: ALL NEW ROUTES — fixes all 404 and 500 errors
+# ════════════════════════════════════════════════════════════════════════════
+
+# ── Deep Data ──
+@app.route("/api/deep/extract", methods=["POST", "GET"])
+def api_deep_extract():
+    try:
+        from onlinetiktok import deep_extract
+        if request.method == "GET": url = request.args.get("url", "").strip(); html = None
+        else: d = request.get_json(silent=True) or request.form; url = (d.get("url") or "").strip(); html = d.get("html")
+        if not url: return jsonify({"success": False, "error": "url is required"}), 400
+        result = deep_extract(url, html=html)
+        return jsonify(result), 200 if result.get("success") else 500
+    except Exception as e:
+        logger.exception("deep_extract crashed"); return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/deep/users")
+def api_deep_users():
+    try:
+        from onlinetiktok import list_deep_users
+        return jsonify(list_deep_users())
+    except Exception as e:
+        return jsonify({"success": True, "total_users": 0, "users": [], "error": str(e)})
+
+@app.route("/api/deep/users/<unique_id>/extractions")
+def api_deep_user_extractions(unique_id):
+    try:
+        from onlinetiktok import list_user_extractions
+        d = list_user_extractions(unique_id)
+        return jsonify(d) if d.get("success") else (jsonify(d), 404)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/deep/users/<unique_id>/live<int:live_number>")
+def api_deep_extraction_detail(unique_id, live_number):
+    try:
+        from onlinetiktok import get_extraction_files
+        d = get_extraction_files(unique_id, live_number)
+        return jsonify(d) if d.get("success") else (jsonify(d), 404)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/deep/users/<unique_id>/live<int:live_number>/download/<path:filename>")
+def api_deep_download_file(unique_id, live_number, filename):
+    try:
+        from onlinetiktok import download_file
+        result = download_file(unique_id, live_number, filename)
+        if result is None: return jsonify({"success": False, "error": "File not found"}), 404
+        fname, content = result
+        return Response(content, mimetype="application/octet-stream", headers={"Content-Disposition": f'attachment; filename="{fname}"'})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ── Reactor ──
+@app.route("/api/react/accounts")
+def api_react_accounts():
+    try:
+        from reactor import list_reactor_accounts
+        return jsonify(list_reactor_accounts())
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e), "total_accounts": 0, "accounts": []})
+
+@app.route("/api/react/execute", methods=["POST"])
+def api_react_execute():
+    try:
+        from reactor import execute_reaction
+        d = request.get_json(silent=True) or request.form
+        action = (d.get("action") or "").strip()
+        if not action: return jsonify({"success": False, "error": "action is required"}), 400
+        return jsonify(execute_reaction(action, d))
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/react/stats")
+def api_react_stats():
+    try:
+        from reactor import get_reactor_stats
+        return jsonify(get_reactor_stats(request.args.get("account")))
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+# ── Monitor ──
+@app.route("/api/monitor/live")
+def api_monitor_live():
+    try:
+        from monitor import monitor_live
+        room_id = request.args.get("room_id", "").strip()
+        url = request.args.get("url", "").strip()
+        if not room_id and not url: return jsonify({"success": False, "error": "room_id or url required"}), 400
+        return jsonify(monitor_live(room_id=room_id or None, url=url or None))
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/monitor/live/all")
+def api_monitor_live_all():
+    try:
+        from monitor import monitor_all_live
+        return jsonify(monitor_all_live())
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e), "total_monitors": 0, "monitors": []})
+
+@app.route("/api/monitor/sessions")
+def api_monitor_sessions():
+    try:
+        from monitor import monitor_sessions
+        return jsonify(monitor_sessions())
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/monitor/deep")
+def api_monitor_deep():
+    try:
+        from monitor import monitor_deep_data
+        return jsonify(monitor_deep_data())
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/monitor/deep/<unique_id>/live<int:live_number>")
+def api_monitor_deep_single(unique_id, live_number):
+    try:
+        from monitor import monitor_deep_single
+        return jsonify(monitor_deep_single(unique_id, live_number))
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/monitor/gifts", methods=["POST"])
+def api_monitor_gifts():
+    try:
+        from monitor import monitor_gift_boxes
+        d = request.get_json(silent=True) or request.form
+        return jsonify(monitor_gift_boxes(d.get("html", ""), d.get("webcast_data", {})))
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/monitor/report")
+def api_monitor_report():
+    try:
+        from monitor import full_monitor_report
+        return jsonify(full_monitor_report())
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e), "version": "v5.2_monitor"})
+
+# ── Stats ──
+@app.route("/api/stats")
+def api_stats():
+    try:
+        from statictor import full_stats
+        return jsonify(full_stats())
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/stats/headline")
+def api_stats_headline():
+    try:
+        from statictor import headline_stats
+        return jsonify(headline_stats())
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/stats/users")
+def api_stats_users():
+    try:
+        from statictor import users_db_stats
+        return jsonify(users_db_stats())
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/stats/streams")
+def api_stats_streams():
+    try:
+        from statictor import streams_stats
+        return jsonify(streams_stats())
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/stats/deep")
+def api_stats_deep():
+    try:
+        from statictor import deep_data_stats
+        return jsonify(deep_data_stats())
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/stats/fans")
+def api_stats_fans():
+    try:
+        from statictor import fans_stats
+        return jsonify(fans_stats())
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/stats/sessions")
+def api_stats_sessions():
+    try:
+        from statictor import sessions_stats
+        return jsonify(sessions_stats())
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+# ── Session Capture ──
+@app.route("/api/session/capture", methods=["POST"])
+def api_capture_session():
+    try:
+        from extractor import save_sessionid
+        d = request.get_json(silent=True) or request.form
+        sessionid = (d.get("sessionid") or "").strip()
+        if not sessionid: return jsonify({"success": False, "error": "sessionid is required"}), 400
+        extra_cookies = d.get("extra_cookies") or {}
+        unique_id = "me"
+        save_result = save_sessionid(unique_id, sessionid, extra_cookies)
+        if not save_result.get("success"):
+            import re as _re
+            local_dir = "/tmp/tiktok_sessions_local"
+            os.makedirs(local_dir, exist_ok=True)
+            safe_uid = _re.sub(r'[^a-zA-Z0-9_\.\-]', '_', unique_id)
+            local_path = os.path.join(local_dir, f"{safe_uid}.json")
+            with open(local_path, "w", encoding="utf-8") as f:
+                json.dump({"unique_id": unique_id, "saved_at": datetime.utcnow().isoformat()+"Z", "sessionid": sessionid, "extra_cookies": extra_cookies}, f, ensure_ascii=False, indent=2, default=str)
+            return jsonify({"success": True, "unique_id": unique_id, "saved_to": "local", "download_url": f"/api/session/local/{safe_uid}/download"})
+        save_result["unique_id"] = unique_id
+        return jsonify(save_result)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/session/local")
+def api_list_local_sessions():
+    local_dir = "/tmp/tiktok_sessions_local"
+    if not os.path.exists(local_dir):
+        return jsonify({"success": True, "total": 0, "sessions": []})
+    sessions = []
+    for fname in sorted(os.listdir(local_dir)):
+        if not fname.endswith(".json"): continue
+        try:
+            with open(os.path.join(local_dir, fname), "r", encoding="utf-8") as f:
+                record = json.load(f)
+            sessions.append({"unique_id": record.get("unique_id"), "saved_at": record.get("saved_at"), "filename": fname})
+        except: continue
+    return jsonify({"success": True, "total": len(sessions), "sessions": sessions})
+
+@app.route("/api/session/local/<unique_id>/download")
+def api_download_local_session(unique_id):
+    import re as _re
+    local_dir = "/tmp/tiktok_sessions_local"
+    safe_uid = _re.sub(r'[^a-zA-Z0-9_\.\-]', '_', unique_id)
+    path = os.path.join(local_dir, f"{safe_uid}.json")
+    if not os.path.exists(path): return jsonify({"success": False, "error": "Not found"}), 404
+    with open(path, "r", encoding="utf-8") as f: content = f.read()
+    return Response(content, mimetype="application/json", headers={"Content-Disposition": f'attachment; filename="session_{unique_id}.json"'})
+
+# ── Session Logs ──
+@app.route("/api/session/log", methods=["POST"])
+def api_session_log():
+    d = request.get_json(silent=True) or request.form
+    entry = {"timestamp": datetime.utcnow().isoformat()+"Z", "action": d.get("action",""), "url": d.get("url",""), "result": d.get("result",""), "success": d.get("success",False)}
+    log_dir = "/tmp/tiktok_session_logs"; os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, f"session_log_{datetime.utcnow().strftime('%Y%m%d')}.json")
+    history = []
+    if os.path.exists(log_file):
+        try:
+            with open(log_file, "r", encoding="utf-8") as f: history = json.load(f)
+            if not isinstance(history, list): history = []
+        except: history = []
+    history.append(entry)
+    if len(history) > 1000: history = history[-1000:]
+    with open(log_file, "w", encoding="utf-8") as f: json.dump(history, f, ensure_ascii=False, indent=2, default=str)
+    return jsonify({"success": True, "total_logs": len(history)})
+
+@app.route("/api/session/logs")
+def api_session_logs():
+    log_dir = "/tmp/tiktok_session_logs"
+    if not os.path.exists(log_dir): return jsonify({"success": True, "total_logs": 0, "logs": []})
+    all_logs = []
+    for fname in sorted(os.listdir(log_dir)):
+        if not fname.endswith(".json"): continue
+        try:
+            with open(os.path.join(log_dir, fname), "r", encoding="utf-8") as f: logs = json.load(f)
+            if isinstance(logs, list): all_logs.extend(logs)
+        except: pass
+    return jsonify({"success": True, "total_logs": len(all_logs), "logs": all_logs[-100:]})
+
+@app.route("/api/session/logs/download")
+def api_session_logs_download():
+    log_dir = "/tmp/tiktok_session_logs"
+    all_logs = []
+    if os.path.exists(log_dir):
+        for fname in sorted(os.listdir(log_dir)):
+            if fname.endswith(".json"):
+                try:
+                    with open(os.path.join(log_dir, fname), "r", encoding="utf-8") as f: logs = json.load(f)
+                    if isinstance(logs, list): all_logs.extend(logs)
+                except: pass
+    content = json.dumps(all_logs, ensure_ascii=False, indent=2, default=str)
+    return Response(content, mimetype="application/json", headers={"Content-Disposition": f'attachment; filename="session_logs.json"'})
+
+# ── Export ZIP ──
+@app.route("/api/export/<export_type>")
+def api_export_zip(export_type):
+    import io as _io, zipfile as _zipf
+    buf = _io.BytesIO(); zf = _zipf.ZipFile(buf, 'w', _zipf.ZIP_DEFLATED)
+    data_root = os.environ.get("DATA_ROOT", "data")
+    def _add_json(name, data): zf.writestr(f"{name}.json", json.dumps(data, ensure_ascii=False, indent=2, default=str))
+    def _add_dir(prefix, src):
+        if not os.path.exists(src): return
+        for root, dirs, files in os.walk(src):
+            for fname in files:
+                fpath = os.path.join(root, fname); arcname = os.path.relpath(fpath, src)
+                zf.write(fpath, os.path.join(prefix, arcname))
+    if export_type == "stats":
+        try:
+            from statictor import full_stats; _add_json("full_stats", full_stats())
+        except: _add_json("error", {"message": "statictor not available"})
+    elif export_type == "deep": _add_dir("tiktok_deep_data", os.path.join(data_root, "tiktok_deep_data"))
+    elif export_type == "sessions": _add_dir("sessions_github", os.path.join(data_root, "sessions")); _add_dir("sessions_local", "/tmp/tiktok_sessions_local")
+    elif export_type == "users": _add_dir("users", os.path.join(data_root, "users"))
+    elif export_type == "all":
+        try:
+            from statictor import full_stats; _add_json("full_stats", full_stats())
+        except: pass
+        _add_dir("tiktok_deep_data", os.path.join(data_root, "tiktok_deep_data"))
+        _add_dir("users", os.path.join(data_root, "users"))
+        _add_dir("sessions_github", os.path.join(data_root, "sessions"))
+        _add_dir("sessions_local", "/tmp/tiktok_sessions_local")
+        zf.writestr("README.txt", "TikTok Extractor Pro v5.2 — Full Export\n")
+    else:
+        return jsonify({"success": False, "error": f"Unknown type: {export_type}", "valid_types": ["stats","deep","sessions","users","all"]}), 400
+    zf.close(); buf.seek(0)
+    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    return Response(buf.getvalue(), mimetype="application/zip", headers={"Content-Disposition": f'attachment; filename="tiktok_export_{export_type}_{ts}.zip"'})
+
+@app.route("/api/export/deep/<unique_id>/live<int:live_number>")
+def api_export_deep_single(unique_id, live_number):
+    import io as _io, zipfile as _zipf
+    try:
+        from onlinetiktok import DeepDataStorage
+        storage = DeepDataStorage()
+        uid_safe = storage._sanitize_id(unique_id)
+        live_dir = os.path.join(storage.base_dir, uid_safe, f"live{live_number}")
+        if not os.path.exists(live_dir): return jsonify({"success": False, "error": "Not found"}), 404
+        buf = _io.BytesIO(); zf = _zipf.ZipFile(buf, 'w', _zipf.ZIP_DEFLATED)
+        for root, dirs, files in os.walk(live_dir):
+            for fname in files:
+                fpath = os.path.join(root, fname); arcname = os.path.relpath(fpath, live_dir)
+                zf.write(fpath, arcname)
+        zf.close(); buf.seek(0)
+        return Response(buf.getvalue(), mimetype="application/zip", headers={"Content-Disposition": f'attachment; filename="deep_{unique_id}_live{live_number}.zip"'})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 # ────────────────────────────────────────────────────────────────────────────
 #  تشغيل الخادم
 # ────────────────────────────────────────────────────────────────────────────
