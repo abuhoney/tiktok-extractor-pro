@@ -1,0 +1,337 @@
+{
+  "_meta": {
+    "generated_at": "2026-09-16T21:52:29.934689+00:00",
+    "generator": "tiktok_session_integrator.py",
+    "version": "2.0",
+    "target_url": "https://vt.tiktok.com/ZS9SEuWMkM9qm-lLmmp/",
+    "description": "Full integration: live HTML fetch + webmssdk.js via Playwright + xbogus.py fallback + hashlib"
+  },
+  "_live_fetch_attempt": {
+    "url": "https://vt.tiktok.com/ZS9SEuWMkM9qm-lLmmp/",
+    "status_code": 200,
+    "html_fetched": true,
+    "msToken_extracted": false,
+    "verifyFp_extracted": false,
+    "csrf_extracted": false,
+    "cookies_received": [],
+    "error": null
+  },
+  "_playwright_attempt": {
+    "tried": false,
+    "ok": false,
+    "xbogus": null,
+    "error": null
+  },
+  "_session_hashes": {
+    "input": "|7123696644457743366|edenx1|1789595549",
+    "md5_32hex": "4a5ae79afd685060e94ada3191e51699",
+    "sha1_40hex": "900fd2aa58993a014496ec12e6dd1fdce3aede06",
+    "sha256_64hex": "76ac33ff34ae92b93b14deb6e86a0d8ab6bba3dd0b8bd7edbd0242f5f5ad79d1",
+    "sha512_128hex": "9e35a5d7624d38779b7e97bcb7269a005b8ffed268be3b7db40a01624ff17b7675095a5a2d8cf2c1eadaeafdac9fa912d8626ffb51c1e13e43ee82aa9d54fc85"
+  },
+  "_ttwid_structure": {
+    "raw": "1|rN1-gkD2t_mP3SRH4lJPH0RFBnL4u3TSTw2GSmx4rnO|1789595549|928ba3cac1872de08fca016c46560ae75d317e1895375bc0adc19fbde3a38d4a",
+    "url_encoded": "1%7CrN1-gkD2t_mP3SRH4lJPH0RFBnL4u3TSTw2GSmx4rnO%7C1789595549%7C928ba3cac1872de08fca016c46560ae75d317e1895375bc0adc19fbde3a38d4a",
+    "issued_at": 1789595549,
+    "expires_at": 1805147549,
+    "expires_date": "Mon, 15-Mar-2027 21:52:29 GMT",
+    "duration_seconds": 15552000
+  },
+  "_tt_webid_v2_structure": {
+    "raw": "1.0.1-NGE1YWU3OWFmZDY4NTA2MGU5NGFkYTMxOTFlNTE2OTkKWnI2dF90cjVsUUJwTV83Q0Fsal8wYUZVa2pILU10bWRrNkpmd0pGVlo5dFVoWWExdTh3akFIeEVySG1tCjRhNWFlNzlhZmQ2ODUwNjBlOTRhZGEzMTkxZTUxNjk5CnRpa3Rvaw==",
+    "version": "1.0.1",
+    "session_md5_embedded": "4a5ae79afd685060e94ada3191e51699",
+    "decoded_payload_preview": "4a5ae79afd685060e94ada3191e51699\nZr6t_tr5lQBpM_7CAlj_0aFUkjH-Mtmdk6JfwJFVZ9tUhYa1u8wjAHxErHmm\n4a5ae7"
+  },
+  "_session_constants": {
+    "device_id": "edenx1",
+    "tiktok_uid": "7123696644457743366",
+    "region": "alisg",
+    "language": "ye",
+    "user_mode": "uid",
+    "user_mode_type": "email",
+    "utm": {
+      "utm_source": "copy",
+      "utm_medium": "android",
+      "utm_campaign": "client_share"
+    },
+    "theme": "dark",
+    "theme_mode": "auto"
+  },
+  "values": {
+    "1": "eOSLLL2xr30jpN64RXdkqJIUeLpu-YIJSLmvXJIBdyudgalVIYG-AMvBBoo6h4wVGDsqDb8brKSN734eKXdTanohhJcmwjOHtl1f_Kugz-p",
+    "2": "edenx1",
+    "3": "%7B%22utm_source%22%3A%22copy%22%2C%22utm_medium%22%3A%22android%22%2C%22utm_campaign%22%3A%22client_share%22%7D",
+    "7": "%7B%22utm_source%22%3A%22copy%22%2C%22utm_medium%22%3A%22android%22%2C%22utm_campaign%22%3A%22client_share%22%7D",
+    "9": "%7B%22utm_source%22%3A%22copy%22%2C%22utm_medium%22%3A%22android%22%2C%22utm_campaign%22%3A%22client_share%22%7D",
+    "4": "auto",
+    "5": "dark",
+    "6": "7123696644457743366",
+    "8": "lrqy4wpr2knWqeOUAiT4MkkpJzOy7In-egV-",
+    "10": "gCLM7TCzr2EN8a_zUP9arO4vX3GktLcyH4bJ04rHnTJ--GpHk24LaulteLlDLVbneJ7qfEdOFw1kPYMkg7h8BV4dwaDqvEGcSzoblbCzwP5UtbGwPzrs30Egngcw36w2K9CO1sSvsUUesp9AygehY5ORD6WxPNrfm9FuqRWRu8cW254GaDME9bP_aA4n--aQOZXURohnMtjuyDx24AVR2tzQmXTIN9b5-cNH9o184zQjl7C_BM3RlckzaU",
+    "11": "verify_g5kty0p7_wevwi52d_j64p_ok3s_1bux_d6znn3d7j0q3",
+    "12": "c9bcdbc4acf37c1e3c8e1d7d868818bb7667261",
+    "13": "7123696644457743366%3A4a5ae79afd685060e94ada3191e51699",
+    "14": "wrKuNbzfvb9yKv9kWjGd_g______",
+    "15": "4a5ae79afd685060e94ada3191e51699|1805147549|15552000|Mon, 15-Mar-2027 21:52:29 GMT",
+    "16": "76ac33ff34ae92b93b14deb6e86a0d8ab6bba3dd0b8bd7edbd0242f5f5ad79d1",
+    "17": "76ac33ff34ae92b93b14deb6e86a0d8ab6bba3dd0b8bd7edbd0242f5f5ad79d1",
+    "18": "4a5ae79afd685060e94ada3191e51699",
+    "19": "4a5ae79afd685060e94ada3191e51699",
+    "20": "4a5ae79afd685060e94ada3191e51699",
+    "21": "sttt%7C4%7Cf5bEwcYy-qomUMovHt-i5l-kUT2XeaX80iR822Dxa43cn6AJau7rXyp7jxbsjWty8hVIgYl_0Qy2kEa4",
+    "22": "1.0.1-NGE1YWU3OWFmZDY4NTA2MGU5NGFkYTMxOTFlNTE2OTkKWnI2dF90cjVsUUJwTV83Q0Fsal8wYUZVa2pILU10bWRrNkpmd0pGVlo5dFVoWWExdTh3akFIeEVySG1tCjRhNWFlNzlhZmQ2ODUwNjBlOTRhZGEzMTkxZTUxNjk5CnRpa3Rvaw==",
+    "23": "1.0.1-NGE1YWU3OWFmZDY4NTA2MGU5NGFkYTMxOTFlNTE2OTkKWnI2dF90cjVsUUJwTV83Q0Fsal8wYUZVa2pILU10bWRrNkpmd0pGVlo5dFVoWWExdTh3akFIeEVySG1tCjRhNWFlNzlhZmQ2ODUwNjBlOTRhZGEzMTkxZTUxNjk5CnRpa3Rvaw==",
+    "24": "alisg",
+    "27": "alisg",
+    "25": "ye",
+    "26": "uid",
+    "28": "BPkExml0lAm5IIUZL0Ff9tSpTzvI0RPGeVSL5zqABpHMLSLWbqND1xHrowLyEDRq5Va_ezhsLGP5C496qpu7D2zzsvqoQskFpu1HnUbjR5HpN9BChkZeTPzoEQhFKw2MdE68JCJpxIG-NixsovtdfgRjj1oZGR0KLBez-2anz9fH-rfU8HqXOWZ7IG1EZlJUxdSBqWIUvtQm3FXfTnSaUKjQ0ud6uoffo8kw_E26PxVrRCMmmGPw2ZO0skYh-vN-yMY52Fns4isep1AY2wu2LJDEX4FVHZpg5AnSVKgxpHOg-cvRKXV5aYDEfyXrEVBSJ4B4kZfsps_9IXDlAH7rUIBA9cOwEue94cjnRTo5RtimR180k8TY5rzKZBXRt92j5SQkiWAwog6IDOCi7bzvZCCMGw638ggXKy9BKbkH7l0",
+    "29": "email",
+    "30": "_lfPhZHT2rjare-Vk1ub-koXTzlwgbvQNUo6BR9M_vU4L2y8Pp76uOK6AyBsY19Hzpd3JKNZ86e-N72T",
+    "31": "5dEy6ftXHO-81yMo",
+    "32": "PdZNqPbHQ0Dzm3V2EHqWMCtq8M_VlbcwzwatHqWWN3aN5nQBDgkQuo36mkqaUbNZUbVGRQT0pi6SCnCNqruGkHqYXGDRsIzC2SYmPYO6V-wwUbc0aQ6r7No4CHFdbxiZbXfsiWbuzu0_fAh8KZiSjlE0lUJt_oZNoq6qRNAn6FQZhhbGmqVh",
+    "33": "9e35a5d7624d38779b7e97bcb7269a005b8ffed268be3b7db40a01624ff17b7675095a5a2d8cf2c1eadaeafdac9fa912d8626ffb51c1e13e43ee82aa9d54fc85",
+    "34": "1%7CayasK6-9bAJNs0Hibghj1WEb1W-6nS-avgq8uL6qO3g%7C1789595549%7C76ac33ff34ae92b93b14deb6e86a0d8ab6bba3dd0b8bd7edbd0242f5f5ad79d1"
+  },
+  "values_with_metadata": {
+    "1": {
+      "value": "eOSLLL2xr30jpN64RXdkqJIUeLpu-YIJSLmvXJIBdyudgalVIYG-AMvBBoo6h4wVGDsqDb8brKSN734eKXdTanohhJcmwjOHtl1f_Kugz-p",
+      "name": "msToken (URL-safe base64, 107 chars)",
+      "source": "generated (CSPRNG 107 chars, A-Za-z0-9-_)",
+      "method": "secrets.choice() over alphabet",
+      "notes": "Used in X-Bogus signing seed; required on most TikTok API endpoints"
+    },
+    "2": {
+      "value": "edenx1",
+      "name": "device_id",
+      "source": "session_constant",
+      "method": "hardcoded per session specification",
+      "notes": "Unique device identifier for this session"
+    },
+    "3": {
+      "value": "%7B%22utm_source%22%3A%22copy%22%2C%22utm_medium%22%3A%22android%22%2C%22utm_campaign%22%3A%22client_share%22%7D",
+      "name": "UTM parameters (URL-encoded JSON) — copy 1",
+      "source": "session_constant + urllib.parse.quote",
+      "method": "json.dumps(utm_dict) then URL-encode",
+      "notes": "Decoded: {\"utm_source\":\"copy\",\"utm_medium\":\"android\",\"utm_campaign\":\"client_share\"}"
+    },
+    "7": {
+      "value": "%7B%22utm_source%22%3A%22copy%22%2C%22utm_medium%22%3A%22android%22%2C%22utm_campaign%22%3A%22client_share%22%7D",
+      "name": "UTM parameters (URL-encoded JSON) — copy 2",
+      "source": "session_constant + urllib.parse.quote",
+      "method": "json.dumps(utm_dict) then URL-encode",
+      "notes": "Decoded: {\"utm_source\":\"copy\",\"utm_medium\":\"android\",\"utm_campaign\":\"client_share\"}"
+    },
+    "9": {
+      "value": "%7B%22utm_source%22%3A%22copy%22%2C%22utm_medium%22%3A%22android%22%2C%22utm_campaign%22%3A%22client_share%22%7D",
+      "name": "UTM parameters (URL-encoded JSON) — copy 3",
+      "source": "session_constant + urllib.parse.quote",
+      "method": "json.dumps(utm_dict) then URL-encode",
+      "notes": "Decoded: {\"utm_source\":\"copy\",\"utm_medium\":\"android\",\"utm_campaign\":\"client_share\"}"
+    },
+    "4": {
+      "value": "auto",
+      "name": "theme_mode",
+      "source": "session_constant",
+      "method": "hardcoded per session specification",
+      "notes": "Auto theme mode (system default)"
+    },
+    "5": {
+      "value": "dark",
+      "name": "theme",
+      "source": "session_constant",
+      "method": "hardcoded per session specification",
+      "notes": "Dark theme active"
+    },
+    "6": {
+      "value": "7123696644457743366",
+      "name": "TikTok user_id",
+      "source": "session_constant",
+      "method": "hardcoded per session specification",
+      "notes": "User identifier for TikTok Web API"
+    },
+    "8": {
+      "value": "lrqy4wpr2knWqeOUAiT4MkkpJzOy7In-egV-",
+      "name": "msToken secondary (URL-safe base64, 36 chars)",
+      "source": "generated (CSPRNG 36 chars)",
+      "method": "secrets.choice() over A-Za-z0-9-_ (length 36)",
+      "notes": "Shorter msToken variant used in some endpoints"
+    },
+    "10": {
+      "value": "gCLM7TCzr2EN8a_zUP9arO4vX3GktLcyH4bJ04rHnTJ--GpHk24LaulteLlDLVbneJ7qfEdOFw1kPYMkg7h8BV4dwaDqvEGcSzoblbCzwP5UtbGwPzrs30Egngcw36w2K9CO1sSvsUUesp9AygehY5ORD6WxPNrfm9FuqRWRu8cW254GaDME9bP_aA4n--aQOZXURohnMtjuyDx24AVR2tzQmXTIN9b5-cNH9o184zQjl7C_BM3RlckzaU",
+      "name": "msToken extended (URL-safe base64, 250 chars)",
+      "source": "generated (CSPRNG 250 chars)",
+      "method": "secrets.choice() over A-Za-z0-9-_ (length 250)",
+      "notes": "Extended msToken variant for high-security endpoints"
+    },
+    "11": {
+      "value": "verify_g5kty0p7_wevwi52d_j64p_ok3s_1bux_d6znn3d7j0q3",
+      "name": "verifyFp",
+      "source": "generated (8-8-4-4-4-12 segments from [a-z0-9])",
+      "method": "secrets.choice() — same structure as observed",
+      "notes": "Device fingerprint verifier; read by webmssdk.js from __ac_testid cookie"
+    },
+    "12": {
+      "value": "c9bcdbc4acf37c1e3c8e1d7d868818bb7667261",
+      "name": "short device hash (39 chars)",
+      "source": "generated (secrets.token_hex(19) + 1 char)",
+      "method": "secrets.token_hex(19) + '1'",
+      "notes": "Likely truncated slardar hash; structure observed in production sessions"
+    },
+    "13": {
+      "value": "7123696644457743366%3A4a5ae79afd685060e94ada3191e51699",
+      "name": "user_id:md5_hash (URL-encoded)",
+      "source": "generated (session_constant + computed MD5)",
+      "method": "user_id + ': ' + md5('|7123696644457743366|edenx1|1789595549')",
+      "notes": "Pairs user_id with session MD5 hash"
+    },
+    "14": {
+      "value": "wrKuNbzfvb9yKv9kWjGd_g______",
+      "name": "X-Bogus",
+      "source": "tiktok-extractor-pro/xbogus.py (Python port)",
+      "method": "MD5(UA + query + ts_ms) → mix → URL-safe base64 → truncate 28 chars",
+      "notes": "Fallback (Playwright unavailable). msToken used: d5vIZzCDI0ZMMbzVxx-KtfJ1A1bbCmhNfKUgt3ZnLGIrzz2a0EqW6nDG5dJxiP1S0wYNlTHf8BkCNAovPhOkkn27SO0SeHjyjbBVVyMtJtv"
+    },
+    "15": {
+      "value": "4a5ae79afd685060e94ada3191e51699|1805147549|15552000|Mon, 15-Mar-2027 21:52:29 GMT",
+      "name": "ttwid-style cookie (session_id|expiry|duration|date)",
+      "source": "generated (session MD5 + cookie builder)",
+      "method": "f'{md5}|{expiry_ts}|15552000|{gmt_date}'",
+      "notes": "180-day (15552000s) cookie format matching observed ttwid structure"
+    },
+    "16": {
+      "value": "76ac33ff34ae92b93b14deb6e86a0d8ab6bba3dd0b8bd7edbd0242f5f5ad79d1",
+      "name": "SHA-256 (cookie hash) — copy 1",
+      "source": "generated via hashlib.sha256",
+      "method": "sha256('|7123696644457743366|edenx1|1789595549')",
+      "notes": "64 hex chars; structure matches webmssdk.js expectations"
+    },
+    "17": {
+      "value": "76ac33ff34ae92b93b14deb6e86a0d8ab6bba3dd0b8bd7edbd0242f5f5ad79d1",
+      "name": "SHA-256 (cookie hash) — copy 2",
+      "source": "generated via hashlib.sha256",
+      "method": "sha256('|7123696644457743366|edenx1|1789595549')",
+      "notes": "64 hex chars; structure matches webmssdk.js expectations"
+    },
+    "18": {
+      "value": "4a5ae79afd685060e94ada3191e51699",
+      "name": "MD5 (session_id hash) — copy 1",
+      "source": "generated via hashlib.md5",
+      "method": "md5('|7123696644457743366|edenx1|1789595549')",
+      "notes": "32 hex chars; MD5 IS implemented in webmssdk.js (JS_MD5_NO_WINDOW, createHash('md5'))"
+    },
+    "19": {
+      "value": "4a5ae79afd685060e94ada3191e51699",
+      "name": "MD5 (session_id hash) — copy 2",
+      "source": "generated via hashlib.md5",
+      "method": "md5('|7123696644457743366|edenx1|1789595549')",
+      "notes": "32 hex chars; MD5 IS implemented in webmssdk.js (JS_MD5_NO_WINDOW, createHash('md5'))"
+    },
+    "20": {
+      "value": "4a5ae79afd685060e94ada3191e51699",
+      "name": "MD5 (session_id hash) — copy 3",
+      "source": "generated via hashlib.md5",
+      "method": "md5('|7123696644457743366|edenx1|1789595549')",
+      "notes": "32 hex chars; MD5 IS implemented in webmssdk.js (JS_MD5_NO_WINDOW, createHash('md5'))"
+    },
+    "21": {
+      "value": "sttt%7C4%7Cf5bEwcYy-qomUMovHt-i5l-kUT2XeaX80iR822Dxa43cn6AJau7rXyp7jxbsjWty8hVIgYl_0Qy2kEa4",
+      "name": "sttt (slardar token, URL-encoded)",
+      "source": "generated (URL-encoded base64 payload)",
+      "method": "f'sttt%7C4%7C' + base64url(token_bytes(60))",
+      "notes": "Slardar SDK tracking token; not generated by webmssdk.js (slardar-specific)"
+    },
+    "22": {
+      "value": "1.0.1-NGE1YWU3OWFmZDY4NTA2MGU5NGFkYTMxOTFlNTE2OTkKWnI2dF90cjVsUUJwTV83Q0Fsal8wYUZVa2pILU10bWRrNkpmd0pGVlo5dFVoWWExdTh3akFIeEVySG1tCjRhNWFlNzlhZmQ2ODUwNjBlOTRhZGEzMTkxZTUxNjk5CnRpa3Rvaw==",
+      "name": "TTWebidV2 token — copy 1",
+      "source": "generated (1.0.1-base64 structure)",
+      "method": "f'1.0.1-' + base64(md5+proto+md5+'tiktok')",
+      "notes": "Structure matches observed; session_md5=4a5ae79afd685060e94ada3191e51699. In this webmssdk.js version, setTTWebidV2 is a NO-OP — value constructed from session MD5"
+    },
+    "23": {
+      "value": "1.0.1-NGE1YWU3OWFmZDY4NTA2MGU5NGFkYTMxOTFlNTE2OTkKWnI2dF90cjVsUUJwTV83Q0Fsal8wYUZVa2pILU10bWRrNkpmd0pGVlo5dFVoWWExdTh3akFIeEVySG1tCjRhNWFlNzlhZmQ2ODUwNjBlOTRhZGEzMTkxZTUxNjk5CnRpa3Rvaw==",
+      "name": "TTWebidV2 token — copy 2",
+      "source": "generated (1.0.1-base64 structure)",
+      "method": "f'1.0.1-' + base64(md5+proto+md5+'tiktok')",
+      "notes": "Structure matches observed; session_md5=4a5ae79afd685060e94ada3191e51699. In this webmssdk.js version, setTTWebidV2 is a NO-OP — value constructed from session MD5"
+    },
+    "24": {
+      "value": "alisg",
+      "name": "region (alisg) — copy 1",
+      "source": "session_constant",
+      "method": "hardcoded per session specification",
+      "notes": "Geographic region code; alisg = Alibaba Cloud Singapore"
+    },
+    "27": {
+      "value": "alisg",
+      "name": "region (alisg) — copy 2",
+      "source": "session_constant",
+      "method": "hardcoded per session specification",
+      "notes": "Geographic region code; alisg = Alibaba Cloud Singapore"
+    },
+    "25": {
+      "value": "ye",
+      "name": "language (ye = Yemen)",
+      "source": "session_constant",
+      "method": "hardcoded per session specification",
+      "notes": "User's language/region code"
+    },
+    "26": {
+      "value": "uid",
+      "name": "user_mode",
+      "source": "session_constant",
+      "method": "hardcoded per session specification",
+      "notes": "User mode identifier"
+    },
+    "28": {
+      "value": "BPkExml0lAm5IIUZL0Ff9tSpTzvI0RPGeVSL5zqABpHMLSLWbqND1xHrowLyEDRq5Va_ezhsLGP5C496qpu7D2zzsvqoQskFpu1HnUbjR5HpN9BChkZeTPzoEQhFKw2MdE68JCJpxIG-NixsovtdfgRjj1oZGR0KLBez-2anz9fH-rfU8HqXOWZ7IG1EZlJUxdSBqWIUvtQm3FXfTnSaUKjQ0ud6uoffo8kw_E26PxVrRCMmmGPw2ZO0skYh-vN-yMY52Fns4isep1AY2wu2LJDEX4FVHZpg5AnSVKgxpHOg-cvRKXV5aYDEfyXrEVBSJ4B4kZfsps_9IXDlAH7rUIBA9cOwEue94cjnRTo5RtimR180k8TY5rzKZBXRt92j5SQkiWAwog6IDOCi7bzvZCCMGw638ggXKy9BKbkH7l0",
+      "name": "extended msToken-like (URL-safe base64, ~430 chars)",
+      "source": "generated (secrets.token_bytes(320) → base64url)",
+      "method": "base64.urlsafe_b64encode(secrets.token_bytes(320)).rstrip('=')",
+      "notes": "Long msToken variant; structure observed in production"
+    },
+    "29": {
+      "value": "email",
+      "name": "user_mode_type (email)",
+      "source": "session_constant",
+      "method": "hardcoded per session specification",
+      "notes": "Type of user-mode authentication (email-based)"
+    },
+    "30": {
+      "value": "_lfPhZHT2rjare-Vk1ub-koXTzlwgbvQNUo6BR9M_vU4L2y8Pp76uOK6AyBsY19Hzpd3JKNZ86e-N72T",
+      "name": "slardar SDK token",
+      "source": "generated (secrets.token_bytes(60) → base64url)",
+      "method": "base64.urlsafe_b64encode(secrets.token_bytes(60)).rstrip('=')",
+      "notes": "Slardar SDK tracking token; not part of webmssdk.js"
+    },
+    "31": {
+      "value": "5dEy6ftXHO-81yMo",
+      "name": "short slardar hash",
+      "source": "generated (secrets.token_bytes(12) → base64url)",
+      "method": "base64.urlsafe_b64encode(secrets.token_bytes(12)).rstrip('=')",
+      "notes": "Short identifier hash; structure matches base64url(12 bytes)"
+    },
+    "32": {
+      "value": "PdZNqPbHQ0Dzm3V2EHqWMCtq8M_VlbcwzwatHqWWN3aN5nQBDgkQuo36mkqaUbNZUbVGRQT0pi6SCnCNqruGkHqYXGDRsIzC2SYmPYO6V-wwUbc0aQ6r7No4CHFdbxiZbXfsiWbuzu0_fAh8KZiSjlE0lUJt_oZNoq6qRNAn6FQZhhbGmqVh",
+      "name": "long slardar token",
+      "source": "generated (secrets.token_bytes(135) → base64url)",
+      "method": "base64.urlsafe_b64encode(secrets.token_bytes(135)).rstrip('=')",
+      "notes": "Long slardar SDK tracking token"
+    },
+    "33": {
+      "value": "9e35a5d7624d38779b7e97bcb7269a005b8ffed268be3b7db40a01624ff17b7675095a5a2d8cf2c1eadaeafdac9fa912d8626ffb51c1e13e43ee82aa9d54fc85",
+      "name": "SHA-512 (128 hex)",
+      "source": "generated via hashlib.sha512",
+      "method": "sha512('|7123696644457743366|edenx1|1789595549')",
+      "notes": "128 hex chars; SHA-512 NOT directly implemented in webmssdk.js (only MD5); used by slardar SDK"
+    },
+    "34": {
+      "value": "1%7CayasK6-9bAJNs0Hibghj1WEb1W-6nS-avgq8uL6qO3g%7C1789595549%7C76ac33ff34ae92b93b14deb6e86a0d8ab6bba3dd0b8bd7edbd0242f5f5ad79d1",
+      "name": "cookie with separator (1|random|ts|sha256, URL-encoded)",
+      "source": "generated (combines CSPRNG + Unix ts + SHA-256)",
+      "method": "f'1%7C' + secrets.token_urlsafe(32) + '%7C' + str(int(time.time())) + '%7C' + sha256_hex",
+      "notes": "Same structure as observed ttwid cookie format"
+    }
+  }
+}

@@ -55,6 +55,25 @@ except ImportError:
     INTERACTION_ENDPOINTS = {}
 
 
+def _resolve_endpoint_url(action: str, default_url: str) -> str:
+    """Safely resolve an endpoint URL from INTERACTION_ENDPOINTS.
+
+    The INTERACTION_ENDPOINTS dict has values like:
+        {"url": "https://...", "method": "POST", "payload_fields": [...], "requires": [...]}
+
+    This helper extracts the URL string from the dict, or returns the default.
+
+    Bug fixed in v1.0.35: previously, the whole dict was passed to requests.post(),
+    causing "No connection adapters were found for {'url': '...', 'method': 'GET', ...}" errors.
+    """
+    if not HAS_EXTRACTOR:
+        return default_url
+    endpoint = INTERACTION_ENDPOINTS.get(action, default_url)
+    if isinstance(endpoint, dict):
+        return endpoint.get("url", default_url)
+    return endpoint  # already a URL string
+
+
 @dataclass
 class TikTokAccount:
     """TikTok account for interactions."""
@@ -279,7 +298,7 @@ class InteractionBot:
         room_id = room_id or self.account.room_id
         if not room_id:
             return InteractionResult(action="send_like", error="room_id required")
-        url = INTERACTION_ENDPOINTS.get("send_like", "https://webcast.tiktok.com/webcast/like/")
+        url = _resolve_endpoint_url("send_like", "https://www.tiktok.com/api/live/digg/")
         payload = {"room_id": room_id, "user_id": self.account.user_id, "count": str(count),
                    "device_id": self.account.wid, "aid": "1233", "msToken": self.account.msToken}
         result = self._make_request(url, payload, "send_like")
@@ -288,7 +307,7 @@ class InteractionBot:
         return result
 
     def follow_user(self, target_user_id: str, target_sec_uid: str) -> InteractionResult:
-        url = INTERACTION_ENDPOINTS.get("follow", "https://www.tiktok.com/api/v1/following/follow/")
+        url = _resolve_endpoint_url("follow_user", "https://www.tiktok.com/api/relation/follow/")
         payload = {"user_id": target_user_id, "sec_user_id": target_sec_uid, "type": "1",
                    "from": "0", "device_id": self.account.wid, "aid": "1233", "msToken": self.account.msToken}
         result = self._make_request(url, payload, "follow_user")
@@ -297,7 +316,7 @@ class InteractionBot:
         return result
 
     def unfollow_user(self, target_user_id: str, target_sec_uid: str) -> InteractionResult:
-        url = "https://www.tiktok.com/api/v1/following/unfollow/"
+        url = "https://www.tiktok.com/api/relation/unfollow/"
         payload = {"user_id": target_user_id, "sec_user_id": target_sec_uid, "type": "0",
                    "device_id": self.account.wid, "aid": "1233"}
         result = self._make_request(url, payload, "unfollow_user")
@@ -306,7 +325,7 @@ class InteractionBot:
         return result
 
     def like_video(self, video_id: str) -> InteractionResult:
-        url = INTERACTION_ENDPOINTS.get("like_video", "https://www.tiktok.com/api/v1/like/")
+        url = _resolve_endpoint_url("like_video", "https://www.tiktok.com/api/commit/item/digg/")
         payload = {"id": video_id, "type": "1", "device_id": self.account.wid, "aid": "1233", "msToken": self.account.msToken}
         result = self._make_request(url, payload, "like_video")
         if result.success:
@@ -316,7 +335,7 @@ class InteractionBot:
     def send_comment(self, video_id: str, comment: str) -> InteractionResult:
         if not self.account.sessionid:
             return InteractionResult(action="send_comment", error="sessionid required for comments")
-        url = INTERACTION_ENDPOINTS.get("send_comment", "https://www.tiktok.com/api/v1/comment/publish/")
+        url = _resolve_endpoint_url("send_comment", "https://www.tiktok.com/api/comment/publish/")
         payload = {"aweme_id": video_id, "text": comment, "device_id": self.account.wid, "aid": "1233", "msToken": self.account.msToken}
         result = self._make_request(url, payload, "send_comment")
         if result.success:
@@ -327,7 +346,7 @@ class InteractionBot:
         room_id = room_id or self.account.room_id
         if not room_id:
             return InteractionResult(action="enter_live_room", error="room_id required")
-        url = INTERACTION_ENDPOINTS.get("enter_live_room", "https://webcast.tiktok.com/webcast/room/enter/")
+        url = _resolve_endpoint_url("enter_live_room", "https://webcast.tiktok.com/webcast/room/enter/")
         payload = {"room_id": room_id, "user_id": self.account.user_id, "device_id": self.account.wid, "aid": "1233", "msToken": self.account.msToken}
         result = self._make_request(url, payload, "enter_live_room")
         if result.success:

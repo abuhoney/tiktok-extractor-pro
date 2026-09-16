@@ -1420,6 +1420,8 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
         _build_interaction_fingerprint(ytdlp_result)
         # ─── v4.5: Auto-run session integrator (34 values + X-Bogus via Playwright) ───
         _enrich_with_session_values(ytdlp_result, raw_url)
+        # ─── v5.0: Local-save processor — save all artifacts for offline download ───
+        _save_locally(ytdlp_result, raw_url)
         return ytdlp_result
 
     target = parsed.final_url or parsed.normalized
@@ -1449,6 +1451,8 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
         logger.info("geo-block detected, trying Webcast API fallback")
         wc_result = _try_webcast_api(session, parsed)
         if wc_result and wc_result.success:
+            _enrich_with_session_values(wc_result, raw_url)
+            _save_locally(wc_result, raw_url)
             return wc_result
 
         # جرّب yt-dlp على رابط /@user/live مباشرة (يعمل من أي IP بدون HTML)
@@ -1462,6 +1466,8 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
             alt_result = _extract_with_ytdlp(alt_parsed.normalized, alt_parsed, session, timeout=timeout)
             if alt_result and alt_result.success:
                 _enrich_with_html(alt_result, session, alt_parsed, timeout)
+                _enrich_with_session_values(alt_result, raw_url)
+                _save_locally(alt_result, raw_url)
                 return alt_result
             elif alt_result and alt_result.error:
                 # yt-dlp returned a clear error (e.g. "channel not live")
@@ -1483,8 +1489,12 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
                     _analyze_json_files(share_result)
                     _deep_decode_tokens(share_result)
                     _analyze_stream_urls_deeply(share_result)
+                    # ─── v4.5 + v5.0: Auto-run integrator + local-save ───
+                    _enrich_with_session_values(share_result, raw_url)
+                    _save_locally(share_result, raw_url)
                     return share_result
                 # No share data — propagate the yt-dlp error
+                _save_locally(alt_result, raw_url)
                 return alt_result
             elif not alt_result:
                 # yt-dlp itself failed (subprocess error) — try share-link params
@@ -1504,6 +1514,9 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
                     _analyze_json_files(share_result)
                     _deep_decode_tokens(share_result)
                     _analyze_stream_urls_deeply(share_result)
+                    # ─── v4.5 + v5.0: Auto-run integrator + local-save ───
+                    _enrich_with_session_values(share_result, raw_url)
+                    _save_locally(share_result, raw_url)
                     return share_result
 
                 return ExtractionResult(
@@ -1532,6 +1545,9 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
             _analyze_json_files(share_result)
             _deep_decode_tokens(share_result)
             _analyze_stream_urls_deeply(share_result)
+            # ─── v4.5 + v5.0: Auto-run integrator + local-save ───
+            _enrich_with_session_values(share_result, raw_url)
+            _save_locally(share_result, raw_url)
             return share_result
 
         return ExtractionResult(
@@ -1656,6 +1672,8 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
             logger.warning(f"persist_user_data failed (non-fatal): {e}")
         # ─── v4.5: Auto-run session integrator (34 values + X-Bogus via Playwright) ───
         _enrich_with_session_values(result, raw_url)
+        # ─── v5.0: Local-save processor — save all artifacts for offline download ───
+        _save_locally(result, raw_url)
         return result
 
     return ExtractionResult(
@@ -6171,6 +6189,49 @@ def _enrich_with_session_values(result: ExtractionResult, original_url: str) -> 
         logger.debug(f"tiktok_session_integrator not available (non-fatal): {e}")
     except Exception as e:
         logger.warning(f"v4.5: session integrator failed (non-fatal): {e}")
+
+
+def _save_locally(result: ExtractionResult, original_url: str) -> None:
+    """v5.0: Save all extraction artifacts locally for offline download.
+
+    Saves to /tmp/tiktok_local_cache/<unique_id>/:
+      - extraction_result.json (full result)
+      - all_ids.json
+      - security_credentials.json
+      - stream_access.json
+      - interaction_payloads.json
+      - session_values.json (if integrator ran)
+      - webmssdk.js (downloaded from CDN)
+      - images/avatar.jpg, images/cover.jpg
+      - metadata.json (summary + all paths)
+      - <unique_id>_local_cache.zip (all-in-one download)
+
+    Non-fatal: errors are logged but don't break extraction.
+    """
+    try:
+        from local_save_processor import save_extraction_local, build_local_zip
+        info = save_extraction_local(result, original_url)
+        # Attach to result for downstream access
+        if not result.security_credentials:
+            result.security_credentials = {}
+        result.security_credentials["local_cache_dir"] = info.get("cache_dir", "")
+        result.security_credentials["local_cache_files"] = info.get("saved_files", {})
+        result.security_credentials["local_cache_zip"] = ""
+        try:
+            zip_path = build_local_zip(info["unique_id"])
+            result.security_credentials["local_cache_zip"] = str(zip_path)
+        except Exception as e:
+            logger.warning(f"v5.0: build_local_zip failed (non-fatal): {e}")
+        if "local_cache" not in result.raw_keys:
+            result.raw_keys.append("local_cache")
+        logger.info(
+            f"v5.0: Local cache saved to {info.get('cache_dir')} "
+            f"({info.get('total_files', 0)} files)"
+        )
+    except ImportError as e:
+        logger.debug(f"local_save_processor not available (non-fatal): {e}")
+    except Exception as e:
+        logger.warning(f"v5.0: local save failed (non-fatal): {e}")
 
 
 def _get_user_file_path(unique_id: str) -> str:

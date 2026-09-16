@@ -1500,6 +1500,177 @@ def api_mssdk_sign():
 
 
 # ────────────────────────────────────────────────────────────────────────────
+#  v5.0: Local cache + attached file processing endpoints
+# ────────────────────────────────────────────────────────────────────────────
+@app.route("/api/local-cache", methods=["GET"])
+def api_local_cache_list():
+    """List all locally-cached extractions (offline-downloadable artifacts)."""
+    try:
+        from local_save_processor import list_local_cache
+        unique_id = request.args.get("unique_id", "").strip()
+        return jsonify(list_local_cache(unique_id if unique_id else None))
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/local-cache/<unique_id>/download/<path:filename>")
+def api_local_cache_download(unique_id, filename):
+    """Download a specific cached file for a user."""
+    from pathlib import Path as _Path
+    try:
+        from local_save_processor import get_local_file
+        file_path = get_local_file(unique_id, filename)
+        if not file_path:
+            return jsonify({"success": False, "error": f"File '{filename}' not found for user '{unique_id}'"}), 404
+        content = _Path(file_path).read_bytes()
+        mime = "application/json" if filename.endswith(".json") else (
+            "application/javascript" if filename.endswith(".js") else "application/octet-stream"
+        )
+        return Response(content, mimetype=mime, headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/local-cache/<unique_id>/download-zip")
+def api_local_cache_download_zip(unique_id):
+    """Download a ZIP containing all locally-cached files for a user."""
+    try:
+        from local_save_processor import build_local_zip
+        zip_path = build_local_zip(unique_id)
+        if not zip_path.exists():
+            return jsonify({"success": False, "error": "ZIP build failed"}), 500
+        content = zip_path.read_bytes()
+        return Response(content, mimetype="application/zip", headers={
+            "Content-Disposition": f'attachment; filename="{unique_id}_local_cache.zip"'
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/local-cache/<unique_id>/list")
+def api_local_cache_list_user(unique_id):
+    """List all cached files for a specific user (detailed)."""
+    try:
+        from local_save_processor import get_user_cache_dir
+        user_dir = get_user_cache_dir(unique_id)
+        files = []
+        for entry in user_dir.iterdir():
+            if entry.is_file():
+                stat = entry.stat()
+                files.append({
+                    "name": entry.name,
+                    "size_bytes": stat.st_size,
+                    "size_human": _human_size(stat.st_size),
+                    "modified": datetime.utcfromtimestamp(stat.st_mtime).isoformat() + "Z",
+                    "download_url": f"/api/local-cache/{unique_id}/download/{entry.name}",
+                })
+            elif entry.is_dir():
+                for sub in entry.iterdir():
+                    if sub.is_file():
+                        stat = sub.stat()
+                        files.append({
+                            "name": f"{entry.name}/{sub.name}",
+                            "size_bytes": stat.st_size,
+                            "size_human": _human_size(stat.st_size),
+                            "modified": datetime.utcfromtimestamp(stat.st_mtime).isoformat() + "Z",
+                            "download_url": f"/api/local-cache/{unique_id}/download/{entry.name}/{sub.name}",
+                        })
+        return jsonify({
+            "success": True,
+            "unique_id": unique_id,
+            "cache_dir": str(user_dir),
+            "total_files": len(files),
+            "files": files,
+            "zip_download_url": f"/api/local-cache/{unique_id}/download-zip",
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/process-uploads", methods=["POST"])
+def api_process_uploads():
+    """Process uploaded files (JSON, images, cookies) with error handling.
+
+    Accepts multipart/form-data with one or more files:
+      - .json files: parsed and merged
+      - .jpg/.png files: analyzed with VLM (if it's a screenshot)
+      - .txt files: tried as cookie strings or JSON
+
+    Returns a unified dict with all extracted data.
+    """
+    try:
+        from attached_file_processor import (
+            validate_and_parse_json,
+            extract_cookies_from_text,
+            merge_multiple_jsons,
+            save_uploaded_file,
+            analyze_screenshot_with_vlm,
+        )
+        from pathlib import Path as _Path
+
+        files = request.files.getlist("files")
+        if not files:
+            return jsonify({"success": False, "error": "No files uploaded"}), 400
+
+        unique_id = request.form.get("unique_id", f"upload_{int(time.time())}")
+        upload_paths = []
+        images = []
+        json_paths = []
+
+        for f in files:
+            if not f or not f.filename:
+                continue
+            try:
+                data = f.read()
+                saved = save_uploaded_file(data, f.filename, unique_id)
+                upload_paths.append(str(saved))
+                if f.filename.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                    images.append(saved)
+                elif f.filename.lower().endswith((".json", ".txt")):
+                    json_paths.append(saved)
+            except Exception as e:
+                return jsonify({"success": False, "error": f"Failed to save {f.filename}: {e}"}), 500
+
+        merged = merge_multiple_jsons(json_paths) if json_paths else {"ids": {}, "cookies": {}}
+
+        image_analyses = []
+        for img_path in images:
+            analysis = analyze_screenshot_with_vlm(img_path)
+            analysis["file"] = str(img_path)
+            image_analyses.append(analysis)
+
+        return jsonify({
+            "success": True,
+            "unique_id": unique_id,
+            "uploaded_files": upload_paths,
+            "merged_data": merged,
+            "image_analyses": image_analyses,
+            "summary": {
+                "total_files": len(upload_paths),
+                "json_files": len(json_paths),
+                "image_files": len(images),
+                "total_ids_extracted": len(merged.get("ids", {})),
+                "total_cookies_extracted": len(merged.get("cookies", {})),
+                "total_session_values": len(merged.get("session_values", {})),
+            },
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+def _human_size(n):
+    """Convert bytes to human-readable size."""
+    n = float(n)
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024:
+            return f"{n:.1f} {unit}"
+        n /= 1024
+    return f"{n:.1f} TB"
+
+
+# ────────────────────────────────────────────────────────────────────────────
 #  تشغيل الخادم
 # ────────────────────────────────────────────────────────────────────────────
 def main():

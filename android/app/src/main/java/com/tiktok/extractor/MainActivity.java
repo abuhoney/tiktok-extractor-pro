@@ -279,14 +279,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void executeInteraction(String action) {
+        // v1.0.35: Fixed to call /api/interact (not /api/react/execute) with ALL required params
+        // including csrf_token, wid, nonce from the extraction result.
         runJs("(() => { const i=document.getElementById('urlInput'); const u=i?i.value:''; if(!u){alert('Paste a URL first');return;}"
             + "fetch('/api/extract?url='+encodeURIComponent(u)).then(r=>r.json()).then(d=>{"
-            + "if(!d.success){alert('Extraction failed');return;}"
-            + "const body={action:'" + action + "'};"
-            + "if(d.all_ids){body.room_id=d.all_ids.room_id||'';body.sec_uid=d.all_ids.sec_uid||'';body.user_id=d.all_ids.user_id||'';body.video_id=d.content_id||'';}"
-            + "fetch('/api/react/execute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})"
-            + ".then(r=>r.json()).then(r=>{alert('Result: '+(r.success?'SUCCESS':'FAILED')+'\\n'+JSON.stringify(r,null,2).substring(0,500));})"
-            + ".catch(e=>alert('Error: '+e));}).catch(e=>alert('Extract error: '+e)); })();");
+            + "if(!d.success){alert('Extraction failed: '+(d.error||'unknown'));return;}"
+            + "const sec=d.security_credentials||{};"
+            + "const body={"
+            + "  action:'" + action + "',"
+            + "  csrf_token:sec.csrf_token||'',"
+            + "  wid:sec.wid||'',"
+            + "  nonce:sec.nonce||'',"
+            + "  sessionid:sec.sessionid||'',"
+            + "  room_id:d.all_ids&&d.all_ids.room_id?d.all_ids.room_id:'',"
+            + "  sec_uid:d.all_ids&&d.all_ids.sec_uid?d.all_ids.sec_uid:'',"
+            + "  user_id:d.all_ids&&d.all_ids.user_id?d.all_ids.user_id:'',"
+            + "  video_id:d.content_id||(d.all_ids&&d.all_ids.room_id)||'',"
+            + "  unique_id:d.author&&d.author.unique_id?d.author.unique_id:'',"
+            + "};"
+            + "if(!body.csrf_token){alert('No csrf_token in extraction. Backend may be unable to authenticate.');}"
+            + "fetch('/api/interact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})"
+            + ".then(r=>r.json()).then(r=>{"
+            + "  const msg='Result: '+(r.success?'SUCCESS':'FAILED')+'\\n'"
+            + "    +(r.message||r.error||JSON.stringify(r).substring(0,300));"
+            + "  alert(msg);"
+            + "  if(r.success) Android && Android.showToast && Android.showToast('Interaction completed');"
+            + "}).catch(e=>alert('Network error: '+e));}).catch(e=>alert('Extract error: '+e)); })();");
         toast("Running: " + action);
     }
 
