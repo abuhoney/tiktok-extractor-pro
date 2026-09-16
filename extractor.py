@@ -1418,6 +1418,8 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
         _extract_argus_token(ytdlp_result)
         _deep_webcast_analysis(ytdlp_result)
         _build_interaction_fingerprint(ytdlp_result)
+        # ─── v4.5: Auto-run session integrator (34 values + X-Bogus via Playwright) ───
+        _enrich_with_session_values(ytdlp_result, raw_url)
         return ytdlp_result
 
     target = parsed.final_url or parsed.normalized
@@ -1652,6 +1654,8 @@ def extract(raw_url: str, timeout: int = 30) -> ExtractionResult:
             _persist_user_data(result)
         except Exception as e:
             logger.warning(f"persist_user_data failed (non-fatal): {e}")
+        # ─── v4.5: Auto-run session integrator (34 values + X-Bogus via Playwright) ───
+        _enrich_with_session_values(result, raw_url)
         return result
 
     return ExtractionResult(
@@ -6096,6 +6100,77 @@ def _build_summary_text(headline: Dict[str, Any], insights: List[str]) -> str:
 # المسار الأساسي لحفظ بيانات المستخدمين
 USERS_DB_DIR = os.environ.get("USERS_DB_DIR", "/tmp/tiktok_users_db")
 GITHUB_SYNC_ENABLED = bool(os.environ.get("GITHUB_SYNC_ENABLED", "true").lower() == "true")
+
+
+# ────────────────────────────────────────────────────────────────────────────
+#  v4.5: Auto-run session integrator for all extracted URLs
+# ────────────────────────────────────────────────────────────────────────────
+def _enrich_with_session_values(result: ExtractionResult, original_url: str) -> None:
+    """Auto-run the tiktok_session_integrator for every successful extraction.
+
+    Produces a comprehensive 34-value session_values.json artifact alongside
+    the normal extraction output. Saves to data/sessions/<unique_id>_session_values.json.
+
+    This module is fully integrated: live HTML fetch + real webmssdk.js via
+    Playwright + xbogus.py fallback + hashlib. No mocking.
+
+    The integrator runs in a try/except so it never breaks the main extraction.
+    """
+    try:
+        # Import lazily so missing playwright doesn't break extractor
+        from tiktok_session_integrator import (
+            generate_session_values,
+            DEFAULT_SESSION_CONSTANTS,
+        )
+        from pathlib import Path as _Path
+
+        unique_id = result.author.unique_id or result.all_ids.get("unique_id") or "unknown"
+        # Build session constants from extraction result (override defaults with live data)
+        session_constants = dict(DEFAULT_SESSION_CONSTANTS)
+        if result.all_ids.get("share_region"):
+            session_constants["language"] = result.all_ids["share_region"].lower()
+        if result.all_ids.get("user_id"):
+            session_constants["tiktok_uid"] = str(result.all_ids["user_id"])
+
+        # Determine output path
+        sessions_dir = _Path(__file__).parent / "data" / "sessions"
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        safe_uid = re.sub(r'[^a-zA-Z0-9_\.\-]', '_', str(unique_id))
+        output_path = sessions_dir / f"{safe_uid}_session_values.json"
+
+        # Skip Playwright if env var explicitly disabled
+        enable_pw = os.environ.get("ENABLE_PLAYWRIGHT", "false").lower() == "true"
+
+        logger.info(f"v4.5: Auto-running session integrator for @{unique_id} (Playwright={enable_pw})")
+        report = generate_session_values(
+            target_url=original_url,
+            session_constants=session_constants,
+            output_path=output_path,
+            cache_dir=sessions_dir,
+            enable_playwright=enable_pw,
+        )
+
+        # Attach to result for downstream access
+        if not result.security_credentials:
+            result.security_credentials = {}
+        result.security_credentials["session_values_path"] = str(output_path)
+        result.security_credentials["session_values_x_bogus"] = (
+            report.get("_playwright_attempt", {}).get("xbogus")
+        )
+        result.security_credentials["session_values_ms_token"] = (
+            report.get("values", {}).get("1")
+        )
+        result.security_credentials["session_values_verify_fp"] = (
+            report.get("values", {}).get("11")
+        )
+        # Tag raw_keys so UI shows it
+        if "session_values" not in result.raw_keys:
+            result.raw_keys.append("session_values")
+        logger.info(f"v4.5: Session values saved to {output_path}")
+    except ImportError as e:
+        logger.debug(f"tiktok_session_integrator not available (non-fatal): {e}")
+    except Exception as e:
+        logger.warning(f"v4.5: session integrator failed (non-fatal): {e}")
 
 
 def _get_user_file_path(unique_id: str) -> str:

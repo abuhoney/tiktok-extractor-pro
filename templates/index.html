@@ -45,16 +45,24 @@
     <nav class="nav-tabs">
       <button class="nav-tab active" data-tab="extract">
         <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
-        استخراج البيانات
+        Extract Data
       </button>
       <button class="nav-tab" data-tab="database">
         <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 3C7.58 3 4 4.79 4 7s3.58 4 8 4 8-1.79 8-4-3.58-4-8-4M4 9v3c0 2.21 3.58 4 8 4s8-1.79 8-4V9c0 2.21-3.58 4-8 4s-8-1.79-8-4m0 5v3c0 2.21 3.58 4 8 4s8-1.79 8-4v-3c0 2.21-3.58 4-8 4s-8-1.79-8-4z"/></svg>
-        قاعدة البيانات
+        Database
         <span class="nav-tab-badge" id="usersBadge" hidden>0</span>
       </button>
       <button class="nav-tab" data-tab="session">
         <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
-        تسجيل الدخول
+        Session Login
+      </button>
+      <button class="nav-tab" data-tab="sessionValues">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        Session Values (34)
+      </button>
+      <button class="nav-tab" data-tab="mssdk">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        MSSDK Analyzer
       </button>
     </nav>
 
@@ -382,8 +390,150 @@
       </div>
     </section>
 
+    <!-- ════════ Session Values (34) tab v5.0 ════════ -->
+    <section id="sessionValuesSection" class="session-values-section" hidden>
+      <div class="card session-card">
+        <h2>🔑 Session Values Generator (34 values)</h2>
+        <p class="session-intro">
+          Generates all 34 TikTok session values for any URL via full integration:
+          live HTML fetch + real <code>webmssdk.js</code> execution via Playwright +
+          <code>xbogus.py</code> fallback + <code>hashlib</code> (MD5/SHA-256/SHA-512).
+          Produces a complete <code>session_values.json</code> artifact.
+        </p>
+
+        <form id="sessionValuesForm" autocomplete="off">
+          <div class="form-group">
+            <label for="svUrlInput">Target TikTok URL</label>
+            <input type="text" id="svUrlInput" placeholder="https://www.tiktok.com/@user/live" required>
+            <small>Any TikTok URL: live, video, profile, or short link</small>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="svEnablePlaywright" checked>
+              Enable Playwright (REAL webmssdk.js execution for X-Bogus)
+            </label>
+            <small>If unchecked, uses xbogus.py Python fallback (still produces valid X-Bogus)</small>
+          </div>
+
+          <button type="submit" class="btn-primary" id="svGenerateBtn">
+            ⚡ Generate 34 Session Values
+          </button>
+          <button type="button" class="btn-ghost" id="svDownloadBtn" disabled>
+            ⬇️ Download JSON
+          </button>
+        </form>
+
+        <div id="svStatus" class="session-status"></div>
+
+        <div id="svResult" hidden>
+          <h3>Generated Values</h3>
+          <div class="sv-grid" id="svGrid"></div>
+
+          <details class="card json-viewer-card">
+            <summary>View full JSON report</summary>
+            <pre id="svRawJson"></pre>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════ MSSDK Analyzer tab v5.0 ════════ -->
+    <section id="mssdkSection" class="mssdk-section" hidden>
+      <div class="card session-card">
+        <h2>🧬 MSSDK Analyzer (8 phases + signature generator)</h2>
+        <p class="session-intro">
+          Python port of the comprehensive <code>strong signature.html</code> MSSDK analyzer.
+          Runs all 8 analysis phases on any <code>webmssdk.js</code> file:
+          static analysis, string decoding, runtime probe, base64 deep scan,
+          ZIP extraction, XOR decoding, ACrawler rebuild, and deobfuscation.
+        </p>
+
+        <form id="mssdkAnalyzeForm" autocomplete="off">
+          <div class="form-group">
+            <label for="mssdkUrlInput">webmssdk.js URL (optional)</label>
+            <input type="text" id="mssdkUrlInput" placeholder="https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/webmssdk/1.0.0.417/webmssdk.js">
+            <small>If empty, uses the default CDN URL. Fetches and analyzes the file.</small>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="mssdkRuntimeProbe">
+              Run Phase 3 runtime probe (Playwright required)
+            </label>
+          </div>
+
+          <button type="submit" class="btn-primary" id="mssdkAnalyzeBtn">
+            🔍 Run 8-Phase Analysis
+          </button>
+        </form>
+
+        <div id="mssdkAnalyzeStatus" class="session-status"></div>
+
+        <div id="mssdkAnalyzeResult" hidden>
+          <h3>Analysis Summary</h3>
+          <div class="stats-grid" id="mssdkStats"></div>
+
+          <details class="card json-viewer-card">
+            <summary>View full analysis</summary>
+            <pre id="mssdkRawJson"></pre>
+          </details>
+        </div>
+
+        <hr style="margin: 30px 0; border-color: rgba(255,255,255,0.1);">
+
+        <h3>✍️ Generate Signatures</h3>
+        <form id="mssdkSignForm" autocomplete="off">
+          <div class="form-group">
+            <label for="signUrlInput">Request URL to sign</label>
+            <input type="text" id="signUrlInput" placeholder="/api/v1/user/profile" required>
+          </div>
+
+          <div class="form-group">
+            <label for="signMethodSelect">HTTP Method</label>
+            <select id="signMethodSelect">
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="signParamsInput">Request Parameters (JSON)</label>
+            <textarea id="signParamsInput" rows="3" placeholder='{"userId":"123456","action":"like"}'>{"userId":"123456","action":"like","itemId":"987654"}</textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="signTicketInput">msToken (optional)</label>
+            <input type="text" id="signTicketInput" placeholder="paste msToken here (optional)">
+          </div>
+
+          <div class="form-group">
+            <label for="signUserModeSelect">User Mode</label>
+            <select id="signUserModeSelect">
+              <option value="0">Normal (0)</option>
+              <option value="1">Incognito (1)</option>
+              <option value="2">Anonymous (2)</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn-primary" id="mssdkSignBtn">
+            ⚡ Generate Signatures (REAL webmssdk.js)
+          </button>
+        </form>
+
+        <div id="mssdkSignStatus" class="session-status"></div>
+
+        <div id="mssdkSignResult" hidden>
+          <h3>Generated Signatures</h3>
+          <div class="sig-grid" id="sigGrid"></div>
+        </div>
+      </div>
+    </section>
+
     <footer class="app-footer">
-      <p>محرك استخراج TikTok — Flask + Python 3.12 — كل المعالجة تتم على خادمك المحلي</p>
+      <p>TikTok Extractor Pro v5.0 — Flask + Python 3.12 + Playwright — All processing on your server</p>
     </footer>
   </div>
 

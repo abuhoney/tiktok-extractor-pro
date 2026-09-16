@@ -1047,3 +1047,251 @@
 
   console.log('%c[v4.5] Session Manager initialized', 'color:#25f4ee');
 })();
+
+/* ════════════════════════════════════════════════════════════════════════════
+   v5.0: Session Values (34) + MSSDK Analyzer
+   ════════════════════════════════════════════════════════════════════════════ */
+(() => {
+  'use strict';
+  const API_BASE = window.location.origin;
+  const $$ = (s, root=document) => Array.from(root.querySelectorAll(s));
+
+  // ───── Tab switching for new tabs ─────
+  const svTab = document.querySelector('.nav-tab[data-tab="sessionValues"]');
+  const mssdkTab = document.querySelector('.nav-tab[data-tab="mssdk"]');
+  const svSection = document.getElementById('sessionValuesSection');
+  const mssdkSection = document.getElementById('mssdkSection');
+
+  function hideAllSections() {
+    document.querySelectorAll('.input-card, #loadingSection, #resultSection, #featuresSection, #databaseSection, #sessionSection, #sessionValuesSection, #mssdkSection').forEach(s => {
+      if (s) s.hidden = true;
+    });
+  }
+
+  if (svTab) {
+    svTab.addEventListener('click', () => {
+      $$('.nav-tab').forEach(t => t.classList.toggle('active', t === svTab));
+      hideAllSections();
+      if (svSection) svSection.hidden = false;
+    });
+  }
+  if (mssdkTab) {
+    mssdkTab.addEventListener('click', () => {
+      $$('.nav-tab').forEach(t => t.classList.toggle('active', t === mssdkTab));
+      hideAllSections();
+      if (mssdkSection) mssdkSection.hidden = false;
+    });
+  }
+
+  // ───── Session Values generator ─────
+  const svForm = document.getElementById('sessionValuesForm');
+  const svUrlInput = document.getElementById('svUrlInput');
+  const svEnablePw = document.getElementById('svEnablePlaywright');
+  const svGenerateBtn = document.getElementById('svGenerateBtn');
+  const svDownloadBtn = document.getElementById('svDownloadBtn');
+  const svStatus = document.getElementById('svStatus');
+  const svResult = document.getElementById('svResult');
+  const svGrid = document.getElementById('svGrid');
+  const svRawJson = document.getElementById('svRawJson');
+  let svLastReport = null;
+
+  if (svForm) {
+    svForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = svUrlInput.value.trim();
+      const enablePw = svEnablePw.checked;
+      if (!url) {
+        svStatus.textContent = 'Please enter a TikTok URL';
+        svStatus.className = 'session-result error';
+        return;
+      }
+      svGenerateBtn.disabled = true;
+      svGenerateBtn.textContent = '⏳ Generating... (may take 10-30s with Playwright)';
+      svStatus.textContent = `Generating 34 session values for: ${url}`;
+      svStatus.className = 'session-result';
+      try {
+        const resp = await fetch(`${API_BASE}/api/session-values`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, enable_playwright: enablePw }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+          svLastReport = data;
+          svStatus.textContent = `✅ Generated ${Object.keys(data.values || {}).length} values. Playwright X-Bogus: ${data.playwright_attempt?.xbogus || '(not generated)'}`;
+          svStatus.className = 'session-result success';
+          // Render values grid
+          const metadata = data.values_with_metadata || {};
+          svGrid.innerHTML = Object.entries(metadata).map(([k, v]) => {
+            const val = v.value || '';
+            const valShort = val.length > 70 ? val.slice(0, 67) + '...' : val;
+            return `
+              <div class="card sv-value-card">
+                <div class="sv-value-id">#${k}</div>
+                <div class="sv-value-name">${escapeHtml(v.name || '')}</div>
+                <div class="sv-value-text" title="${escapeHtml(val)}">${escapeHtml(valShort)}</div>
+                <div class="sv-value-source">${escapeHtml((v.source || '').split('(')[0].trim())}</div>
+              </div>
+            `;
+          }).join('');
+          svRawJson.textContent = JSON.stringify(data, null, 2);
+          svResult.hidden = false;
+          svDownloadBtn.disabled = false;
+        } else {
+          svStatus.textContent = `❌ Failed: ${data.error || 'unknown error'}`;
+          svStatus.className = 'session-result error';
+        }
+      } catch (err) {
+        svStatus.textContent = `❌ Network error: ${err.message}`;
+        svStatus.className = 'session-result error';
+      } finally {
+        svGenerateBtn.disabled = false;
+        svGenerateBtn.textContent = '⚡ Generate 34 Session Values';
+      }
+    });
+
+    svDownloadBtn.addEventListener('click', () => {
+      if (!svLastReport) return;
+      const blob = new Blob([JSON.stringify(svLastReport, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `session_values_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  }
+
+  // ───── MSSDK Analyzer ─────
+  const mssdkAnalyzeForm = document.getElementById('mssdkAnalyzeForm');
+  const mssdkUrlInput = document.getElementById('mssdkUrlInput');
+  const mssdkRuntimeProbe = document.getElementById('mssdkRuntimeProbe');
+  const mssdkAnalyzeBtn = document.getElementById('mssdkAnalyzeBtn');
+  const mssdkAnalyzeStatus = document.getElementById('mssdkAnalyzeStatus');
+  const mssdkAnalyzeResult = document.getElementById('mssdkAnalyzeResult');
+  const mssdkStats = document.getElementById('mssdkStats');
+  const mssdkRawJson = document.getElementById('mssdkRawJson');
+
+  if (mssdkAnalyzeForm) {
+    mssdkAnalyzeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = mssdkUrlInput.value.trim() || 'https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/webmssdk/1.0.0.417/webmssdk.js';
+      const doRuntime = mssdkRuntimeProbe.checked;
+      mssdkAnalyzeBtn.disabled = true;
+      mssdkAnalyzeBtn.textContent = '⏳ Analyzing... (8 phases)';
+      mssdkAnalyzeStatus.textContent = `Fetching and analyzing: ${url}`;
+      mssdkAnalyzeStatus.className = 'session-result';
+      try {
+        const resp = await fetch(`${API_BASE}/api/mssdk-analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, do_runtime: doRuntime }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+          const summary = data.summary || {};
+          mssdkAnalyzeStatus.textContent = `✅ Analysis complete: ${summary.totalFunctions || 0} functions, ${summary.totalStringLiterals || 0} strings, ${summary.totalB64 || 0} base64 blobs`;
+          mssdkAnalyzeStatus.className = 'session-result success';
+          const phases = data.phases || {};
+          mssdkStats.innerHTML = `
+            <div class="stat-card"><div class="stat-value">${summary.totalVariables || 0}</div><div class="stat-label">Variables</div></div>
+            <div class="stat-card"><div class="stat-value">${summary.totalHexVars || 0}</div><div class="stat-label">Hex Variables</div></div>
+            <div class="stat-card"><div class="stat-value">${summary.totalFunctions || 0}</div><div class="stat-label">Functions</div></div>
+            <div class="stat-card"><div class="stat-value">${summary.totalStringLiterals || 0}</div><div class="stat-label">Strings</div></div>
+            <div class="stat-card"><div class="stat-value">${summary.totalB64 || 0}</div><div class="stat-label">Base64 blobs</div></div>
+            <div class="stat-card"><div class="stat-value">${summary.totalZipFiles || 0}</div><div class="stat-label">ZIP files</div></div>
+            <div class="stat-card"><div class="stat-value">${summary.totalXOR || 0}</div><div class="stat-label">XOR decoded</div></div>
+            <div class="stat-card"><div class="stat-value">${summary.totalRenamed || 0}</div><div class="stat-label">Renamed</div></div>
+            <div class="stat-card"><div class="stat-value">${summary.runtimeExecuted ? '✓' : '—'}</div><div class="stat-label">Runtime probe</div></div>
+          `;
+          mssdkRawJson.textContent = JSON.stringify(data, null, 2).slice(0, 50000) + '\n... (truncated)';
+          mssdkAnalyzeResult.hidden = false;
+        } else {
+          mssdkAnalyzeStatus.textContent = `❌ Failed: ${data.error || 'unknown error'}`;
+          mssdkAnalyzeStatus.className = 'session-result error';
+        }
+      } catch (err) {
+        mssdkAnalyzeStatus.textContent = `❌ Network error: ${err.message}`;
+        mssdkAnalyzeStatus.className = 'session-result error';
+      } finally {
+        mssdkAnalyzeBtn.disabled = false;
+        mssdkAnalyzeBtn.textContent = '🔍 Run 8-Phase Analysis';
+      }
+    });
+  }
+
+  // ───── MSSDK Signatures generator ─────
+  const mssdkSignForm = document.getElementById('mssdkSignForm');
+  const signUrlInput = document.getElementById('signUrlInput');
+  const signMethodSelect = document.getElementById('signMethodSelect');
+  const signParamsInput = document.getElementById('signParamsInput');
+  const signTicketInput = document.getElementById('signTicketInput');
+  const signUserModeSelect = document.getElementById('signUserModeSelect');
+  const mssdkSignBtn = document.getElementById('mssdkSignBtn');
+  const mssdkSignStatus = document.getElementById('mssdkSignStatus');
+  const mssdkSignResult = document.getElementById('mssdkSignResult');
+  const sigGrid = document.getElementById('sigGrid');
+
+  if (mssdkSignForm) {
+    mssdkSignForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = signUrlInput.value.trim();
+      const method = signMethodSelect.value;
+      let params = {};
+      try { params = JSON.parse(signParamsInput.value || '{}'); } catch {}
+      const ticket = signTicketInput.value.trim();
+      const userMode = parseInt(signUserModeSelect.value, 10) || 0;
+      if (!url) {
+        mssdkSignStatus.textContent = 'Please enter a URL to sign';
+        mssdkSignStatus.className = 'session-result error';
+        return;
+      }
+      mssdkSignBtn.disabled = true;
+      mssdkSignBtn.textContent = '⏳ Generating... (Playwright)';
+      mssdkSignStatus.textContent = `Calling frontierSign() via Playwright...`;
+      mssdkSignStatus.className = 'session-result';
+      try {
+        const resp = await fetch(`${API_BASE}/api/mssdk-sign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, method, params, ticket, user_mode: userMode }),
+        });
+        const data = await resp.json();
+        const sigs = [
+          { name: 'X-Bogus', value: data['x-bogus'] },
+          { name: 'X-Gnarly', value: data['x-gnarly'] },
+          { name: 'X-Mssdk-Info', value: data['x-mssdk-info'] },
+          { name: 'X-Mssdk-RC', value: data['x-mssdk-rc'] },
+        ].filter(s => s.value);
+        if (data.success && sigs.length > 0) {
+          mssdkSignStatus.textContent = `✅ Generated ${sigs.length} signatures`;
+          mssdkSignStatus.className = 'session-result success';
+          sigGrid.innerHTML = sigs.map(s => `
+            <div class="sig-box">
+              <div class="sig-name">${s.name} <button class="copy-btn" onclick="navigator.clipboard.writeText('${escapeHtml(s.value)}')">Copy</button></div>
+              <div class="sig-value">${escapeHtml(s.value)}</div>
+            </div>
+          `).join('');
+          mssdkSignResult.hidden = false;
+        } else {
+          mssdkSignStatus.textContent = `❌ Failed: ${data.error || 'no signatures generated'}`;
+          mssdkSignStatus.className = 'session-result error';
+        }
+      } catch (err) {
+        mssdkSignStatus.textContent = `❌ Network error: ${err.message}`;
+        mssdkSignStatus.className = 'session-result error';
+      } finally {
+        mssdkSignBtn.disabled = false;
+        mssdkSignBtn.textContent = '⚡ Generate Signatures (REAL webmssdk.js)';
+      }
+    });
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  console.log('%c[v5.0] Session Values + MSSDK Analyzer initialized', 'color:#25f4ee');
+})();

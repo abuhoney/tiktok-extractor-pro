@@ -28,6 +28,7 @@ import json
 import logging
 import os
 import re
+import time
 from datetime import datetime
 from typing import Any, Dict
 
@@ -1243,6 +1244,246 @@ def api_export_deep_single(unique_id, live_number):
                 zf.write(fpath, arcname)
         zf.close(); buf.seek(0)
         return Response(buf.getvalue(), mimetype="application/zip", headers={"Content-Disposition": f'attachment; filename="deep_{unique_id}_live{live_number}.zip"'})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ────────────────────────────────────────────────────────────────────────────
+#  v5.0: Session Integrator endpoints (34 values + X-Bogus via Playwright)
+# ────────────────────────────────────────────────────────────────────────────
+@app.route("/api/session-values", methods=["POST", "GET"])
+def api_session_values():
+    """Generate all 34 TikTok session values for a given URL.
+
+    Combines:
+      1. Live HTML fetch (msToken, verifyFp, csrf_token)
+      2. Real webmssdk.js execution via Playwright (X-Bogus)
+      3. xbogus.py fallback (Python port of the X-Bogus algorithm)
+      4. hashlib (MD5, SHA-256, SHA-512)
+      5. CSPRNG (msToken variants, verifyFp, etc.)
+
+    POST params:
+      - url: target TikTok URL (required)
+      - enable_playwright: "true"/"false" (default: from env)
+      - session_constants: optional JSON with custom device_id, region, etc.
+    """
+    if request.method == "GET":
+        url = request.args.get("url", "").strip()
+        enable_pw = request.args.get("enable_playwright", "").lower() == "true"
+        custom_constants = None
+    else:
+        try:
+            data = request.get_json(force=True, silent=True) or {}
+        except Exception:
+            data = {}
+        url = data.get("url", "").strip()
+        ep_val = data.get("enable_playwright")
+        if isinstance(ep_val, bool):
+            enable_pw = ep_val
+        elif isinstance(ep_val, str):
+            enable_pw = ep_val.lower() == "true"
+        else:
+            enable_pw = os.environ.get("ENABLE_PLAYWRIGHT", "").lower() == "true"
+        custom_constants = data.get("session_constants")
+
+    if not url:
+        return jsonify({"success": False, "error": "Missing 'url' parameter"}), 400
+
+    try:
+        from tiktok_session_integrator import generate_session_values, DEFAULT_SESSION_CONSTANTS
+        from pathlib import Path as _Path
+
+        session_constants = dict(DEFAULT_SESSION_CONSTANTS)
+        if isinstance(custom_constants, dict):
+            session_constants.update(custom_constants)
+
+        sessions_dir = _Path(__file__).parent / "data" / "sessions"
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        output_path = sessions_dir / f"session_values_{int(time.time())}.json"
+
+        report = generate_session_values(
+            target_url=url,
+            session_constants=session_constants,
+            output_path=output_path,
+            cache_dir=sessions_dir,
+            enable_playwright=enable_pw,
+        )
+        return jsonify({
+            "success": True,
+            "output_path": str(output_path),
+            "values": report.get("values", {}),
+            "values_with_metadata": report.get("values_with_metadata", {}),
+            "live_fetch": report.get("_live_fetch_attempt", {}),
+            "playwright_attempt": {
+                "tried": report.get("_playwright_attempt", {}).get("tried", False),
+                "ok": report.get("_playwright_attempt", {}).get("ok", False),
+                "xbogus": report.get("_playwright_attempt", {}).get("xbogus"),
+                "byted_acrawler_props": report.get("_playwright_attempt", {}).get("byted_acrawler_props", []),
+                "isWebmssdk": report.get("_playwright_attempt", {}).get("isWebmssdk"),
+                "error": report.get("_playwright_attempt", {}).get("error"),
+            },
+        })
+    except ImportError as e:
+        return jsonify({"success": False, "error": f"tiktok_session_integrator not available: {e}"}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/session-values/download", methods=["POST", "GET"])
+def api_session_values_download():
+    """Download the latest session_values.json as a file."""
+    if request.method == "GET":
+        url = request.args.get("url", "").strip()
+    else:
+        data = request.get_json(force=True, silent=True) or {}
+        url = data.get("url", "").strip()
+
+    if not url:
+        return jsonify({"success": False, "error": "Missing 'url' parameter"}), 400
+
+    try:
+        from tiktok_session_integrator import generate_session_values, DEFAULT_SESSION_CONSTANTS
+        from pathlib import Path as _Path
+
+        sessions_dir = _Path(__file__).parent / "data" / "sessions"
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        output_path = sessions_dir / f"session_values_{int(time.time())}.json"
+
+        report = generate_session_values(
+            target_url=url,
+            output_path=output_path,
+            cache_dir=sessions_dir,
+            enable_playwright=os.environ.get("ENABLE_PLAYWRIGHT", "").lower() == "true",
+        )
+        content = json.dumps(report, ensure_ascii=False, indent=2)
+        return Response(
+            content,
+            mimetype="application/json",
+            headers={"Content-Disposition": f'attachment; filename="session_values_{int(time.time())}.json"'}
+        )
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/mssdk-analyze", methods=["POST", "GET"])
+def api_mssdk_analyze():
+    """Run the 8-phase MSSDK analyzer on a webmssdk.js file.
+
+    POST params:
+      - code: full webmssdk.js source (required if no url)
+      - url: URL to fetch webmssdk.js from (alternative to code)
+      - do_runtime: "true" to run Phase 3 (Playwright runtime probe)
+    """
+    if request.method == "GET":
+        code = ""
+        url = request.args.get("url", "").strip()
+        do_runtime = request.args.get("do_runtime", "").lower() == "true"
+    else:
+        data = request.get_json(force=True, silent=True) or {}
+        code = data.get("code", "")
+        url = data.get("url", "").strip()
+        do_runtime = data.get("do_runtime", False)
+
+    if not code and not url:
+        return jsonify({"success": False, "error": "Provide either 'code' or 'url'"}), 400
+
+    try:
+        from mssdk_analyzer import analyze_webmssdk
+
+        if not code and url:
+            import requests as _r
+            r = _r.get(url, timeout=30, verify=False)
+            if r.status_code != 200:
+                return jsonify({"success": False, "error": f"Failed to fetch: HTTP {r.status_code}"}), 502
+            code = r.text
+
+        analysis = analyze_webmssdk(code, do_runtime=do_runtime)
+        return jsonify({
+            "success": True,
+            "summary": analysis.get("_summary", {}),
+            "phases": {
+                "phase1_static": {
+                    "totalVariables": len(analysis.get("_phase1_static", {}).get("variables", {})),
+                    "totalFunctions": len(analysis.get("_phase1_static", {}).get("functions", {})),
+                    "totalStringLiterals": len(analysis.get("_phase1_static", {}).get("string_literals", [])),
+                },
+                "phase2_decoded": analysis.get("_phase2_decoded", {}),
+                "phase3_runtime": analysis.get("_phase3_runtime", {}),
+                "phase4_base64": analysis.get("_phase4_base64", {}).get("stats", {}),
+                "phase5_zip": analysis.get("_phase5_zip", {}).get("stats", {}),
+                "phase6_xor": analysis.get("_phase6_xor", {}).get("stats", {}),
+                "phase7_acrawler": analysis.get("_phase7_acrawler", {}).get("stats", {}),
+                "phase8_deobfuscation": analysis.get("_phase8_deobfuscation", {}).get("stats", {}),
+            },
+            "string_literals_sample": analysis.get("_phase1_static", {}).get("string_literals", [])[:100],
+        })
+    except ImportError as e:
+        return jsonify({"success": False, "error": f"mssdk_analyzer not available: {e}"}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/mssdk-sign", methods=["POST", "GET"])
+def api_mssdk_sign():
+    """Generate real X-Bogus / X-Gnarly / X-Mssdk-Info signatures via Playwright.
+
+    POST params:
+      - url: request URL to sign (required)
+      - method: HTTP method (default: GET)
+      - params: request params dict
+      - ticket: optional msToken
+      - user_mode: optional int (0=normal, 1=incognito)
+    """
+    if request.method == "GET":
+        sign_url = request.args.get("url", "").strip()
+        method = request.args.get("method", "GET")
+        params_str = request.args.get("params", "{}")
+        ticket = request.args.get("ticket", "")
+        user_mode = int(request.args.get("user_mode", "0"))
+    else:
+        data = request.get_json(force=True, silent=True) or {}
+        sign_url = data.get("url", "").strip()
+        method = data.get("method", "GET")
+        params_str = data.get("params", "{}") if isinstance(data.get("params"), str) else json.dumps(data.get("params", {}))
+        ticket = data.get("ticket", "")
+        user_mode = int(data.get("user_mode", 0))
+
+    if not sign_url:
+        return jsonify({"success": False, "error": "Missing 'url' parameter"}), 400
+
+    try:
+        params = json.loads(params_str) if params_str else {}
+    except Exception:
+        params = {}
+
+    try:
+        from tiktok_session_integrator import ensure_webmssdk_local, WEBMSSDK_CDN_URL
+        from mssdk_analyzer import generate_signatures_via_playwright
+        from pathlib import Path as _Path
+
+        sessions_dir = _Path(__file__).parent / "data" / "sessions"
+        local_path = ensure_webmssdk_local(sessions_dir)
+        if not local_path:
+            return jsonify({"success": False, "error": "Failed to download webmssdk.js from CDN"}), 502
+        with open(local_path, "r", encoding="utf-8") as f:
+            code = f.read()
+
+        sig = generate_signatures_via_playwright(
+            code, sign_url, method=method, params=params, ticket=ticket, user_mode=user_mode
+        )
+        return jsonify({
+            "success": sig.get("ok", False),
+            "x-bogus": sig.get("x-bogus"),
+            "x-gnarly": sig.get("x-gnarly"),
+            "x-mssdk-info": sig.get("x-mssdk-info"),
+            "x-mssdk-rc": sig.get("x-mssdk-rc"),
+            "raw": sig.get("raw"),
+            "generatedAt": sig.get("generatedAt"),
+            "request": sig.get("request"),
+            "error": sig.get("error"),
+        })
+    except ImportError as e:
+        return jsonify({"success": False, "error": f"required modules not available: {e}"}), 500
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

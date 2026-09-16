@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Runtime data (do not commit)
+data/sessions/webmssdk_remote.js
+data/sessions/session_values_*.json
+data/sessions/*.json.tmp
+/tmp/tiktok_html/
+/tmp/tiktok_users_db/
+/tmp/tiktok_sessions_local/
+
+# Server logs
+*.log
+server.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Playwright
+.playwright/
