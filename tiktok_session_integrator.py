@@ -487,6 +487,7 @@ def build_all_34_values(
     cache_dir: Path,
     enable_playwright: bool = False,
     target_url: str = "",
+    real_creds: Dict[str, Any] = None,
 ) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     """Build all 34 session values with full metadata.
 
@@ -497,6 +498,8 @@ def build_all_34_values(
         webid_data: TTWebidV2 structure dict
         real_creds: dict of REAL credentials extracted via Playwright
     """
+    if real_creds is None:
+        real_creds = {}
     # Pull live values where available
     live_msToken = live_fetch.get("msToken")
     live_verifyFp = live_fetch.get("verifyFp")
@@ -506,17 +509,18 @@ def build_all_34_values(
     live_sessionid = live_fetch.get("sessionid")
     live_ttwid = live_fetch.get("ttwid")
 
-    # ─── v1.0.36: Try to get REAL credentials via Playwright ───
-    # This is the gold-standard path that produces real values.
-    real_creds: Dict[str, Any] = {}
-    if enable_playwright:
-        try:
-            from real_credentials_extractor import get_real_credentials
-            real_creds = get_real_credentials(target_url, cache_dir)
-        except ImportError:
-            pass
-        except Exception:
-            pass
+    # ─── v1.0.40: real_creds is now passed in from generate_session_values ───
+    # (instead of being re-extracted here, which caused double Playwright launch
+    # and OOM crashes on memory-constrained environments like Render free tier).
+    # If playwright_result has the data we need, use it.
+    if not real_creds and playwright_result.get("ok"):
+        real_creds = {
+            "available": True,
+            "x_bogus": playwright_result.get("xbogus"),
+            "byted_acrawler_props": playwright_result.get("byted_acrawler_props", []),
+            "isWebmssdk": playwright_result.get("isWebmssdk"),
+            "shared_cache": playwright_result.get("_shared_cache"),
+        }
 
     # Use REAL credentials when available (overrides everything else)
     if real_creds.get("csrf_token"):
@@ -1010,21 +1014,40 @@ def generate_session_values(
     live_fetch = fetch_tiktok_html(target_url)
 
     # Step 2: Playwright signing (if enabled)
+    # v1.0.40: To avoid launching Chromium twice (OOM crash), we ONLY call
+    # real_credentials_extractor — which already does frontierSign(user_url).
+    # The legacy sign_with_playwright is skipped because real_credentials_extractor
+    # is strictly better (signs user's URL instead of test URL).
     playwright_result = {"tried": False, "ok": False, "xbogus": None, "error": None}
+    real_creds: Dict[str, Any] = {}
     if enable_playwright:
         try:
-            playwright_result = sign_with_playwright(
-                "https://webcast.tiktok.com/webcast/room/page/info/?unique_id=humixc&device_platform=web&aid=1988&channel=channel_unknown",
-                cache_dir,
-            )
+            from real_credentials_extractor import get_real_credentials
+            real_creds = get_real_credentials(target_url, cache_dir)
+            # Build playwright_result from real_creds so downstream code works
+            playwright_result = {
+                "tried": True,
+                "ok": bool(real_creds.get("available")),
+                "xbogus": real_creds.get("x_bogus"),
+                "byted_acrawler_props": real_creds.get("byted_acrawler_props", []),
+                "isWebmssdk": real_creds.get("isWebmssdk"),
+                "_shared_cache": real_creds.get("shared_cache"),
+                "error": real_creds.get("error"),
+            }
+        except ImportError as e:
+            playwright_result = {"tried": True, "ok": False, "error": f"real_credentials_extractor not available: {e}"}
         except Exception as e:
             playwright_result = {"tried": True, "ok": False, "error": str(e)}
 
     # Step 3: Build all 34 values
-    values, hashes, ttwid_data, webid_data, real_creds = build_all_34_values(
+    values, hashes, ttwid_data, webid_data, real_creds_from_build = build_all_34_values(
         live_fetch, playwright_result, session_constants, cache_dir,
         enable_playwright=enable_playwright, target_url=target_url,
+        real_creds=real_creds,
     )
+    # Use real_creds from get_real_credentials (already populated above)
+    if not real_creds:
+        real_creds = real_creds_from_build
 
     # Step 4: Build final report
     final_report = {

@@ -1242,13 +1242,16 @@ def _try_webcast_api(session: requests.Session,
     signed_url = url
     headers = {"User-Agent": ua}
     try:
+        # v1.0.40: Skip Playwright during extraction to avoid OOM crashes
+        # (yt-dlp + Playwright + waitress in 4GB RAM is too much).
+        # Use xbogus.py Python fallback instead — it's fast and memory-safe.
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        from xbogus_playwright import sign_with_playwright
-        signed_url, headers = sign_with_playwright(url, user_agent=ua)
+        import xbogus
+        signed_url, headers = xbogus.sign(url, user_agent=ua)
         if "X-Bogus" not in headers:
             logger.warning("Webcast API: X-Bogus signing failed; aborting")
             return None
-        logger.info(f"Webcast API: signed OK, X-Bogus={headers['X-Bogus'][:24]}...")
+        logger.info(f"Webcast API: signed OK (xbogus.py), X-Bogus={headers['X-Bogus'][:24]}...")
     except Exception as e:
         logger.warning(f"Webcast API: signer unavailable ({e})")
         return None
@@ -6157,7 +6160,11 @@ def _enrich_with_session_values(result: ExtractionResult, original_url: str) -> 
         output_path = sessions_dir / f"{safe_uid}_session_values.json"
 
         # Skip Playwright if env var explicitly disabled
-        enable_pw = os.environ.get("ENABLE_PLAYWRIGHT", "false").lower() == "true"
+        # v1.0.40: Default to False during extraction to avoid OOM crashes
+        # (yt-dlp + Playwright + waitress in 4GB RAM is too much).
+        # Playwright is still available via /api/session-values endpoint
+        # which doesn't run yt-dlp.
+        enable_pw = False  # Always disable during extraction for stability
 
         logger.info(f"v4.5: Auto-running session integrator for @{unique_id} (Playwright={enable_pw})")
         report = generate_session_values(
