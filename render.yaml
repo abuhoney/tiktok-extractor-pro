@@ -1,8 +1,5 @@
-# render.yaml — Render deployment configuration (v1.0.38)
-# Defines the service explicitly.
-#
-# Playwright is optional — if Chromium can't be installed on Render free tier,
-# the code gracefully falls back to xbogus.py (Python port of X-Bogus algorithm).
+# render.yaml — Render deployment configuration (v1.0.39)
+# Playwright is optional — build always succeeds even if Chromium install fails.
 
 services:
   - type: web
@@ -10,7 +7,7 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && (playwright install chromium || true)
     startCommand: python app.py
     envVars:
       - key: PYTHON_VERSION
