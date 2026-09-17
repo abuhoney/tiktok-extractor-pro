@@ -1,10 +1,8 @@
-# render.yaml — Render deployment configuration (v1.0.37)
-# Defines the service explicitly with optional Playwright support.
+# render.yaml — Render deployment configuration (v1.0.38)
+# Defines the service explicitly.
 #
-# Note: Render free tier may not have all Chromium system deps.
-# We install them manually via apt-get. If Playwright still fails,
-# the code gracefully falls back to xbogus.py (Python port).
-# Set ENABLE_PLAYWRIGHT=true to enable real webmssdk.js execution.
+# Playwright is optional — if Chromium can't be installed on Render free tier,
+# the code gracefully falls back to xbogus.py (Python port of X-Bogus algorithm).
 
 services:
   - type: web
@@ -12,13 +10,8 @@ services:
     env: python
     region: oregon
     plan: free
-    # Flat structure — no rootDir needed
-    buildCommand: |
-      pip install -r requirements.txt &&
-      (playwright install chromium 2>&1 || echo "Playwright Chromium install failed — will use xbogus.py fallback") &&
-      (python -c "import requests; r=requests.get('https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/webmssdk/1.0.0.417/webmssdk.js',verify=False,timeout=30); open('webmssdk_remote.js','w').write(r.text); print(f'Pre-cached webmssdk.js ({len(r.text)} bytes)')" 2>&1 || echo "webmssdk.js pre-cache failed — will download at runtime")
+    buildCommand: pip install -r requirements.txt
     startCommand: python app.py
-    # Environment variables (set from Render Dashboard for security)
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
@@ -28,7 +21,5 @@ services:
         value: "true"
       - key: PYTHONUNBUFFERED
         value: "1"
-      # GH_TOKEN — set manually from Render Dashboard → Environment
-      # TIKTOK_PROXY — set manually if needed for geo-unblocking
     healthCheckPath: /api/health
     autoDeploy: true
