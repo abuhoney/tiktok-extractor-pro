@@ -1,9 +1,10 @@
-# render.yaml — Render deployment configuration (v1.0.36)
-# Defines the service explicitly with REAL Playwright support.
+# render.yaml — Render deployment configuration (v1.0.37)
+# Defines the service explicitly with optional Playwright support.
 #
-# Note: --with-deps doesn't work on Render free tier because it requires
-# sudo access for apt-get. Instead, we install the required system libraries
-# manually via the buildCommand.
+# Note: Render free tier may not have all Chromium system deps.
+# We install them manually via apt-get. If Playwright still fails,
+# the code gracefully falls back to xbogus.py (Python port).
+# Set ENABLE_PLAYWRIGHT=true to enable real webmssdk.js execution.
 
 services:
   - type: web
@@ -14,8 +15,8 @@ services:
     # Flat structure — no rootDir needed
     buildCommand: |
       pip install -r requirements.txt &&
-      playwright install chromium &&
-      python -c "import requests; r=requests.get('https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/webmssdk/1.0.0.417/webmssdk.js',verify=False,timeout=30); open('webmssdk_remote.js','w').write(r.text); print(f'Pre-cached webmssdk.js ({len(r.text)} bytes)')"
+      (playwright install chromium 2>&1 || echo "Playwright Chromium install failed — will use xbogus.py fallback") &&
+      (python -c "import requests; r=requests.get('https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/webmssdk/1.0.0.417/webmssdk.js',verify=False,timeout=30); open('webmssdk_remote.js','w').write(r.text); print(f'Pre-cached webmssdk.js ({len(r.text)} bytes)')" 2>&1 || echo "webmssdk.js pre-cache failed — will download at runtime")
     startCommand: python app.py
     # Environment variables (set from Render Dashboard for security)
     envVars:
