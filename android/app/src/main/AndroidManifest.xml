@@ -5,6 +5,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- v1.0.41 NEW: Permissions for continuous monitoring -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <application
         android:label="@string/app_name"
         android:icon="@android:drawable/ic_dialog_info"
@@ -35,5 +41,12 @@
                     android:host="tiktok-extractor-pro.onrender.com" />
             </intent-filter>
         </activity>
+
+        <!-- v1.0.41 NEW: Continuous Live Monitor Service -->
+        <!-- Background service that polls TikTok LIVE every 10s and records all events -->
+        <service
+            android:name=".ContinuousLiveMonitorService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 </manifest>

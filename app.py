@@ -1671,6 +1671,242 @@ def _human_size(n):
 
 
 # ────────────────────────────────────────────────────────────────────────────
+#  v8/v9 API endpoints — receive monitoring data from APK
+# ────────────────────────────────────────────────────────────────────────────
+import sqlite3 as _sqlite3
+_V8_CACHE_DB = "/tmp/tiktok_v8_cache.db"
+
+
+def _v8_init_db():
+    """Initialize v8 cache database (matches APK's cache.db schema)."""
+    conn = _sqlite3.connect(_V8_CACHE_DB)
+    c = conn.cursor()
+    c.execute("""CREATE TABLE IF NOT EXISTS sessions (
+        session_id TEXT PRIMARY KEY,
+        live_url TEXT,
+        room_id TEXT,
+        unique_id TEXT,
+        streamer_user_id TEXT,
+        started_at REAL,
+        ended_at REAL,
+        duration_s REAL,
+        total_polls INTEGER,
+        total_events INTEGER,
+        total_gifts INTEGER,
+        total_mstoken_renewals INTEGER,
+        cookies_count INTEGER,
+        has_sessionid INTEGER,
+        final_viewer_count INTEGER,
+        final_like_count INTEGER,
+        final_diamond_count INTEGER,
+        session_dir TEXT
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS session_polls (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT,
+        poll_n INTEGER,
+        timestamp REAL,
+        elapsed_s REAL,
+        http_status INTEGER,
+        status_code INTEGER,
+        is_live INTEGER,
+        viewer_count INTEGER,
+        like_count INTEGER,
+        diamond_count INTEGER
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS session_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT,
+        event_type TEXT,
+        event_timestamp REAL,
+        poll_n INTEGER,
+        event_data_json TEXT
+    )""")
+    conn.commit()
+    conn.close()
+
+
+_v8_init_db()
+
+
+@app.route("/api/v8/session/start", methods=["POST"])
+def api_v8_session_start():
+    """Receive session start metadata from APK."""
+    try:
+        data = request.get_json(force=True) or {}
+        session_id = data.get("session_id", "")
+        if not session_id:
+            return jsonify({"success": False, "error": "session_id required"}), 400
+        conn = _sqlite3.connect(_V8_CACHE_DB)
+        c = conn.cursor()
+        c.execute("""INSERT OR REPLACE INTO sessions
+            (session_id, live_url, room_id, unique_id, streamer_user_id,
+             started_at, cookies_count, has_sessionid)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (session_id, data.get("live_url", ""), data.get("room_id", ""),
+             data.get("unique_id", ""), data.get("streamer_user_id", ""),
+             __import__("time").time(),
+             data.get("cookies_count", 0),
+             1 if data.get("has_sessionid") else 0))
+        conn.commit()
+        conn.close()
+        logger.info("v8 session start: %s", session_id)
+        return jsonify({"success": True, "session_id": session_id})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/v8/poll", methods=["POST"])
+def api_v8_poll():
+    """Receive a single poll from APK."""
+    try:
+        data = request.get_json(force=True) or {}
+        session_id = data.get("session_id", "")
+        if not session_id:
+            return jsonify({"success": False, "error": "session_id required"}), 400
+        conn = _sqlite3.connect(_V8_CACHE_DB)
+        c = conn.cursor()
+        c.execute("""INSERT INTO session_polls
+            (session_id, poll_n, timestamp, elapsed_s, http_status, status_code,
+             is_live, viewer_count, like_count, diamond_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (session_id, data.get("poll_n", 0), __import__("time").time(),
+             data.get("elapsed_s"), data.get("http_status"),
+             data.get("status_code"),
+             1 if data.get("is_live") else 0,
+             data.get("viewer_count", 0), data.get("like_count", 0),
+             data.get("diamond_count", 0)))
+        c.execute("""UPDATE sessions SET
+            total_polls = total_polls + 1,
+            final_viewer_count = ?,
+            final_like_count = ?,
+            final_diamond_count = ?
+            WHERE session_id = ?""",
+            (data.get("viewer_count", 0), data.get("like_count", 0),
+             data.get("diamond_count", 0), session_id))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/v8/event", methods=["POST"])
+def api_v8_event():
+    """Receive a single event from APK."""
+    try:
+        data = request.get_json(force=True) or {}
+        session_id = data.get("session_id", "")
+        if not session_id:
+            return jsonify({"success": False, "error": "session_id required"}), 400
+        event_type = data.get("type", "unknown")
+        conn = _sqlite3.connect(_V8_CACHE_DB)
+        c = conn.cursor()
+        c.execute("""INSERT INTO session_events
+            (session_id, event_type, event_timestamp, poll_n, event_data_json)
+            VALUES (?, ?, ?, ?, ?)""",
+            (session_id, event_type, __import__("time").time(),
+             data.get("poll_n"), json.dumps(data, ensure_ascii=False)))
+        # Update session totals
+        if event_type == "gift_received":
+            c.execute("""UPDATE sessions SET
+                total_gifts = total_gifts + 1 WHERE session_id = ?""", (session_id,))
+        elif event_type == "mstoken_renewed":
+            c.execute("""UPDATE sessions SET
+                total_mstoken_renewals = total_mstoken_renewals + 1
+                WHERE session_id = ?""", (session_id,))
+        c.execute("""UPDATE sessions SET
+            total_events = total_events + 1 WHERE session_id = ?""", (session_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/v8/session/end", methods=["POST"])
+def api_v8_session_end():
+    """Receive final session summary from APK."""
+    try:
+        data = request.get_json(force=True) or {}
+        session_id = data.get("session_id", "")
+        if not session_id:
+            return jsonify({"success": False, "error": "session_id required"}), 400
+        conn = _sqlite3.connect(_V8_CACHE_DB)
+        c = conn.cursor()
+        c.execute("""UPDATE sessions SET
+            ended_at = ?, duration_s = ?, total_polls = ?, total_events = ?,
+            total_gifts = ?, total_mstoken_renewals = ?
+            WHERE session_id = ?""",
+            (__import__("time").time(), data.get("duration_s", 0),
+             data.get("total_polls", 0), data.get("total_events", 0),
+             data.get("total_gifts", 0),
+             data.get("total_mstoken_renewals", 0), session_id))
+        conn.commit()
+        conn.close()
+        logger.info("v8 session end: %s", session_id)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/v8/sessions", methods=["GET"])
+def api_v8_sessions_list():
+    """List all v8 monitoring sessions."""
+    try:
+        conn = _sqlite3.connect(_V8_CACHE_DB)
+        c = conn.cursor()
+        c.execute("""SELECT session_id, live_url, room_id, unique_id,
+                streamer_user_id, started_at, ended_at, duration_s,
+                total_polls, total_events, total_gifts, total_mstoken_renewals,
+                cookies_count, has_sessionid,
+                final_viewer_count, final_like_count, final_diamond_count
+            FROM sessions ORDER BY started_at DESC LIMIT 50""")
+        rows = c.fetchall()
+        conn.close()
+        return jsonify({"sessions": [
+            {
+                "session_id": r[0], "live_url": r[1], "room_id": r[2],
+                "unique_id": r[3], "streamer_user_id": r[4],
+                "started_at": r[5], "ended_at": r[6], "duration_s": r[7],
+                "total_polls": r[8], "total_events": r[9], "total_gifts": r[10],
+                "total_mstoken_renewals": r[11], "cookies_count": r[12],
+                "has_sessionid": bool(r[13]),
+                "final_viewer_count": r[14], "final_like_count": r[15],
+                "final_diamond_count": r[16],
+            } for r in rows
+        ]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/v8/stats", methods=["GET"])
+def api_v8_stats():
+    """Aggregate v8 monitoring stats."""
+    try:
+        conn = _sqlite3.connect(_V8_CACHE_DB)
+        c = conn.cursor()
+        c.execute("""SELECT COUNT(*), COALESCE(SUM(total_polls), 0),
+                COALESCE(SUM(total_events), 0), COALESCE(SUM(total_gifts), 0),
+                COALESCE(SUM(total_mstoken_renewals), 0),
+                COALESCE(SUM(duration_s), 0)
+            FROM sessions""")
+        row = c.fetchone()
+        conn.close()
+        return jsonify({
+            "total_sessions": row[0],
+            "total_polls": row[1],
+            "total_events": row[2],
+            "total_gifts": row[3],
+            "total_mstoken_renewals": row[4],
+            "total_duration_s": round(row[5], 1),
+            "cache_db_path": _V8_CACHE_DB,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ────────────────────────────────────────────────────────────────────────────
 #  تشغيل الخادم
 # ────────────────────────────────────────────────────────────────────────────
 def main():
