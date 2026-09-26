@@ -1,0 +1,55 @@
+{
+  "v8_observer_run": {
+    "live_url": "https://vt.tiktok.com/ZS9AGo6U7MLuj-oQmvV/",
+    "room_id_observed": "7683963746938555152",
+    "unique_id": "live_fest2026",
+    "session_id": "8f22a593dd87",
+    "session_dir": "/home/z/my-project/download/tiktok_deep_data_v8/live_fest2026/observer_8f22a593dd87",
+    "started_at": "2026-09-26T21:59:10.807677Z",
+    "ended_at": "2026-09-26T22:01:20.812149Z",
+    "duration_s": 130.0,
+    "cookies_used": [
+      "tt_csrf_token",
+      "x-web-secsdk-uid",
+      "tiktok_webapp_theme_source",
+      "tiktok_webapp_theme",
+      "delay_guest_mode_vid",
+      "g_state",
+      "use_live_desktop_arch",
+      "_tea_utm_cache_1988",
+      "ttwid",
+      "living_user_id",
+      "_tea_utm_cache_345918",
+      "csrfToken",
+      "tt_chain_token",
+      "msToken",
+      "odin_tt",
+      "_tea_utm_cache_1992"
+    ],
+    "cookies_used_count": 16,
+    "living_user_id": "887827915334",
+    "monitor_config": {
+      "poll_interval_s": 10,
+      "max_duration_s": 120
+    },
+    "totals": {
+      "polls": 15,
+      "events": 16,
+      "gift_events": 0,
+      "cookie_renewals": 15
+    },
+    "final_status": {
+      "status": "completed",
+      "polls": 15,
+      "events": 16,
+      "gift_events": 0,
+      "cookie_renewals": 15,
+      "last_viewer_count": 0,
+      "last_like_count": 0,
+      "last_diamond_count": 0,
+      "last_is_live": false,
+      "last_owner": "",
+      "session_dir": "/home/z/my-project/download/tiktok_deep_data_v8/live_fest2026/observer_8f22a593dd87"
+    }
+  }
+}
