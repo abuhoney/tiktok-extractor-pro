@@ -2009,26 +2009,65 @@ def api_v11_handle():
             content_type = "profile"
 
         # For non-live URLs: try oEmbed
+        # v1.0.43: For YouTube, NEVER fetch the full page (causes 429).
+        # Use YouTubeURLFixer approach: oEmbed primary, noembed.com fallback.
         metadata = {}
         if content_type != "live":
             try:
-                oembed_endpoints = {
-                    "tiktok": f"https://www.tiktok.com/oembed?url={url}",
-                    "youtube": f"https://www.youtube.com/oembed?url={url}&format=json",
-                    "instagram": f"https://api.instagram.com/oembed?url={url}",
-                }
-                oembed_url = oembed_endpoints.get(platform)
-                if oembed_url:
-                    import requests as _requests
-                    import urllib3 as _urllib3
-                    _urllib3.disable_warnings()
-                    r = _requests.get(oembed_url, headers={"User-Agent": "Mozilla/5.0"},
-                                      timeout=8, verify=False)
-                    metadata["http_status"] = r.status_code
-                    if r.status_code == 200 and r.text.startswith("{"):
-                        d = r.json()
-                        metadata["title"] = d.get("title", "")
-                        metadata["streamer_nickname"] = d.get("author_name", "")
+                # v1.0.43: YouTube-specific fix — strip ?si= param, use oEmbed with retry
+                if platform == "youtube":
+                    # Extract video_id (strip ?si= tracking param)
+                    import re as _re2
+                    vid_match = _re2.search(r'(?:youtu\.be/|v=|shorts/|live/|embed/)([a-zA-Z0-9_-]{11})', url)
+                    if vid_match:
+                        video_id = vid_match.group(1)
+                        # Try YouTube oEmbed (primary)
+                        oembed_url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
+                        import requests as _requests
+                        import urllib3 as _urllib3
+                        _urllib3.disable_warnings()
+                        r = _requests.get(oembed_url, headers={"User-Agent": "Mozilla/5.0"},
+                                          timeout=8, verify=False, allow_redirects=False)
+                        metadata["http_status"] = r.status_code
+                        if r.status_code == 200 and r.text.startswith("{"):
+                            d = r.json()
+                            metadata["title"] = d.get("title", "")
+                            metadata["streamer_nickname"] = d.get("author_name", "")
+                            metadata["source"] = "youtube_oembed"
+                        else:
+                            # Fallback: noembed.com
+                            noembed_url = f"https://noembed.com/embed?url=https://www.youtube.com/watch?v={video_id}"
+                            r2 = _requests.get(noembed_url, headers={"User-Agent": "Mozilla/5.0"},
+                                               timeout=8, verify=False, allow_redirects=False)
+                            if r2.status_code == 200 and r2.text.startswith("{"):
+                                d2 = r2.json()
+                                metadata["title"] = d2.get("title", "")
+                                metadata["streamer_nickname"] = d2.get("author_name", "")
+                                metadata["source"] = "noembed"
+                                metadata["http_status"] = 200
+                            else:
+                                metadata["thumbnail_url"] = f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
+                                metadata["source"] = "thumbnail_only"
+                    else:
+                        metadata["error"] = "Could not extract YouTube video_id"
+                else:
+                    # Non-YouTube: use platform-specific oEmbed
+                    oembed_endpoints = {
+                        "tiktok": f"https://www.tiktok.com/oembed?url={url}",
+                        "instagram": f"https://api.instagram.com/oembed?url={url}",
+                    }
+                    oembed_url = oembed_endpoints.get(platform)
+                    if oembed_url:
+                        import requests as _requests
+                        import urllib3 as _urllib3
+                        _urllib3.disable_warnings()
+                        r = _requests.get(oembed_url, headers={"User-Agent": "Mozilla/5.0"},
+                                          timeout=8, verify=False, allow_redirects=False)
+                        metadata["http_status"] = r.status_code
+                        if r.status_code == 200 and r.text.startswith("{"):
+                            d = r.json()
+                            metadata["title"] = d.get("title", "")
+                            metadata["streamer_nickname"] = d.get("author_name", "")
             except Exception as e:
                 metadata["oembed_error"] = str(e)[:200]
 

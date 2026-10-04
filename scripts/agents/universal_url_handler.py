@@ -213,55 +213,60 @@ class TikTokVideoAdapter(VideoAdapter):
 
 
 class YouTubeVideoAdapter(VideoAdapter):
-    """YouTube video adapter — fetches metadata for a YouTube video."""
+    """YouTube video adapter — fetches metadata for a YouTube video.
+
+    v12 FIX: Uses YouTubeURLFixer to avoid 429 errors.
+    Never fetches the full YouTube page (which triggers Google bot detection).
+    Instead, uses oEmbed (primary) + noembed.com (fallback).
+    """
 
     PLATFORM = "youtube"
     CONTENT_TYPE = "video"
 
     def parse(self) -> dict:
-        patterns = [
-            r'youtube\.com/watch\?v=([a-zA-Z0-9_-]{11})',
-            r'youtu\.be/([a-zA-Z0-9_-]{11})',
-            r'youtube\.com/shorts/([a-zA-Z0-9_-]{11})',
-            r'youtube\.com/embed/([a-zA-Z0-9_-]{11})',
-            r'm\.youtube\.com/watch\?v=([a-zA-Z0-9_-]{11})',
-        ]
-        for p in patterns:
-            m = re.search(p, self.live_url)
-            if m:
-                self.video_id = m.group(1)
-                break
+        # v12: use YouTubeURLFixer to extract video_id (handles ?si= param)
+        try:
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from rate_limit_handler import YouTubeURLFixer
+            self.video_id = YouTubeURLFixer.extract_video_id(self.live_url)
+        except ImportError:
+            # Fallback to original patterns
+            patterns = [
+                r'youtube\.com/watch\?v=([a-zA-Z0-9_-]{11})',
+                r'youtu\.be/([a-zA-Z0-9_-]{11})',
+                r'youtube\.com/shorts/([a-zA-Z0-9_-]{11})',
+                r'youtube\.com/embed/([a-zA-Z0-9_-]{11})',
+                r'm\.youtube\.com/watch\?v=([a-zA-Z0-9_-]{11})',
+            ]
+            for p in patterns:
+                m = re.search(p, self.live_url)
+                if m:
+                    self.video_id = m.group(1)
+                    break
         return super().parse()
 
     def fetch_metadata(self) -> dict:
         if not self.video_id:
             return super().fetch_metadata()
-        # Use YouTube's oEmbed endpoint (public)
-        oembed_url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={self.video_id}&format=json"
-        h = {"User-Agent": UA, "Accept": "application/json"}
+        # v12: use YouTubeURLFixer (avoids 429 via oEmbed + noembed fallback)
         try:
-            r = requests.get(oembed_url, headers=h, timeout=8, verify=False)
-            result = {
-                "http_status": r.status_code,
-                "title": "",
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from rate_limit_handler import YouTubeURLFixer
+            fixed = YouTubeURLFixer.fetch_metadata(self.live_url)
+            return {
+                "http_status": fixed.get("http_status", 0),
+                "title": fixed.get("title", ""),
                 "view_count": 0,
                 "like_count": 0,
                 "comment_count": 0,
                 "share_count": 0,
                 "duration_seconds": 0,
                 "upload_date": "",
-                "streamer_nickname": "",
+                "streamer_nickname": fixed.get("streamer_nickname", ""),
+                "thumbnail_url": fixed.get("thumbnail_url", ""),
+                "source": fixed.get("source", ""),
                 "raw_response": None,
             }
-            if r.status_code == 200 and r.text.startswith("{"):
-                try:
-                    d = r.json()
-                    result["raw_response"] = d
-                    result["title"] = d.get("title", "")
-                    result["streamer_nickname"] = d.get("author_name", "")
-                except Exception:
-                    pass
-            return result
         except Exception as e:
             return {"http_status": 0, "error": str(e)[:200]}
 

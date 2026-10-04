@@ -283,10 +283,95 @@ public class UniversalURLHandlerService extends Service {
         return result;
     }
 
-    private JSONObject fetchMetadata() throws Exception {
-        // For non-live content: oEmbed endpoints
-        String oembedUrl = getOEmbedEndpoint();
+    private JSONObject fetchYouTubeMetadataWithRetry() throws Exception {
+        // v1.0.43: YouTube-specific metadata fetch with retry + backoff.
+        // NEVER fetches the full YouTube page (which causes 429 via Google bot detection).
+        // Strategy:
+        //   1. Try YouTube oEmbed (primary — never 429s)
+        //   2. Try noembed.com (fallback — also never 429s)
+        //   3. Return thumbnail URL only (last resort)
         JSONObject result = new JSONObject();
+        result.put("http_status", 0);
+        result.put("title", "");
+        result.put("streamer_nickname", "");
+        result.put("thumbnail_url", "https://i.ytimg.com/vi/" + videoId + "/hqdefault.jpg");
+
+        String[] oembedUrls = {
+            "https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=" + videoId + "&format=json",
+            "https://noembed.com/embed?url=https://www.youtube.com/watch?v=" + videoId,
+        };
+
+        for (String oembedUrl : oembedUrls) {
+            for (int attempt = 0; attempt < 3; attempt++) {
+                try {
+                    HttpURLConnection conn = (HttpURLConnection) new URL(oembedUrl).openConnection();
+                    conn.setRequestProperty("User-Agent", USER_AGENT);
+                    conn.setRequestProperty("Accept", "application/json");
+                    conn.setConnectTimeout(8000);
+                    conn.setReadTimeout(8000);
+                    conn.setInstanceFollowRedirects(false);  // Don't follow redirects (avoid /sorry/)
+                    int status = conn.getResponseCode();
+                    result.put("http_status", status);
+
+                    if (status == 429) {
+                        // Rate limited — wait and retry with exponential backoff
+                        String retryAfter = conn.getHeaderField("Retry-After");
+                        long waitMs = 1000L * (1 << attempt);  // 1s, 2s, 4s
+                        if (retryAfter != null) {
+                            try { waitMs = Long.parseLong(retryAfter) * 1000; } catch (Exception ignored) {}
+                        }
+                        Log.w(TAG, "YouTube 429 on attempt " + (attempt + 1) + ", waiting " + waitMs + "ms");
+                        Thread.sleep(Math.min(waitMs, 30000));
+                        continue;
+                    }
+
+                    if (status == 200) {
+                        StringBuilder body = new StringBuilder();
+                        try (java.io.InputStream is = conn.getInputStream()) {
+                            byte[] buf = new byte[4096];
+                            int n;
+                            while ((n = is.read(buf)) > 0) body.append(new String(buf, 0, n));
+                        }
+                        if (body.length() > 0 && body.charAt(0) == '{') {
+                            JSONObject d = new JSONObject(body);
+                            result.put("title", d.optString("title"));
+                            result.put("streamer_nickname", d.optString("author_name"));
+                            if (d.has("thumbnail_url")) {
+                                result.put("thumbnail_url", d.optString("thumbnail_url"));
+                            }
+                            result.put("source", oembedUrl.contains("noembed") ? "noembed" : "youtube_oembed");
+                            Log.i(TAG, "YouTube metadata fetched: " + d.optString("title"));
+                            return result;
+                        }
+                    }
+                    break;  // Non-429 error — try next endpoint
+                } catch (Exception e) {
+                    Log.w(TAG, "YouTube fetch attempt " + (attempt + 1) + " error: " + e.getMessage());
+                    if (attempt < 2) {
+                        Thread.sleep(1000L * (1 << attempt));
+                    }
+                }
+            }
+        }
+
+        // Last resort — return thumbnail only
+        result.put("source", "thumbnail_only");
+        result.put("error", "oEmbed failed, returning thumbnail only");
+        return result;
+    }
+
+    private JSONObject fetchMetadata() throws Exception {
+        // v1.0.43 FIX: For YouTube, NEVER fetch the full page (causes 429).
+        // Use oEmbed endpoint directly with retry+backoff.
+        // For other platforms: oEmbed endpoints.
+        JSONObject result = new JSONObject();
+
+        // v1.0.43: YouTube-specific fix — strip ?si= param, use oEmbed with retry
+        if ("youtube".equals(platform) && videoId != null) {
+            return fetchYouTubeMetadataWithRetry();
+        }
+
+        String oembedUrl = getOEmbedEndpoint();
         if (oembedUrl == null) {
             result.put("http_status", 0);
             result.put("error", "no oEmbed for platform: " + platform);
