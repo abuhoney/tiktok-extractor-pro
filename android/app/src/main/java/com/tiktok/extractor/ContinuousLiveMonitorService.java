@@ -214,7 +214,7 @@ public class ContinuousLiveMonitorService extends Service {
 
                 if (httpStatus == 200 && body.length() > 0 && body.charAt(0) == '{') {
                     try {
-                        JSONObject json = new JSONObject(body);
+                        JSONObject json = new JSONObject(body.toString());
                         statusCode = json.optInt("status_code");
                         if (json.has("data") && json.getJSONObject("data").has("room")) {
                             JSONObject room = json.getJSONObject("data").getJSONObject("room");

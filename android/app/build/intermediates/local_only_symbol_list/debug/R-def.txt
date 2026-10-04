@@ -1,0 +1,18 @@
+R_DEF: Internal format may change without notice
+local
+color colorAccent
+color colorBackground
+color colorPrimary
+color colorPrimaryDark
+id errorView
+id fabDatabase
+id fabInteract
+id fabLogin
+id progressBar
+id webview
+layout activity_main
+string app_name
+string fileProviderAuthority
+string launcherIntent
+style Theme.App
+xml file_paths

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorAccent">#25F4EE</color>
+    <color name="colorBackground">#07070D</color>
+    <color name="colorPrimary">#FF2D55</color>
+    <color name="colorPrimaryDark">#FF0050</color>
+    <string name="app_name">TT Extractor</string>
+    <string name="fileProviderAuthority">com.tiktok.extractor.fileprovider</string>
+    <string name="launcherIntent">android.intent.action.MAIN</string>
+    <style name="Theme.App" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:windowBackground">@color/colorBackground</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:statusBarColor">@color/colorPrimary</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

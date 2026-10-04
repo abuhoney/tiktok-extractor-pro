@@ -1,0 +1,10 @@
+#Sun Oct 04 22:30:39 UTC 2026
+base.2=/home/z/my-project/tiktok-extractor-pro-clone/android/app/build/intermediates/dex/debug/mergeProjectDexDebug/15/classes.dex
+path.2=15/classes.dex
+base.1=/home/z/my-project/tiktok-extractor-pro-clone/android/app/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex
+path.1=0/classes.dex
+base.0=/home/z/my-project/tiktok-extractor-pro-clone/android/app/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex
+renamed.2=classes3.dex
+renamed.1=classes2.dex
+renamed.0=classes.dex
+path.0=classes.dex

@@ -333,7 +333,7 @@ public class UniversalURLHandlerService extends Service {
                             while ((n = is.read(buf)) > 0) body.append(new String(buf, 0, n));
                         }
                         if (body.length() > 0 && body.charAt(0) == '{') {
-                            JSONObject d = new JSONObject(body);
+                            JSONObject d = new JSONObject(body.toString());
                             result.put("title", d.optString("title"));
                             result.put("streamer_nickname", d.optString("author_name"));
                             if (d.has("thumbnail_url")) {
@@ -394,7 +394,7 @@ public class UniversalURLHandlerService extends Service {
         }
         if (status == 200 && body.length() > 0 && body.charAt(0) == '{') {
             try {
-                JSONObject d = new JSONObject(body);
+                JSONObject d = new JSONObject(body.toString());
                 result.put("title", d.optString("title"));
                 result.put("streamer_nickname", d.optString("author_name"));
             } catch (Exception e) {
@@ -417,7 +417,7 @@ public class UniversalURLHandlerService extends Service {
                         int n;
                         while ((n = is.read(buf)) > 0) apiBody.append(new String(buf, 0, n));
                     }
-                    JSONObject d = new JSONObject(apiBody);
+                    JSONObject d = new JSONObject(apiBody.toString());
                     if (d.optInt("code") == 0) {
                         JSONObject data = d.getJSONObject("data");
                         JSONObject stat = data.getJSONObject("stat");

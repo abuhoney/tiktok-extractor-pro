@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.tiktok.extractor.app-merged_res-31:/xml_file_paths.xml.flat",
+        "source": "com.tiktok.extractor.app-main-33:/xml/file_paths.xml"
+    },
+    {
+        "merged": "com.tiktok.extractor.app-merged_res-31:/layout_activity_main.xml.flat",
+        "source": "com.tiktok.extractor.app-main-33:/layout/activity_main.xml"
+    }
+]
