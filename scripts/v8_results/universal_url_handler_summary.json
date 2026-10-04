@@ -1,0 +1,90 @@
+{
+  "version": "v11",
+  "generated_at": "2026-10-04T21:30:02.797277Z",
+  "supported_platforms": [
+    "tiktok",
+    "youtube",
+    "instagram",
+    "twitch",
+    "facebook",
+    "twitter_x",
+    "kick",
+    "bilibili",
+    "douyin"
+  ],
+  "supported_content_types": [
+    "live",
+    "video",
+    "post",
+    "profile"
+  ],
+  "total_urls_tested": 6,
+  "results": [
+    {
+      "platform": "tiktok",
+      "expected_type": "live",
+      "detected_type": "unknown",
+      "url": "https://vt.tiktok.com/ZS9AGo6U7MLuj-oQmvV/",
+      "polls": 1,
+      "events": 0,
+      "session_dir": "/home/z/my-project/download/universal_deep_data/tiktok/unknown/unknown/handler_db86f84448f3"
+    },
+    {
+      "platform": "youtube",
+      "expected_type": "live",
+      "detected_type": "video",
+      "url": "https://www.youtube.com/watch?v=jfKfPfyJRdk",
+      "polls": 1,
+      "events": 0,
+      "session_dir": "/home/z/my-project/download/universal_deep_data/youtube/video/unknown/handler_61a97f489212"
+    },
+    {
+      "platform": "youtube",
+      "expected_type": "video",
+      "detected_type": "video",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "title": "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)",
+      "view_count": 0,
+      "like_count": 0,
+      "streamer_nickname": "Rick Astley",
+      "http_status": 200,
+      "session_dir": "/home/z/my-project/download/universal_deep_data/youtube/video/unknown/handler_8ad2f0d4a5e4"
+    },
+    {
+      "platform": "bilibili",
+      "expected_type": "video",
+      "detected_type": "video",
+      "url": "https://www.bilibili.com/video/BV1GJ411x7h7",
+      "title": "",
+      "view_count": 0,
+      "like_count": 0,
+      "streamer_nickname": "",
+      "http_status": 412,
+      "session_dir": "/home/z/my-project/download/universal_deep_data/bilibili/video/unknown/handler_1c4e8956b843"
+    },
+    {
+      "platform": "kick",
+      "expected_type": "profile",
+      "detected_type": "profile",
+      "url": "https://kick.com/xqc",
+      "title": "",
+      "view_count": 0,
+      "like_count": 0,
+      "streamer_nickname": "xQc",
+      "http_status": 200,
+      "session_dir": "/home/z/my-project/download/universal_deep_data/kick/profile/xqc/handler_73c332224116"
+    },
+    {
+      "platform": "twitch",
+      "expected_type": "profile",
+      "detected_type": "profile",
+      "url": "https://www.twitch.tv/xqc",
+      "title": "Twitch VOD requires client_id",
+      "view_count": 0,
+      "like_count": 0,
+      "streamer_nickname": "xqc",
+      "http_status": 401,
+      "session_dir": "/home/z/my-project/download/universal_deep_data/twitch/profile/xqc/handler_baab13cf3f4f"
+    }
+  ]
+}

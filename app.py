@@ -1907,6 +1907,143 @@ def api_v8_stats():
 
 
 # ────────────────────────────────────────────────────────────────────────────
+#  v11 API endpoints — universal URL handling (ANY URL, not just live)
+# ────────────────────────────────────────────────────────────────────────────
+@app.route("/api/v11/detect", methods=["POST"])
+def api_v11_detect():
+    """Detect platform + content type from any URL."""
+    try:
+        data = request.get_json(force=True) or {}
+        url = data.get("url", "")
+        if not url:
+            return jsonify({"success": False, "error": "url required"}), 400
+
+        import re as _re
+        url_lower = url.lower()
+
+        # Detect platform
+        platform = "unknown"
+        platform_patterns = {
+            "tiktok": [r'tiktok\.com', r'vt\.tiktok\.com', r'webcast\.tiktok\.com'],
+            "youtube": [r'youtube\.com', r'youtu\.be', r'm\.youtube\.com'],
+            "instagram": [r'instagram\.com'],
+            "twitch": [r'twitch\.tv', r'clips\.twitch\.tv'],
+            "facebook": [r'facebook\.com', r'fb\.watch'],
+            "twitter_x": [r'twitter\.com', r'x\.com'],
+            "kick": [r'kick\.com'],
+            "bilibili": [r'bilibili\.com', r'live\.bilibili\.com'],
+            "douyin": [r'douyin\.com', r'live\.douyin\.com'],
+        }
+        for p, patterns in platform_patterns.items():
+            for pat in patterns:
+                if _re.search(pat, url_lower):
+                    platform = p
+                    break
+            if platform != "unknown":
+                break
+
+        # Detect content type
+        content_type = "unknown"
+        if _re.search(r'/live|live\.bilibili|/spaces/', url_lower):
+            content_type = "live"
+        elif _re.search(r'/video/|/watch\?v=|/shorts/|/reel/|/reels/|youtu\.be/|/videos/|fb\.watch/|/status/|/clip/', url_lower):
+            content_type = "video"
+        elif _re.search(r'/p/|/post/|/posts/', url_lower):
+            content_type = "post"
+        elif _re.search(r'/@[^/]+/?$|/user/|/channel/|/c/|twitch\.tv/[^/]+/?$|kick\.com/[^/]+/?$', url_lower):
+            content_type = "profile"
+
+        return jsonify({
+            "success": True,
+            "url": url,
+            "platform": platform,
+            "content_type": content_type,
+            "supported_platforms": list(platform_patterns.keys()),
+            "supported_content_types": ["live", "video", "post", "profile"],
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/v11/handle", methods=["POST"])
+def api_v11_handle():
+    """Handle any URL — fetch metadata for non-live, return live status for live."""
+    try:
+        data = request.get_json(force=True) or {}
+        url = data.get("url", "")
+        cookies = data.get("cookies", "")
+        if not url:
+            return jsonify({"success": False, "error": "url required"}), 400
+
+        # Detect platform + content type
+        import re as _re
+        url_lower = url.lower()
+        platform = "unknown"
+        platform_patterns = {
+            "tiktok": [r'tiktok\.com', r'vt\.tiktok\.com'],
+            "youtube": [r'youtube\.com', r'youtu\.be'],
+            "instagram": [r'instagram\.com'],
+            "twitch": [r'twitch\.tv'],
+            "facebook": [r'facebook\.com', r'fb\.watch'],
+            "twitter_x": [r'twitter\.com', r'x\.com'],
+            "kick": [r'kick\.com'],
+            "bilibili": [r'bilibili\.com'],
+            "douyin": [r'douyin\.com'],
+        }
+        for p, patterns in platform_patterns.items():
+            for pat in patterns:
+                if _re.search(pat, url_lower):
+                    platform = p
+                    break
+            if platform != "unknown":
+                break
+
+        content_type = "unknown"
+        if _re.search(r'/live|live\.bilibili|/spaces/', url_lower):
+            content_type = "live"
+        elif _re.search(r'/video/|/watch\?v=|/shorts/|/reel/|youtu\.be/|/videos/|fb\.watch/|/status/', url_lower):
+            content_type = "video"
+        elif _re.search(r'/p/|/post/', url_lower):
+            content_type = "post"
+        else:
+            content_type = "profile"
+
+        # For non-live URLs: try oEmbed
+        metadata = {}
+        if content_type != "live":
+            try:
+                oembed_endpoints = {
+                    "tiktok": f"https://www.tiktok.com/oembed?url={url}",
+                    "youtube": f"https://www.youtube.com/oembed?url={url}&format=json",
+                    "instagram": f"https://api.instagram.com/oembed?url={url}",
+                }
+                oembed_url = oembed_endpoints.get(platform)
+                if oembed_url:
+                    import requests as _requests
+                    import urllib3 as _urllib3
+                    _urllib3.disable_warnings()
+                    r = _requests.get(oembed_url, headers={"User-Agent": "Mozilla/5.0"},
+                                      timeout=8, verify=False)
+                    metadata["http_status"] = r.status_code
+                    if r.status_code == 200 and r.text.startswith("{"):
+                        d = r.json()
+                        metadata["title"] = d.get("title", "")
+                        metadata["streamer_nickname"] = d.get("author_name", "")
+            except Exception as e:
+                metadata["oembed_error"] = str(e)[:200]
+
+        return jsonify({
+            "success": True,
+            "url": url,
+            "platform": platform,
+            "content_type": content_type,
+            "metadata": metadata,
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ────────────────────────────────────────────────────────────────────────────
 #  تشغيل الخادم
 # ────────────────────────────────────────────────────────────────────────────
 def main():

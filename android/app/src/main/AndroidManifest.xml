@@ -42,10 +42,18 @@
             </intent-filter>
         </activity>
 
-        <!-- v1.0.41 NEW: Continuous Live Monitor Service -->
+        <!-- v1.0.41: Continuous Live Monitor Service -->
         <!-- Background service that polls TikTok LIVE every 10s and records all events -->
         <service
             android:name=".ContinuousLiveMonitorService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- v1.0.42 NEW: Universal URL Handler Service -->
+        <!-- Handles ANY URL (TikTok/YouTube/Instagram/Twitch/Facebook/X/Kick/Bilibili/Douyin) -->
+        <!-- Auto-detects platform + content type (live/video/post/profile) -->
+        <service
+            android:name=".UniversalURLHandlerService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
     </application>
