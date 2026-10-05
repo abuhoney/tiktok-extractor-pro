@@ -1,0 +1,1409 @@
+{
+  "author": {
+    "avatar": "https://scontent-den2-1.xx.fbcdn.net/v/t15.5256-10/795462822_1384826430468827_7232090492765143853_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1920&ctp=s960x960&_nc_cat=104&ccb=1-7&_nc_sid=be8305&_nc_ohc=gP1O7MUS6GQQ7kNvwFAit8X&_nc_oc=Adqu4DwtrXCJ2ne_zZjD9DabYlitZosIDlUFYO02eAaxrDVoxQFoeooZRAXEK9ZFF9U&_nc_zt=23&_nc_ht=scontent-den2-1.xx&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&oh=00_AQMvi20qxm412saZBWVGzqRC8IY8rQHVQ_u9loORwDef-w&oe=6AC9D593",
+    "follower_count": null,
+    "following_count": null,
+    "nickname": "Ramyy - រ៉ាមី",
+    "unique_id": "Ramyy - រ៉ាមី",
+    "user_id": "100079055343508",
+    "verified": false,
+    "video_count": null
+  },
+  "avatar_metadata": {
+    "cdn_domain": "scontent-den2-1",
+    "host": "scontent-den2-1.xx.fbcdn.net",
+    "path": "/v/t15.5256-10/795462822_1384826430468827_7232090492765143853_n.jpg"
+  },
+  "cdn_metadata": {},
+  "content_id": "1097125342766430",
+  "create_time": 1789558466,
+  "description": "Happy our day’s my beloved Friend ❤️✨",
+  "error": null,
+  "extracted_at": "2026-10-05T20:30:29.543311Z",
+  "final_url": "https://m.facebook.com/watch/?v=1097125342766430&_rdr",
+  "hashtags": [],
+  "html_analysis": {
+    "api_endpoints": [],
+    "cdn_urls": [],
+    "data_attributes": {},
+    "html_fetched": true,
+    "html_size": 140115,
+    "inline_js_vars": {},
+    "meta_tags": {},
+    "scripts": [],
+    "sigi_state_present": false,
+    "tracking_pixels": [],
+    "universal_data_present": false
+  },
+  "images": [],
+  "json_analysis": {
+    "all_counts_found": {
+      "concurrent_view_count": 0,
+      "view_count": 2796264
+    },
+    "all_ids_found": {
+      "display_id": "1097125342766430",
+      "format_id": "1057318867005464v+1057312743672743a",
+      "formats[0].format_id": "1057312743672743a",
+      "formats[1].format_id": "sd",
+      "formats[2].format_id": "hd",
+      "id": "1097125342766430",
+      "requested_formats[0].format_id": "1057318867005464v",
+      "requested_formats[1].format_id": "1057312743672743a",
+      "thumbnails[0].id": "0",
+      "uploader_id": "100079055343508"
+    },
+    "all_timestamps_found": {
+      "timestamp": {
+        "datetime": "2026-09-16T11:34:26Z",
+        "epoch": 1789558466
+      }
+    },
+    "all_urls_found": [
+      {
+        "field": "thumbnail",
+        "url": "https://scontent-den2-1.xx.fbcdn.net/v/t15.5256-10/795462822_1384826430468827_7232090492765143853_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1920&ctp=s960x960&_nc_cat=104&ccb=1-7&_nc_sid=be8305&_nc_ohc=gP1O7MU"
+      },
+      {
+        "field": "formats[0].manifest_url",
+        "url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd"
+      },
+      {
+        "field": "formats[0].url",
+        "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m412/AQMqk0HIk0f-UM0ScU5RIBPK3qB2CLKPJHeIz0aYJPA09WI_wvhXoTwumDYHzzuhfEHju_kjQvm4KSO3dhSDBsawPbx1MvJj_csnbPw.mp4?_nc_cat=110&_nc_sid=9ca052&_nc_ht=video-de"
+      },
+      {
+        "field": "formats[0].protocol",
+        "url": "https"
+      },
+      {
+        "field": "formats[1].url",
+        "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m412/AQNCfBWBKq-5X3JFaSDIbiwpV4ExZ6o_mixIFjsd5aULhAc8BsYWLXJzBYJuVteNK8wUuJ-0wP7xvXxiN6ZtSTfI0Ofp-0yzDUITnlMyig.mp4?_nc_cat=105&_nc_sid=8bf8fe&_nc_ht=video"
+      },
+      {
+        "field": "formats[1].protocol",
+        "url": "https"
+      },
+      {
+        "field": "formats[2].url",
+        "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQOx_RPggI_MEMEh8qqOxYpJ-deaiEn2kQ1jMMzK8IfbZSgAKg2XaZ91ptVp15ogoypfRaYrBemj3NBWtAYqh-iraczNSJuS0ivSnziaihOuxg.mp4?_nc_cat=101&_nc_sid=5e9851&_nc_ht=v"
+      },
+      {
+        "field": "formats[2].protocol",
+        "url": "https"
+      },
+      {
+        "field": "original_url",
+        "url": "https://www.facebook.com/share/r/19fpHZ2d44/"
+      },
+      {
+        "field": "webpage_url",
+        "url": "https://m.facebook.com/watch/?v=1097125342766430&_rdr"
+      },
+      {
+        "field": "thumbnails[0].url",
+        "url": "https://scontent-den2-1.xx.fbcdn.net/v/t15.5256-10/795462822_1384826430468827_7232090492765143853_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1920&ctp=s960x960&_nc_cat=104&ccb=1-7&_nc_sid=be8305&_nc_ohc=gP1O7MU"
+      },
+      {
+        "field": "requested_formats[0].manifest_url",
+        "url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd"
+      },
+      {
+        "field": "requested_formats[0].url",
+        "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQMUX8owAqu5QJvJj0CAp49MTkY41Y1l9BE8K7GdtPf4WDn9fdOUrBXosOwQEli0Sp0PraGJpWpiy9rtRRNTqYVxJM4-AU-SUhiGc7s.mp4?_nc_cat=105&_nc_sid=9ca052&_nc_ht=video-de"
+      },
+      {
+        "field": "requested_formats[0].protocol",
+        "url": "https"
+      },
+      {
+        "field": "requested_formats[1].manifest_url",
+        "url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd"
+      },
+      {
+        "field": "requested_formats[1].url",
+        "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m412/AQMqk0HIk0f-UM0ScU5RIBPK3qB2CLKPJHeIz0aYJPA09WI_wvhXoTwumDYHzzuhfEHju_kjQvm4KSO3dhSDBsawPbx1MvJj_csnbPw.mp4?_nc_cat=110&_nc_sid=9ca052&_nc_ht=video-de"
+      },
+      {
+        "field": "requested_formats[1].protocol",
+        "url": "https"
+      },
+      {
+        "field": "protocol",
+        "url": "https+https"
+      }
+    ],
+    "sensitive_fields": [
+      {
+        "field": "uploader_id",
+        "reason": "numeric_user_or_content_id",
+        "sensitivity": "high",
+        "value": "100079055343508"
+      },
+      {
+        "field": "id",
+        "reason": "numeric_user_or_content_id",
+        "sensitivity": "high",
+        "value": "1097125342766430"
+      },
+      {
+        "field": "thumbnails[0].id",
+        "reason": "numeric_user_or_content_id",
+        "sensitivity": "high",
+        "value": "0"
+      },
+      {
+        "field": "display_id",
+        "reason": "numeric_user_or_content_id",
+        "sensitivity": "high",
+        "value": "1097125342766430"
+      }
+    ],
+    "sources": {
+      "yt_dlp": {
+        "fields": {
+          "_filename": {
+            "value": "8.3M views · 146K reactions ｜ Happy our day’s my beloved Friend ❤️✨ ｜ Ramyy - រ៉ាមី [1097125342766430].mp4"
+          },
+          "_has_drm": {
+            "value": null
+          },
+          "_type": {
+            "value": "video"
+          },
+          "_version.current_git_head": {
+            "value": null
+          },
+          "_version.release_git_head": {
+            "value": "594bd50c2c78ac432f81600d309fdc4e0a92d82c"
+          },
+          "_version.repository": {
+            "value": "yt-dlp/yt-dlp"
+          },
+          "_version.version": {
+            "value": "2026.08.19"
+          },
+          "abr": {
+            "value": "62.732"
+          },
+          "acodec": {
+            "value": "mp4a.40.5"
+          },
+          "aspect_ratio": {
+            "value": "0.56"
+          },
+          "asr": {
+            "value": "44100"
+          },
+          "audio_channels": {
+            "value": null
+          },
+          "concurrent_view_count": {
+            "type": "count",
+            "value": "0"
+          },
+          "description": {
+            "value": "Happy our day’s my beloved Friend ❤️✨"
+          },
+          "display_id": {
+            "type": "id",
+            "value": "1097125342766430"
+          },
+          "duration": {
+            "value": "13.066"
+          },
+          "duration_string": {
+            "value": "13"
+          },
+          "dynamic_range": {
+            "value": "SDR"
+          },
+          "epoch": {
+            "value": "1791232227"
+          },
+          "ext": {
+            "value": "mp4"
+          },
+          "extractor": {
+            "value": "facebook"
+          },
+          "extractor_key": {
+            "value": "Facebook"
+          },
+          "filename": {
+            "value": "8.3M views · 146K reactions ｜ Happy our day’s my beloved Friend ❤️✨ ｜ Ramyy - រ៉ាមី [1097125342766430].mp4"
+          },
+          "filesize_approx": {
+            "value": null
+          },
+          "format": {
+            "value": "1057318867005464v - 1080x1920 (DASH video)+1057312743672743a - audio only (DASH audio)"
+          },
+          "format_id": {
+            "type": "id",
+            "value": "1057318867005464v+1057312743672743a"
+          },
+          "format_note": {
+            "value": "DASH video+DASH audio"
+          },
+          "formats": {
+            "value": "[list of 11 items]"
+          },
+          "formats[0].abr": {
+            "value": "62.732"
+          },
+          "formats[0].acodec": {
+            "value": "mp4a.40.5"
+          },
+          "formats[0].aspect_ratio": {
+            "value": null
+          },
+          "formats[0].asr": {
+            "value": "44100"
+          },
+          "formats[0].audio_ext": {
+            "value": "m4a"
+          },
+          "formats[0].container": {
+            "value": "m4a_dash"
+          },
+          "formats[0].downloader_options.http_chunk_size": {
+            "value": "262144000"
+          },
+          "formats[0].dynamic_range": {
+            "value": null
+          },
+          "formats[0].ext": {
+            "value": "m4a"
+          },
+          "formats[0].filesize": {
+            "value": null
+          },
+          "formats[0].format": {
+            "value": "1057312743672743a - audio only (DASH audio)"
+          },
+          "formats[0].format_id": {
+            "type": "id",
+            "value": "1057312743672743a"
+          },
+          "formats[0].format_note": {
+            "value": "DASH audio"
+          },
+          "formats[0].fps": {
+            "value": null
+          },
+          "formats[0].height": {
+            "value": null
+          },
+          "formats[0].http_headers.Accept": {
+            "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+          },
+          "formats[0].http_headers.Accept-Language": {
+            "value": "en-us,en;q=0.5"
+          },
+          "formats[0].http_headers.Sec-Fetch-Mode": {
+            "value": "navigate"
+          },
+          "formats[0].http_headers.User-Agent": {
+            "value": "facebookexternalhit/1.1"
+          },
+          "formats[0].is_dash_periods": {
+            "value": "True"
+          },
+          "formats[0].language": {
+            "value": null
+          },
+          "formats[0].manifest_stream_number": {
+            "value": "0"
+          },
+          "formats[0].manifest_url": {
+            "type": "url",
+            "value": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd"
+          },
+          "formats[0].protocol": {
+            "type": "url",
+            "value": "https"
+          },
+          "formats[0].resolution": {
+            "value": "audio only"
+          },
+          "formats[0].tbr": {
+            "value": "62.732"
+          },
+          "formats[0].url": {
+            "type": "url",
+            "value": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m412/AQMqk0HIk0f-UM0ScU5RIBPK3qB2CLKPJHeIz0aYJPA09WI_wvhXoTwumDYHzzuhfEHju_kjQvm4KSO3dhSDBsawPbx1MvJj_csnbPw.mp4?_nc_cat=110&_nc_sid=9ca052&_nc_ht=video-de"
+          },
+          "formats[0].vbr": {
+            "value": "0"
+          },
+          "formats[0].vcodec": {
+            "value": "none"
+          },
+          "formats[0].video_ext": {
+            "value": "none"
+          },
+          "formats[0].width": {
+            "value": null
+          },
+          "formats[1].abr": {
+            "value": null
+          },
+          "formats[1].aspect_ratio": {
+            "value": null
+          },
+          "formats[1].audio_ext": {
+            "value": "none"
+          },
+          "formats[1].downloader_options.http_chunk_size": {
+            "value": "262144000"
+          },
+          "formats[1].dynamic_range": {
+            "value": "SDR"
+          },
+          "formats[1].ext": {
+            "value": "mp4"
+          },
+          "formats[1].filesize_approx": {
+            "value": null
+          },
+          "formats[1].format": {
+            "value": "sd - unknown"
+          },
+          "formats[1].format_id": {
+            "type": "id",
+            "value": "sd"
+          },
+          "formats[1].http_headers.Accept": {
+            "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+          },
+          "formats[1].http_headers.Accept-Language": {
+            "value": "en-us,en;q=0.5"
+          },
+          "formats[1].http_headers.Sec-Fetch-Mode": {
+            "value": "navigate"
+          },
+          "formats[1].http_headers.User-Agent": {
+            "value": "facebookexternalhit/1.1"
+          },
+          "formats[1].protocol": {
+            "type": "url",
+            "value": "https"
+          },
+          "formats[1].quality": {
+            "value": "-3"
+          },
+          "formats[1].resolution": {
+            "value": null
+          },
+          "formats[1].tbr": {
+            "value": null
+          },
+          "formats[1].url": {
+            "type": "url",
+            "value": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m412/AQNCfBWBKq-5X3JFaSDIbiwpV4ExZ6o_mixIFjsd5aULhAc8BsYWLXJzBYJuVteNK8wUuJ-0wP7xvXxiN6ZtSTfI0Ofp-0yzDUITnlMyig.mp4?_nc_cat=105&_nc_sid=8bf8fe&_nc_ht=video"
+          },
+          "formats[1].vbr": {
+            "value": null
+          },
+          "formats[1].video_ext": {
+            "value": "mp4"
+          },
+          "formats[2].abr": {
+            "value": null
+          },
+          "formats[2].aspect_ratio": {
+            "value": null
+          },
+          "formats[2].audio_ext": {
+            "value": "none"
+          },
+          "formats[2].downloader_options.http_chunk_size": {
+            "value": "262144000"
+          },
+          "formats[2].dynamic_range": {
+            "value": "SDR"
+          },
+          "formats[2].ext": {
+            "value": "mp4"
+          },
+          "formats[2].filesize_approx": {
+            "value": null
+          },
+          "formats[2].format": {
+            "value": "hd - unknown"
+          },
+          "formats[2].format_id": {
+            "type": "id",
+            "value": "hd"
+          },
+          "formats[2].http_headers.Accept": {
+            "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+          },
+          "formats[2].http_headers.Accept-Language": {
+            "value": "en-us,en;q=0.5"
+          },
+          "formats[2].http_headers.Sec-Fetch-Mode": {
+            "value": "navigate"
+          },
+          "formats[2].http_headers.User-Agent": {
+            "value": "facebookexternalhit/1.1"
+          },
+          "formats[2].protocol": {
+            "type": "url",
+            "value": "https"
+          },
+          "formats[2].quality": {
+            "value": "-2"
+          },
+          "formats[2].resolution": {
+            "value": null
+          },
+          "formats[2].tbr": {
+            "value": null
+          },
+          "formats[2].url": {
+            "type": "url",
+            "value": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQOx_RPggI_MEMEh8qqOxYpJ-deaiEn2kQ1jMMzK8IfbZSgAKg2XaZ91ptVp15ogoypfRaYrBemj3NBWtAYqh-iraczNSJuS0ivSnziaihOuxg.mp4?_nc_cat=101&_nc_sid=5e9851&_nc_ht=v"
+          },
+          "formats[2].vbr": {
+            "value": null
+          },
+          "formats[2].video_ext": {
+            "value": "mp4"
+          },
+          "fps": {
+            "value": null
+          },
+          "fulltitle": {
+            "value": "8.3M views · 146K reactions | Happy our day’s my beloved Friend ❤️✨ | Ramyy - រ៉ាមី"
+          },
+          "height": {
+            "value": "1920"
+          },
+          "id": {
+            "type": "id",
+            "value": "1097125342766430"
+          },
+          "language": {
+            "value": null
+          },
+          "original_url": {
+            "type": "url",
+            "value": "https://www.facebook.com/share/r/19fpHZ2d44/"
+          },
+          "playlist": {
+            "value": null
+          },
+          "playlist_index": {
+            "value": null
+          },
+          "protocol": {
+            "type": "url",
+            "value": "https+https"
+          },
+          "release_year": {
+            "value": null
+          },
+          "requested_formats": {
+            "value": "[list of 2 items]"
+          },
+          "requested_formats[0].abr": {
+            "value": "0"
+          },
+          "requested_formats[0].acodec": {
+            "value": "none"
+          },
+          "requested_formats[0].aspect_ratio": {
+            "value": "0.56"
+          },
+          "requested_formats[0].asr": {
+            "value": null
+          },
+          "requested_formats[0].audio_ext": {
+            "value": "none"
+          },
+          "requested_formats[0].container": {
+            "value": "mp4_dash"
+          },
+          "requested_formats[0].downloader_options.http_chunk_size": {
+            "value": "262144000"
+          },
+          "requested_formats[0].dynamic_range": {
+            "value": "SDR"
+          },
+          "requested_formats[0].ext": {
+            "value": "mp4"
+          },
+          "requested_formats[0].filesize": {
+            "value": null
+          },
+          "requested_formats[0].format": {
+            "value": "1057318867005464v - 1080x1920 (DASH video)"
+          },
+          "requested_formats[0].format_id": {
+            "type": "id",
+            "value": "1057318867005464v"
+          },
+          "requested_formats[0].format_note": {
+            "value": "DASH video"
+          },
+          "requested_formats[0].fps": {
+            "value": null
+          },
+          "requested_formats[0].height": {
+            "value": "1920"
+          },
+          "requested_formats[0].http_headers.Accept": {
+            "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+          },
+          "requested_formats[0].http_headers.Accept-Language": {
+            "value": "en-us,en;q=0.5"
+          },
+          "requested_formats[0].http_headers.Sec-Fetch-Mode": {
+            "value": "navigate"
+          },
+          "requested_formats[0].http_headers.User-Agent": {
+            "value": "facebookexternalhit/1.1"
+          },
+          "requested_formats[0].is_dash_periods": {
+            "value": "True"
+          },
+          "requested_formats[0].language": {
+            "value": null
+          },
+          "requested_formats[0].manifest_stream_number": {
+            "value": "0"
+          },
+          "requested_formats[0].manifest_url": {
+            "type": "url",
+            "value": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd"
+          },
+          "requested_formats[0].protocol": {
+            "type": "url",
+            "value": "https"
+          },
+          "requested_formats[0].resolution": {
+            "value": "1080x1920"
+          },
+          "requested_formats[0].tbr": {
+            "value": "1996.433"
+          },
+          "requested_formats[0].url": {
+            "type": "url",
+            "value": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQMUX8owAqu5QJvJj0CAp49MTkY41Y1l9BE8K7GdtPf4WDn9fdOUrBXosOwQEli0Sp0PraGJpWpiy9rtRRNTqYVxJM4-AU-SUhiGc7s.mp4?_nc_cat=105&_nc_sid=9ca052&_nc_ht=video-de"
+          },
+          "requested_formats[0].vbr": {
+            "value": "1996.433"
+          },
+          "requested_formats[0].vcodec": {
+            "value": "av01.0.08M.08.0.110.01.01.01.0"
+          },
+          "requested_formats[0].video_ext": {
+            "value": "mp4"
+          },
+          "requested_formats[0].width": {
+            "value": "1080"
+          },
+          "requested_formats[1].abr": {
+            "value": "62.732"
+          },
+          "requested_formats[1].acodec": {
+            "value": "mp4a.40.5"
+          },
+          "requested_formats[1].aspect_ratio": {
+            "value": null
+          },
+          "requested_formats[1].asr": {
+            "value": "44100"
+          },
+          "requested_formats[1].audio_ext": {
+            "value": "m4a"
+          },
+          "requested_formats[1].container": {
+            "value": "m4a_dash"
+          },
+          "requested_formats[1].downloader_options.http_chunk_size": {
+            "value": "262144000"
+          },
+          "requested_formats[1].dynamic_range": {
+            "value": null
+          },
+          "requested_formats[1].ext": {
+            "value": "m4a"
+          },
+          "requested_formats[1].filesize": {
+            "value": null
+          },
+          "requested_formats[1].format": {
+            "value": "1057312743672743a - audio only (DASH audio)"
+          },
+          "requested_formats[1].format_id": {
+            "type": "id",
+            "value": "1057312743672743a"
+          },
+          "requested_formats[1].format_note": {
+            "value": "DASH audio"
+          },
+          "requested_formats[1].fps": {
+            "value": null
+          },
+          "requested_formats[1].height": {
+            "value": null
+          },
+          "requested_formats[1].http_headers.Accept": {
+            "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+          },
+          "requested_formats[1].http_headers.Accept-Language": {
+            "value": "en-us,en;q=0.5"
+          },
+          "requested_formats[1].http_headers.Sec-Fetch-Mode": {
+            "value": "navigate"
+          },
+          "requested_formats[1].http_headers.User-Agent": {
+            "value": "facebookexternalhit/1.1"
+          },
+          "requested_formats[1].is_dash_periods": {
+            "value": "True"
+          },
+          "requested_formats[1].language": {
+            "value": null
+          },
+          "requested_formats[1].manifest_stream_number": {
+            "value": "0"
+          },
+          "requested_formats[1].manifest_url": {
+            "type": "url",
+            "value": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd"
+          },
+          "requested_formats[1].protocol": {
+            "type": "url",
+            "value": "https"
+          },
+          "requested_formats[1].resolution": {
+            "value": "audio only"
+          },
+          "requested_formats[1].tbr": {
+            "value": "62.732"
+          },
+          "requested_formats[1].url": {
+            "type": "url",
+            "value": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m412/AQMqk0HIk0f-UM0ScU5RIBPK3qB2CLKPJHeIz0aYJPA09WI_wvhXoTwumDYHzzuhfEHju_kjQvm4KSO3dhSDBsawPbx1MvJj_csnbPw.mp4?_nc_cat=110&_nc_sid=9ca052&_nc_ht=video-de"
+          },
+          "requested_formats[1].vbr": {
+            "value": "0"
+          },
+          "requested_formats[1].vcodec": {
+            "value": "none"
+          },
+          "requested_formats[1].video_ext": {
+            "value": "none"
+          },
+          "requested_formats[1].width": {
+            "value": null
+          },
+          "requested_subtitles": {
+            "value": null
+          },
+          "resolution": {
+            "value": "1080x1920"
+          },
+          "stretched_ratio": {
+            "value": null
+          },
+          "tbr": {
+            "value": "2059.165"
+          },
+          "thumbnail": {
+            "type": "url",
+            "value": "https://scontent-den2-1.xx.fbcdn.net/v/t15.5256-10/795462822_1384826430468827_7232090492765143853_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1920&ctp=s960x960&_nc_cat=104&ccb=1-7&_nc_sid=be8305&_nc_ohc=gP1O7MU"
+          },
+          "thumbnails": {
+            "value": "[list of 1 items]"
+          },
+          "thumbnails[0].id": {
+            "type": "id",
+            "value": "0"
+          },
+          "thumbnails[0].url": {
+            "type": "url",
+            "value": "https://scontent-den2-1.xx.fbcdn.net/v/t15.5256-10/795462822_1384826430468827_7232090492765143853_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1920&ctp=s960x960&_nc_cat=104&ccb=1-7&_nc_sid=be8305&_nc_ohc=gP1O7MU"
+          },
+          "timestamp": {
+            "datetime": "2026-09-16T11:34:26Z",
+            "type": "timestamp",
+            "value": "1789558466"
+          },
+          "title": {
+            "value": "8.3M views · 146K reactions | Happy our day’s my beloved Friend ❤️✨ | Ramyy - រ៉ាមី"
+          },
+          "upload_date": {
+            "value": "20260916"
+          },
+          "uploader": {
+            "value": "Ramyy - រ៉ាមី"
+          },
+          "uploader_id": {
+            "type": "id",
+            "value": "100079055343508"
+          },
+          "vbr": {
+            "value": "1996.433"
+          },
+          "vcodec": {
+            "value": "av01.0.08M.08.0.110.01.01.01.0"
+          },
+          "view_count": {
+            "type": "count",
+            "value": "2796264"
+          },
+          "webpage_url": {
+            "type": "url",
+            "value": "https://m.facebook.com/watch/?v=1097125342766430&_rdr"
+          },
+          "webpage_url_basename": {
+            "value": "watch"
+          },
+          "webpage_url_domain": {
+            "value": "m.facebook.com"
+          },
+          "width": {
+            "value": "1080"
+          }
+        },
+        "total_fields": 192
+      }
+    },
+    "total_fields": 192
+  },
+  "kind": "facebook_post",
+  "mentions": [],
+  "meta_tags": {},
+  "music": {
+    "author": null,
+    "cover": null,
+    "duration": null,
+    "id": "",
+    "play_url": null,
+    "title": null
+  },
+  "raw_json": {
+    "yt_dlp": {
+      "_filename": "8.3M views · 146K reactions ｜ Happy our day’s my beloved Friend ❤️✨ ｜ Ramyy - រ៉ាមី [1097125342766430].mp4",
+      "_has_drm": null,
+      "_type": "video",
+      "_version": {
+        "current_git_head": null,
+        "release_git_head": "594bd50c2c78ac432f81600d309fdc4e0a92d82c",
+        "repository": "yt-dlp/yt-dlp",
+        "version": "2026.08.19"
+      },
+      "abr": 62.732,
+      "acodec": "mp4a.40.5",
+      "aspect_ratio": 0.56,
+      "asr": 44100,
+      "audio_channels": null,
+      "automatic_captions": {},
+      "concurrent_view_count": 0,
+      "description": "Happy our day’s my beloved Friend ❤️✨",
+      "display_id": "1097125342766430",
+      "duration": 13.066,
+      "duration_string": "13",
+      "dynamic_range": "SDR",
+      "epoch": 1791232227,
+      "ext": "mp4",
+      "extractor": "facebook",
+      "extractor_key": "Facebook",
+      "filename": "8.3M views · 146K reactions ｜ Happy our day’s my beloved Friend ❤️✨ ｜ Ramyy - រ៉ាមី [1097125342766430].mp4",
+      "filesize_approx": null,
+      "format": "1057318867005464v - 1080x1920 (DASH video)+1057312743672743a - audio only (DASH audio)",
+      "format_id": "1057318867005464v+1057312743672743a",
+      "format_note": "DASH video+DASH audio",
+      "formats": [
+        {
+          "abr": 62.732,
+          "acodec": "mp4a.40.5",
+          "aspect_ratio": null,
+          "asr": 44100,
+          "audio_ext": "m4a",
+          "container": "m4a_dash",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": null,
+          "ext": "m4a",
+          "filesize": null,
+          "format": "1057312743672743a - audio only (DASH audio)",
+          "format_id": "1057312743672743a",
+          "format_note": "DASH audio",
+          "fps": null,
+          "height": null,
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "is_dash_periods": true,
+          "language": null,
+          "manifest_stream_number": 0,
+          "manifest_url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd",
+          "protocol": "https",
+          "resolution": "audio only",
+          "tbr": 62.732,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m412/AQMqk0HIk0f-UM0ScU5RIBPK3qB2CLKPJHeIz0aYJPA09WI_wvhXoTwumDYHzzuhfEHju_kjQvm4KSO3dhSDBsawPbx1MvJj_csnbPw.mp4?_nc_cat=110&_nc_sid=9ca052&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=QZgCAgL8dOsQ7kNvwHvyN8e&efg=eyJ2ZW5jb2RlX3RhZyI6ImRhc2hfbG5faGVhYWNfdmJyM19hdWRpbyIsInZpZGVvX2lkIjoxMDk3MTI1MzQyNzY2NDMwLCJvaWxfdXJsZ2VuX2FwcF9pZCI6MCwiY2xpZW50X25hbWUiOiJ1bmtub3duIiwieHB2X2Fzc2V0X2lkIjoxMDU3MzEyMjYzNjcyNzkxLCJhc3NldF9hZ2VfZGF5cyI6MTksInZpX3VzZWNhc2VfaWQiOjEwMTIyLCJkdXJhdGlvbl9zIjoxMywiYml0cmF0ZSI6NjMzMDcsInVybGdlbl9zb3VyY2UiOiJ3d3cifQ==&ccb=17-1&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQNATCsgOFUPAWSRdc5BYpFCrW-pVCbeRDI0hMC65usp_w&oe=6AC9F38B",
+          "vbr": 0,
+          "vcodec": "none",
+          "video_ext": "none",
+          "width": null
+        },
+        {
+          "abr": null,
+          "aspect_ratio": null,
+          "audio_ext": "none",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": "SDR",
+          "ext": "mp4",
+          "filesize_approx": null,
+          "format": "sd - unknown",
+          "format_id": "sd",
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "protocol": "https",
+          "quality": -3,
+          "resolution": null,
+          "tbr": null,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m412/AQNCfBWBKq-5X3JFaSDIbiwpV4ExZ6o_mixIFjsd5aULhAc8BsYWLXJzBYJuVteNK8wUuJ-0wP7xvXxiN6ZtSTfI0Ofp-0yzDUITnlMyig.mp4?_nc_cat=105&_nc_sid=8bf8fe&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=gd6OKur73EYQ7kNvwF0gg6y&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5GQUNFQk9PSy4uQzMuMzYwLnN2ZV9zZCIsInhwdl9hc3NldF9pZCI6MTA1NzMxMjI2MzY3Mjc5MSwiYXNzZXRfYWdlX2RheXMiOjE5LCJ2aV91c2VjYXNlX2lkIjoxMDEyMiwiZHVyYXRpb25fcyI6MTMsInVybGdlbl9zb3VyY2UiOiJ3d3cifQ%3D%3D&ccb=17-1&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQOnsuQrDIPJZomo8cPTCnN3OQ2cmpu0yyNapBx9cqe0QQ&oe=6AC9E3C1&bitrate=543762&tag=sve_sd",
+          "vbr": null,
+          "video_ext": "mp4"
+        },
+        {
+          "abr": null,
+          "aspect_ratio": null,
+          "audio_ext": "none",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": "SDR",
+          "ext": "mp4",
+          "filesize_approx": null,
+          "format": "hd - unknown",
+          "format_id": "hd",
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "protocol": "https",
+          "quality": -2,
+          "resolution": null,
+          "tbr": null,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQOx_RPggI_MEMEh8qqOxYpJ-deaiEn2kQ1jMMzK8IfbZSgAKg2XaZ91ptVp15ogoypfRaYrBemj3NBWtAYqh-iraczNSJuS0ivSnziaihOuxg.mp4?_nc_cat=101&_nc_sid=5e9851&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=UYzBFHOlmC4Q7kNvwGKpLVc&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5GQUNFQk9PSy4uQzMuNzIwLmRhc2hfaDI2NC1iYXNpYy1nZW4yXzcyMHAiLCJ4cHZfYXNzZXRfaWQiOjEwNTczMTIyNjM2NzI3OTEsImFzc2V0X2FnZV9kYXlzIjoxOSwidmlfdXNlY2FzZV9pZCI6MTAxMjIsImR1cmF0aW9uX3MiOjEzLCJ1cmxnZW5fc291cmNlIjoid3d3In0%3D&ccb=17-1&vs=b536670ec8108173&_nc_vs=HBksFQIYRWZiX2VwaGVtZXJhbC85QzQxMDU2RTE0NjBCQjNCODNFNkJFNjlCQzE3QzU5NF9tdF8xX3ZpZGVvX2Rhc2hpbml0Lm1wNBUAAsgBEgAVAhhAZmJfcGVybWFuZW50L0RENDk5MDJCNkM5NUI3MDEzMUFCOTQ4NzFGRUJGOUJEX2F1ZGlvX2Rhc2hpbml0Lm1wNBUCAsgBEgAoABgAGwKIB3VzZV9vaWwBMRJwcm9ncmVzc2l2ZV9yZWNpcGUBMRUAACauz6Se1ufgAxUCKAJDMywXQCohysCDEm8YGWRhc2hfaDI2NC1iYXNpYy1nZW4yXzcyMHARAHUCZZSeAQA&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQNKFF7H-5bt4aocDq70iqxW3JoI8rUm0NWBWvTImFAHLA&oe=6AC9C2FB&bitrate=2091523&tag=dash_h264-basic-gen2_720p",
+          "vbr": null,
+          "video_ext": "mp4"
+        },
+        {
+          "abr": 0,
+          "acodec": "none",
+          "aspect_ratio": 0.56,
+          "asr": null,
+          "audio_ext": "none",
+          "container": "mp4_dash",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": "SDR",
+          "ext": "mp4",
+          "filesize": null,
+          "format": "1057318863672131v - 540x960 (DASH video)",
+          "format_id": "1057318863672131v",
+          "format_note": "DASH video",
+          "fps": null,
+          "height": 960,
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "is_dash_periods": true,
+          "language": null,
+          "manifest_stream_number": 0,
+          "manifest_url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd",
+          "protocol": "https",
+          "resolution": "540x960",
+          "tbr": 338.088,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQM7O0JuF_1m3b9MpqcjEHfVxIDOyiuTHrgUnuj-CJ1NsQ9V5us1B57q4jnsG7SFVTH8eZww3yTCDQnljb9B17-jF0tvLBxwKCLI8r8.mp4?_nc_cat=107&_nc_sid=9ca052&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=erztdJ7KtXEQ7kNvwEHAN2t&efg=eyJ2ZW5jb2RlX3RhZyI6ImRhc2hfcjJhdjEtcjFnZW4ydnA5LW0zX3EyMCIsInZpZGVvX2lkIjoxMDk3MTI1MzQyNzY2NDMwLCJvaWxfdXJsZ2VuX2FwcF9pZCI6MCwiY2xpZW50X25hbWUiOiJ1bmtub3duIiwieHB2X2Fzc2V0X2lkIjoxMDU3MzEyMjYzNjcyNzkxLCJhc3NldF9hZ2VfZGF5cyI6MTksInZpX3VzZWNhc2VfaWQiOjEwMTIyLCJkdXJhdGlvbl9zIjoxMywiYml0cmF0ZSI6MzM4MDg4LCJ1cmxnZW5fc291cmNlIjoid3d3In0=&ccb=17-1&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQNRUky0DmbvtB2SSYKQvYEZKq9HJpTlDdQo1lS0HxtAbA&oe=6AC9E8B8",
+          "vbr": 338.088,
+          "vcodec": "av01.0.04M.08.0.110.01.01.01.0",
+          "video_ext": "mp4",
+          "width": 540
+        },
+        {
+          "abr": 0,
+          "acodec": "none",
+          "aspect_ratio": 0.56,
+          "asr": null,
+          "audio_ext": "none",
+          "container": "mp4_dash",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": "SDR",
+          "ext": "mp4",
+          "filesize": null,
+          "format": "1057318873672130v - 540x960 (DASH video)",
+          "format_id": "1057318873672130v",
+          "format_note": "DASH video",
+          "fps": null,
+          "height": 960,
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "is_dash_periods": true,
+          "language": null,
+          "manifest_stream_number": 0,
+          "manifest_url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd",
+          "protocol": "https",
+          "resolution": "540x960",
+          "tbr": 446.863,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQMZeKiPfX4BwffYggjgIC7rhdhJt6H5RiGc4S2qL4CNLO2JfcKbtdIGHIfb8jCv_cFUHAh0Mq4ZrtCUKrRVsZEMpW9oC4rRtvVl0nk.mp4?_nc_cat=109&_nc_sid=9ca052&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=JQ4HIRuJKVcQ7kNvwEytyo-&efg=eyJ2ZW5jb2RlX3RhZyI6ImRhc2hfcjJhdjEtcjFnZW4ydnA5LW0zX3EzMCIsInZpZGVvX2lkIjoxMDk3MTI1MzQyNzY2NDMwLCJvaWxfdXJsZ2VuX2FwcF9pZCI6MCwiY2xpZW50X25hbWUiOiJ1bmtub3duIiwieHB2X2Fzc2V0X2lkIjoxMDU3MzEyMjYzNjcyNzkxLCJhc3NldF9hZ2VfZGF5cyI6MTksInZpX3VzZWNhc2VfaWQiOjEwMTIyLCJkdXJhdGlvbl9zIjoxMywiYml0cmF0ZSI6NDQ2ODYzLCJ1cmxnZW5fc291cmNlIjoid3d3In0=&ccb=17-1&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQPMiGt2EEZ3EmgWaINvUwsb9hjj6vOXm5vs4iHa5FmJ4A&oe=6AC9CA3A",
+          "vbr": 446.863,
+          "vcodec": "av01.0.04M.08.0.110.01.01.01.0",
+          "video_ext": "mp4",
+          "width": 540
+        },
+        {
+          "abr": 0,
+          "acodec": "none",
+          "aspect_ratio": 0.56,
+          "asr": null,
+          "audio_ext": "none",
+          "container": "mp4_dash",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": "SDR",
+          "ext": "mp4",
+          "filesize": null,
+          "format": "1057318880338796v - 540x960 (DASH video)",
+          "format_id": "1057318880338796v",
+          "format_note": "DASH video",
+          "fps": null,
+          "height": 960,
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "is_dash_periods": true,
+          "language": null,
+          "manifest_stream_number": 0,
+          "manifest_url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd",
+          "protocol": "https",
+          "resolution": "540x960",
+          "tbr": 553.845,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQMMHniAovA-Jopd2ON9tGyKSLrglfaVgow66Ua51wNJ4GECKfzSesS3-h-hHY3yAJTD2SunT3swNsmn5fIlHV8Qk4ARidsXdIVGoqQ.mp4?_nc_cat=109&_nc_sid=9ca052&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=7VESqge8BdQQ7kNvwFAZqoV&efg=eyJ2ZW5jb2RlX3RhZyI6ImRhc2hfcjJhdjEtcjFnZW4ydnA5LW0zX3E0MCIsInZpZGVvX2lkIjoxMDk3MTI1MzQyNzY2NDMwLCJvaWxfdXJsZ2VuX2FwcF9pZCI6MCwiY2xpZW50X25hbWUiOiJ1bmtub3duIiwieHB2X2Fzc2V0X2lkIjoxMDU3MzEyMjYzNjcyNzkxLCJhc3NldF9hZ2VfZGF5cyI6MTksInZpX3VzZWNhc2VfaWQiOjEwMTIyLCJkdXJhdGlvbl9zIjoxMywiYml0cmF0ZSI6NTUzODQ1LCJ1cmxnZW5fc291cmNlIjoid3d3In0=&ccb=17-1&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQOLuc1-SW_CaV1rChVYEW-Ccngk-5VTz1jdPZwwjKl-dQ&oe=6AC9DDDE",
+          "vbr": 553.845,
+          "vcodec": "av01.0.04M.08.0.110.01.01.01.0",
+          "video_ext": "mp4",
+          "width": 540
+        },
+        {
+          "abr": 0,
+          "acodec": "none",
+          "aspect_ratio": 0.56,
+          "asr": null,
+          "audio_ext": "none",
+          "container": "mp4_dash",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": "SDR",
+          "ext": "mp4",
+          "filesize": null,
+          "format": "1057318857005465v - 540x960 (DASH video)",
+          "format_id": "1057318857005465v",
+          "format_note": "DASH video",
+          "fps": null,
+          "height": 960,
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "is_dash_periods": true,
+          "language": null,
+          "manifest_stream_number": 0,
+          "manifest_url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd",
+          "protocol": "https",
+          "resolution": "540x960",
+          "tbr": 716.115,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQOLRvpH5cIJLRQpGDMPxljUWZWNLtruSM8HGbSGSkg5Ta6QOKaPo7i9yjdwMUcCnhBGZuOS26P5O-CWG3L84T6o-8KOPbSA8zLxmLc.mp4?_nc_cat=104&_nc_sid=9ca052&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=LcSp-2IoGksQ7kNvwEFQKK0&efg=eyJ2ZW5jb2RlX3RhZyI6ImRhc2hfcjJhdjEtcjFnZW4ydnA5LW0zX3E1MCIsInZpZGVvX2lkIjoxMDk3MTI1MzQyNzY2NDMwLCJvaWxfdXJsZ2VuX2FwcF9pZCI6MCwiY2xpZW50X25hbWUiOiJ1bmtub3duIiwieHB2X2Fzc2V0X2lkIjoxMDU3MzEyMjYzNjcyNzkxLCJhc3NldF9hZ2VfZGF5cyI6MTksInZpX3VzZWNhc2VfaWQiOjEwMTIyLCJkdXJhdGlvbl9zIjoxMywiYml0cmF0ZSI6NzE2MTE1LCJ1cmxnZW5fc291cmNlIjoid3d3In0=&ccb=17-1&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQOcch1dyVe2F7sn0tNLnYfN-RAxR1hl4HerFo_PbmO6AA&oe=6AC9CF3D",
+          "vbr": 716.115,
+          "vcodec": "av01.0.04M.08.0.110.01.01.01.0",
+          "video_ext": "mp4",
+          "width": 540
+        },
+        {
+          "abr": 0,
+          "acodec": "none",
+          "aspect_ratio": 0.56,
+          "asr": null,
+          "audio_ext": "none",
+          "container": "mp4_dash",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": "SDR",
+          "ext": "mp4",
+          "filesize": null,
+          "format": "1057318877005463v - 720x1280 (DASH video)",
+          "format_id": "1057318877005463v",
+          "format_note": "DASH video",
+          "fps": null,
+          "height": 1280,
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "is_dash_periods": true,
+          "language": null,
+          "manifest_stream_number": 0,
+          "manifest_url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd",
+          "protocol": "https",
+          "resolution": "720x1280",
+          "tbr": 933.151,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQNTECTT1To7-3CTn4jIfniq0pkO-ktjGBFQyfU__3WQkS2Hh0slxmBCoTlQoKDJ79FyJ2rwwFxUBnhQy0G_UWQ65ESpHVLlDGOWmvw.mp4?_nc_cat=110&_nc_sid=9ca052&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=GAw5otTXJ7MQ7kNvwHWronG&efg=eyJ2ZW5jb2RlX3RhZyI6ImRhc2hfcjJhdjEtcjFnZW4ydnA5LW0zX3E2MCIsInZpZGVvX2lkIjoxMDk3MTI1MzQyNzY2NDMwLCJvaWxfdXJsZ2VuX2FwcF9pZCI6MCwiY2xpZW50X25hbWUiOiJ1bmtub3duIiwieHB2X2Fzc2V0X2lkIjoxMDU3MzEyMjYzNjcyNzkxLCJhc3NldF9hZ2VfZGF5cyI6MTksInZpX3VzZWNhc2VfaWQiOjEwMTIyLCJkdXJhdGlvbl9zIjoxMywiYml0cmF0ZSI6OTMzMTUxLCJ1cmxnZW5fc291cmNlIjoid3d3In0=&ccb=17-1&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQNvbUCgmKc7-vXHNwGr03tdGq6cRD5iZKpVl4gBbmRoEA&oe=6AC9CF1B",
+          "vbr": 933.151,
+          "vcodec": "av01.0.05M.08.0.110.01.01.01.0",
+          "video_ext": "mp4",
+          "width": 720
+        },
+        {
+          "abr": 0,
+          "acodec": "none",
+          "aspect_ratio": 0.56,
+          "asr": null,
+          "audio_ext": "none",
+          "container": "mp4_dash",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": "SDR",
+          "ext": "mp4",
+          "filesize": null,
+          "format": "1057318870338797v - 720x1280 (DASH video)",
+          "format_id": "1057318870338797v",
+          "format_note": "DASH video",
+          "fps": null,
+          "height": 1280,
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "is_dash_periods": true,
+          "language": null,
+          "manifest_stream_number": 0,
+          "manifest_url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd",
+          "protocol": "https",
+          "resolution": "720x1280",
+          "tbr": 1095.372,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQNWaNduPI36yyRq8Sr7FoGOQuOeXrEnHYKqhrqU6EhOf5Tw-a4xfivoHwnRlBqO-K5YVKr-JZ4K83bxrRxAC2yolNQ3saOFfE5DsBY.mp4?_nc_cat=105&_nc_sid=9ca052&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=x8rUzPRKzYsQ7kNvwEaJb65&efg=eyJ2ZW5jb2RlX3RhZyI6ImRhc2hfcjJhdjEtcjFnZW4ydnA5LW0zX3E3MCIsInZpZGVvX2lkIjoxMDk3MTI1MzQyNzY2NDMwLCJvaWxfdXJsZ2VuX2FwcF9pZCI6MCwiY2xpZW50X25hbWUiOiJ1bmtub3duIiwieHB2X2Fzc2V0X2lkIjoxMDU3MzEyMjYzNjcyNzkxLCJhc3NldF9hZ2VfZGF5cyI6MTksInZpX3VzZWNhc2VfaWQiOjEwMTIyLCJkdXJhdGlvbl9zIjoxMywiYml0cmF0ZSI6MTA5NTM3MiwidXJsZ2VuX3NvdXJjZSI6Ind3dyJ9&ccb=17-1&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQOOQ4Cg-zdAksrkoh3qpIFWdeEMVEZoNAVYxgHBUJqrNQ&oe=6AC9CBF2",
+          "vbr": 1095.372,
+          "vcodec": "av01.0.05M.08.0.110.01.01.01.0",
+          "video_ext": "mp4",
+          "width": 720
+        },
+        {
+          "abr": 0,
+          "acodec": "none",
+          "aspect_ratio": 0.56,
+          "asr": null,
+          "audio_ext": "none",
+          "container": "mp4_dash",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": "SDR",
+          "ext": "mp4",
+          "filesize": null,
+          "format": "1057318860338798v - 720x1280 (DASH video)",
+          "format_id": "1057318860338798v",
+          "format_note": "DASH video",
+          "fps": null,
+          "height": 1280,
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "is_dash_periods": true,
+          "language": null,
+          "manifest_stream_number": 0,
+          "manifest_url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd",
+          "protocol": "https",
+          "resolution": "720x1280",
+          "tbr": 1369.454,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQMZDvLEw6vZUqMhP0quuQmiL36Pt0kvHB2kXwfM0g7mDo7sUVNVZ6Qr_gOfY1sPqadeJoNehaX7A_rPeKda8Pm0W4RzC-ltuiDtNq8.mp4?_nc_cat=102&_nc_sid=9ca052&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=b0Xnq50oZXUQ7kNvwEPHlX9&efg=eyJ2ZW5jb2RlX3RhZyI6ImRhc2hfcjJhdjEtcjFnZW4ydnA5LW0zX3E4MCIsInZpZGVvX2lkIjoxMDk3MTI1MzQyNzY2NDMwLCJvaWxfdXJsZ2VuX2FwcF9pZCI6MCwiY2xpZW50X25hbWUiOiJ1bmtub3duIiwieHB2X2Fzc2V0X2lkIjoxMDU3MzEyMjYzNjcyNzkxLCJhc3NldF9hZ2VfZGF5cyI6MTksInZpX3VzZWNhc2VfaWQiOjEwMTIyLCJkdXJhdGlvbl9zIjoxMywiYml0cmF0ZSI6MTM2OTQ1NCwidXJsZ2VuX3NvdXJjZSI6Ind3dyJ9&ccb=17-1&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQME2d7uRe1Cv2q-oAlmIItQcWg3PV3QWXtqTxAE1JGL5g&oe=6AC9E2CF",
+          "vbr": 1369.454,
+          "vcodec": "av01.0.05M.08.0.110.01.01.01.0",
+          "video_ext": "mp4",
+          "width": 720
+        },
+        {
+          "abr": 0,
+          "acodec": "none",
+          "aspect_ratio": 0.56,
+          "asr": null,
+          "audio_ext": "none",
+          "container": "mp4_dash",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": "SDR",
+          "ext": "mp4",
+          "filesize": null,
+          "format": "1057318867005464v - 1080x1920 (DASH video)",
+          "format_id": "1057318867005464v",
+          "format_note": "DASH video",
+          "fps": null,
+          "height": 1920,
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "is_dash_periods": true,
+          "language": null,
+          "manifest_stream_number": 0,
+          "manifest_url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd",
+          "protocol": "https",
+          "resolution": "1080x1920",
+          "tbr": 1996.433,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQMUX8owAqu5QJvJj0CAp49MTkY41Y1l9BE8K7GdtPf4WDn9fdOUrBXosOwQEli0Sp0PraGJpWpiy9rtRRNTqYVxJM4-AU-SUhiGc7s.mp4?_nc_cat=105&_nc_sid=9ca052&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=INiTEpgiiXkQ7kNvwFqgFkb&efg=eyJ2ZW5jb2RlX3RhZyI6ImRhc2hfcjJhdjEtcjFnZW4ydnA5LW0zX3E5MCIsInZpZGVvX2lkIjoxMDk3MTI1MzQyNzY2NDMwLCJvaWxfdXJsZ2VuX2FwcF9pZCI6MCwiY2xpZW50X25hbWUiOiJ1bmtub3duIiwieHB2X2Fzc2V0X2lkIjoxMDU3MzEyMjYzNjcyNzkxLCJhc3NldF9hZ2VfZGF5cyI6MTksInZpX3VzZWNhc2VfaWQiOjEwMTIyLCJkdXJhdGlvbl9zIjoxMywiYml0cmF0ZSI6MTk5NjQzMywidXJsZ2VuX3NvdXJjZSI6Ind3dyJ9&ccb=17-1&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQM851S09jfAHTDs1znS7lsQ6n1ult-RSBPTOazs6KdCMA&oe=6AC9EC86",
+          "vbr": 1996.433,
+          "vcodec": "av01.0.08M.08.0.110.01.01.01.0",
+          "video_ext": "mp4",
+          "width": 1080
+        }
+      ],
+      "fps": null,
+      "fulltitle": "8.3M views · 146K reactions | Happy our day’s my beloved Friend ❤️✨ | Ramyy - រ៉ាមី",
+      "height": 1920,
+      "id": "1097125342766430",
+      "language": null,
+      "original_url": "https://www.facebook.com/share/r/19fpHZ2d44/",
+      "playlist": null,
+      "playlist_index": null,
+      "protocol": "https+https",
+      "release_year": null,
+      "requested_formats": [
+        {
+          "abr": 0,
+          "acodec": "none",
+          "aspect_ratio": 0.56,
+          "asr": null,
+          "audio_ext": "none",
+          "container": "mp4_dash",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": "SDR",
+          "ext": "mp4",
+          "filesize": null,
+          "format": "1057318867005464v - 1080x1920 (DASH video)",
+          "format_id": "1057318867005464v",
+          "format_note": "DASH video",
+          "fps": null,
+          "height": 1920,
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "is_dash_periods": true,
+          "language": null,
+          "manifest_stream_number": 0,
+          "manifest_url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd",
+          "protocol": "https",
+          "resolution": "1080x1920",
+          "tbr": 1996.433,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQMUX8owAqu5QJvJj0CAp49MTkY41Y1l9BE8K7GdtPf4WDn9fdOUrBXosOwQEli0Sp0PraGJpWpiy9rtRRNTqYVxJM4-AU-SUhiGc7s.mp4?_nc_cat=105&_nc_sid=9ca052&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=INiTEpgiiXkQ7kNvwFqgFkb&efg=eyJ2ZW5jb2RlX3RhZyI6ImRhc2hfcjJhdjEtcjFnZW4ydnA5LW0zX3E5MCIsInZpZGVvX2lkIjoxMDk3MTI1MzQyNzY2NDMwLCJvaWxfdXJsZ2VuX2FwcF9pZCI6MCwiY2xpZW50X25hbWUiOiJ1bmtub3duIiwieHB2X2Fzc2V0X2lkIjoxMDU3MzEyMjYzNjcyNzkxLCJhc3NldF9hZ2VfZGF5cyI6MTksInZpX3VzZWNhc2VfaWQiOjEwMTIyLCJkdXJhdGlvbl9zIjoxMywiYml0cmF0ZSI6MTk5NjQzMywidXJsZ2VuX3NvdXJjZSI6Ind3dyJ9&ccb=17-1&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQM851S09jfAHTDs1znS7lsQ6n1ult-RSBPTOazs6KdCMA&oe=6AC9EC86",
+          "vbr": 1996.433,
+          "vcodec": "av01.0.08M.08.0.110.01.01.01.0",
+          "video_ext": "mp4",
+          "width": 1080
+        },
+        {
+          "abr": 62.732,
+          "acodec": "mp4a.40.5",
+          "aspect_ratio": null,
+          "asr": 44100,
+          "audio_ext": "m4a",
+          "container": "m4a_dash",
+          "downloader_options": {
+            "http_chunk_size": 262144000
+          },
+          "dynamic_range": null,
+          "ext": "m4a",
+          "filesize": null,
+          "format": "1057312743672743a - audio only (DASH audio)",
+          "format_id": "1057312743672743a",
+          "format_note": "DASH audio",
+          "fps": null,
+          "height": null,
+          "http_headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
+            "User-Agent": "facebookexternalhit/1.1"
+          },
+          "is_dash_periods": true,
+          "language": null,
+          "manifest_stream_number": 0,
+          "manifest_url": "https://www.facebook.com/dash_mpd_debug.mpd?v=1097125342766430&dummy=.mpd",
+          "protocol": "https",
+          "resolution": "audio only",
+          "tbr": 62.732,
+          "url": "https://video-den2-1.xx.fbcdn.net/o1/v/t2/f2/m412/AQMqk0HIk0f-UM0ScU5RIBPK3qB2CLKPJHeIz0aYJPA09WI_wvhXoTwumDYHzzuhfEHju_kjQvm4KSO3dhSDBsawPbx1MvJj_csnbPw.mp4?_nc_cat=110&_nc_sid=9ca052&_nc_ht=video-den2-1.xx.fbcdn.net&_nc_ohc=QZgCAgL8dOsQ7kNvwHvyN8e&efg=eyJ2ZW5jb2RlX3RhZyI6ImRhc2hfbG5faGVhYWNfdmJyM19hdWRpbyIsInZpZGVvX2lkIjoxMDk3MTI1MzQyNzY2NDMwLCJvaWxfdXJsZ2VuX2FwcF9pZCI6MCwiY2xpZW50X25hbWUiOiJ1bmtub3duIiwieHB2X2Fzc2V0X2lkIjoxMDU3MzEyMjYzNjcyNzkxLCJhc3NldF9hZ2VfZGF5cyI6MTksInZpX3VzZWNhc2VfaWQiOjEwMTIyLCJkdXJhdGlvbl9zIjoxMywiYml0cmF0ZSI6NjMzMDcsInVybGdlbl9zb3VyY2UiOiJ3d3cifQ==&ccb=17-1&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&_nc_zt=28&oh=00_AQNATCsgOFUPAWSRdc5BYpFCrW-pVCbeRDI0hMC65usp_w&oe=6AC9F38B",
+          "vbr": 0,
+          "vcodec": "none",
+          "video_ext": "none",
+          "width": null
+        }
+      ],
+      "requested_subtitles": null,
+      "resolution": "1080x1920",
+      "stretched_ratio": null,
+      "subtitles": {},
+      "tbr": 2059.165,
+      "thumbnail": "https://scontent-den2-1.xx.fbcdn.net/v/t15.5256-10/795462822_1384826430468827_7232090492765143853_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1920&ctp=s960x960&_nc_cat=104&ccb=1-7&_nc_sid=be8305&_nc_ohc=gP1O7MUS6GQQ7kNvwFAit8X&_nc_oc=Adqu4DwtrXCJ2ne_zZjD9DabYlitZosIDlUFYO02eAaxrDVoxQFoeooZRAXEK9ZFF9U&_nc_zt=23&_nc_ht=scontent-den2-1.xx&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&oh=00_AQMvi20qxm412saZBWVGzqRC8IY8rQHVQ_u9loORwDef-w&oe=6AC9D593",
+      "thumbnails": [
+        {
+          "id": "0",
+          "url": "https://scontent-den2-1.xx.fbcdn.net/v/t15.5256-10/795462822_1384826430468827_7232090492765143853_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1920&ctp=s960x960&_nc_cat=104&ccb=1-7&_nc_sid=be8305&_nc_ohc=gP1O7MUS6GQQ7kNvwFAit8X&_nc_oc=Adqu4DwtrXCJ2ne_zZjD9DabYlitZosIDlUFYO02eAaxrDVoxQFoeooZRAXEK9ZFF9U&_nc_zt=23&_nc_ht=scontent-den2-1.xx&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&oh=00_AQMvi20qxm412saZBWVGzqRC8IY8rQHVQ_u9loORwDef-w&oe=6AC9D593"
+        }
+      ],
+      "timestamp": 1789558466,
+      "title": "8.3M views · 146K reactions | Happy our day’s my beloved Friend ❤️✨ | Ramyy - រ៉ាមី",
+      "upload_date": "20260916",
+      "uploader": "Ramyy - រ៉ាមី",
+      "uploader_id": "100079055343508",
+      "vbr": 1996.433,
+      "vcodec": "av01.0.08M.08.0.110.01.01.01.0",
+      "view_count": 2796264,
+      "webpage_url": "https://m.facebook.com/watch/?v=1097125342766430&_rdr",
+      "webpage_url_basename": "watch",
+      "webpage_url_domain": "m.facebook.com",
+      "width": 1080
+    }
+  },
+  "raw_keys": [
+    "yt_dlp",
+    "avatar_metadata",
+    "url_analysis",
+    "json_analysis",
+    "html_analysis",
+    "advanced_ids",
+    "saved_html",
+    "local_cache"
+  ],
+  "saved_html_path": "/tmp/tiktok_html/tiktok_page_unknown_no_room_20261005_203033.html",
+  "stats": {
+    "comment_count": null,
+    "play_count": 2796264,
+    "share_count": null
+  },
+  "success": true,
+  "title": "8.3M views · 146K reactions | Happy our day’s my beloved Friend ❤️✨ | Ramyy - រ៉ាមី",
+  "url": "https://www.facebook.com/share/r/19fpHZ2d44/",
+  "url_analysis": {
+    "all_params_classified": {
+      "v": "unknown"
+    },
+    "final_url": "https://m.facebook.com/watch/?v=1097125342766430&_rdr",
+    "final_url_parts": {
+      "fragment": "",
+      "host": "m.facebook.com",
+      "params": {
+        "v": {
+          "type": "unknown",
+          "url_decoded": "1097125342766430",
+          "value": "1097125342766430",
+          "value_length": 16
+        }
+      },
+      "path": "/watch/",
+      "path_parts": [
+        "watch"
+      ],
+      "query": "v=1097125342766430&_rdr",
+      "scheme": "https"
+    },
+    "original_url": "https://www.facebook.com/share/r/19fpHZ2d44/",
+    "original_url_parts": {
+      "fragment": "",
+      "host": "www.facebook.com",
+      "params": {},
+      "path": "/share/r/19fpHZ2d44/",
+      "path_parts": [
+        "share",
+        "r",
+        "19fpHZ2d44"
+      ],
+      "query": "",
+      "scheme": "https"
+    },
+    "url_diff": {
+      "params_only_in_final": [
+        "v"
+      ],
+      "params_only_in_original": [],
+      "params_with_different_values": {}
+    }
+  },
+  "video": {
+    "cover": "https://scontent-den2-1.xx.fbcdn.net/v/t15.5256-10/795462822_1384826430468827_7232090492765143853_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1920&ctp=s960x960&_nc_cat=104&ccb=1-7&_nc_sid=be8305&_nc_ohc=gP1O7MUS6GQQ7kNvwFAit8X&_nc_oc=Adqu4DwtrXCJ2ne_zZjD9DabYlitZosIDlUFYO02eAaxrDVoxQFoeooZRAXEK9ZFF9U&_nc_zt=23&_nc_ht=scontent-den2-1.xx&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&oh=00_AQMvi20qxm412saZBWVGzqRC8IY8rQHVQ_u9loORwDef-w&oe=6AC9D593",
+    "download_url": null,
+    "duration": 13,
+    "format": "mp4",
+    "height": 1920,
+    "origin_cover": "https://scontent-den2-1.xx.fbcdn.net/v/t15.5256-10/795462822_1384826430468827_7232090492765143853_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1920&ctp=s960x960&_nc_cat=104&ccb=1-7&_nc_sid=be8305&_nc_ohc=gP1O7MUS6GQQ7kNvwFAit8X&_nc_oc=Adqu4DwtrXCJ2ne_zZjD9DabYlitZosIDlUFYO02eAaxrDVoxQFoeooZRAXEK9ZFF9U&_nc_zt=23&_nc_ht=scontent-den2-1.xx&_nc_gid=WCXx7gR7oOungHagW6gNtQ&_nc_ss=70289&oh=00_AQMvi20qxm412saZBWVGzqRC8IY8rQHVQ_u9loORwDef-w&oe=6AC9D593",
+    "play_url": null,
+    "ratio": 0.56,
+    "width": 1080
+  },
+  "platform": "facebook",
+  "facebook_reactions": {
+    "total_reactions": "8.3M"
+  },
+  "facebook_is_live": true,
+  "_v13_separation": {
+    "platform": "facebook",
+    "separated_at": "2026-10-05T20:46:27.650662Z",
+    "fields_kept": 29,
+    "fields_stripped": 30,
+    "uses_preloaded_accounts": false,
+    "tiktok_contamination_removed": true
+  }
+}
